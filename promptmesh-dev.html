@@ -989,11 +989,11 @@ function showModal(id){document.getElementById(id).style.display='flex';}
 function closeModal(id){document.getElementById(id).style.display='none';}
 let toastT;
 function toast(msg,type=''){const el=document.getElementById('toast');el.textContent=msg;el.className='show'+(type?' '+type:'');clearTimeout(toastT);toastT=setTimeout(()=>el.className='',3200);}
-function toggleDark(){document.body.classList.toggle('light');localStorage.setItem('pm_dark_dev',document.body.classList.contains('light')?'0':'1');}
+function toggleDark(){document.body.classList.toggle('light');localStorage.setItem('pm_dark',document.body.classList.contains('light')?'0':'1');}
 
 // ══════════ INIT ══════════
 document.addEventListener('DOMContentLoaded',()=>{
-  if(localStorage.getItem('pm_dark_dev')==='0') document.body.classList.add('light');
+  if(localStorage.getItem('pm_dark')==='0') document.body.classList.add('light');
   renderBots();renderSbBots();renderChallengeList();renderLeaderboard();updateMyElo();updateCostEst();
   const k=getDevKey();
   if(k){document.getElementById('dev-key-status').textContent='Key: '+k.substring(0,10)+'…';document.getElementById('dev-key-status').style.color='var(--green)';}

@@ -485,14 +485,14 @@ body.dark .dark-toggle::after { left:17px; background:#fff; }
     PromptMesh
   </div>
   <div class="nav-spacer"></div>
-  <nav class="nav-links">
+  <div class="nav-links">
     <a class="nav-link" onclick="showView('landing')">Home</a>
     <a class="nav-link" onclick="openTemplates()">Templates</a>
     <a class="nav-link" onclick="toggleHistory()">History</a>
     <a class="nav-link" onclick="showView('projects')">Projects</a>
     <a class="nav-link" onclick="scrollToPricing()">Pricing</a>
     <a class="nav-link" onclick="showView('account')">Account</a>
-  </nav>
+  </div>
   <button class="dark-toggle" id="dark-toggle" onclick="toggleDark()" title="Toggle dark mode"></button>
   <div id="user-badge" onclick="showView('account')">
     <span id="user-name">Guest</span>
@@ -721,7 +721,7 @@ body.dark .dark-toggle::after { left:17px; background:#fff; }
       <div class="sys-prompt-row" id="sys-prompt-row">
         <span class="sys-prompt-badge">SYS</span>
         <input id="sys-prompt-input" placeholder="Custom system prompt injected into all stages… (e.g. 'Use TypeScript' or 'Target audience: beginners')" oninput="saveCustomSys()">
-        <button class="btn btn-ghost btn-xs" onclick="closeSysPtompt()">✕</button>
+        <button class="btn btn-ghost btn-xs" onclick="closeSysPrompt()">✕</button>
       </div>
       <div class="output-tabs">
         <div class="ot on" onclick="switchOT(this,'feed')">Live Feed</div>
@@ -2207,7 +2207,7 @@ function toggleSysPrompt() {
   }
 }
 
-function closeSysPtompt() {
+function closeSysPrompt() {
   document.getElementById('sys-prompt-row').classList.remove('open');
 }
 
