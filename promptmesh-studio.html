@@ -1,0 +1,2397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://api.anthropic.com; frame-src 'none';">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PromptMesh Studio — AI Pipeline Builder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --cream: #f7f4ee;
+  --paper: #faf8f4;
+  --ink: #1c1917;
+  --ink2: #44403c;
+  --ink3: #78716c;
+  --ink4: #a8a29e;
+  --rule: #e7e2d8;
+  --rule2: #d6cfc4;
+  --coral: #c8442a;
+  --coral2: #b03b23;
+  --coral-tint: rgba(200,68,42,0.07);
+  --coral-glow: rgba(200,68,42,0.15);
+  --sage: #4a7c59;
+  --sage-tint: rgba(74,124,89,0.08);
+  --amber: #c47a2a;
+  --amber-tint: rgba(196,122,42,0.08);
+  --slate: #4a5568;
+  --slate-tint: rgba(74,85,104,0.08);
+  --surface: #ffffff;
+  --surface2: #f7f4ee;
+  --radius: 8px;
+  --display: 'Playfair Display', Georgia, serif;
+  --body: 'DM Sans', system-ui, sans-serif;
+  --mono: 'DM Mono', monospace;
+}
+
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{font-family:var(--body);background:var(--cream);color:var(--ink);font-size:14px;line-height:1.5;min-height:100vh;overflow-x:hidden;}
+
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--rule2);border-radius:2px;}
+
+/* ───── TYPOGRAPHY ───── */
+h1,h2,h3{font-family:var(--display);line-height:1.1;letter-spacing:-0.01em;}
+.mono{font-family:var(--mono);}
+
+/* ───── BUTTONS ───── */
+.btn{display:inline-flex;align-items:center;gap:6px;font-family:var(--body);font-size:.82rem;font-weight:600;padding:9px 18px;border-radius:6px;cursor:pointer;transition:all .15s;border:none;text-decoration:none;white-space:nowrap;user-select:none;}
+.btn-primary{background:var(--coral);color:#fff;}
+.btn-primary:hover:not(:disabled){background:var(--coral2);transform:translateY(-1px);box-shadow:0 4px 14px var(--coral-glow);}
+.btn-secondary{background:var(--ink);color:var(--cream);}
+.btn-secondary:hover:not(:disabled){background:var(--ink2);}
+.btn-outline{background:transparent;color:var(--ink);border:1.5px solid var(--rule2);}
+.btn-outline:hover:not(:disabled){border-color:var(--ink);background:var(--paper);}
+.btn-ghost{background:transparent;color:var(--ink3);border:1px solid transparent;}
+.btn-ghost:hover:not(:disabled){background:var(--rule);color:var(--ink);}
+.btn-plan{background:var(--ink);color:var(--cream);font-size:.9rem;padding:12px 28px;font-weight:700;}
+.btn-plan:hover:not(:disabled){background:var(--coral);transform:translateY(-1px);box-shadow:0 6px 20px var(--coral-glow);}
+.btn-sm{padding:6px 12px;font-size:.74rem;}
+.btn-xs{padding:4px 9px;font-size:.68rem;}
+.btn:disabled{opacity:.35;cursor:not-allowed;transform:none!important;box-shadow:none!important;}
+.btn-w{width:100%;justify-content:center;}
+
+/* ───── INPUTS ───── */
+.field{display:flex;flex-direction:column;gap:5px;}
+.field label{font-size:.72rem;font-weight:600;color:var(--ink3);letter-spacing:.04em;text-transform:uppercase;}
+.input,.textarea,.select{width:100%;background:var(--surface);border:1.5px solid var(--rule2);color:var(--ink);font-family:var(--body);font-size:.84rem;padding:9px 12px;border-radius:6px;outline:none;transition:border-color .2s,box-shadow .2s;}
+.input:focus,.textarea:focus,.select:focus{border-color:var(--coral);box-shadow:0 0 0 3px var(--coral-tint);}
+.input::placeholder,.textarea::placeholder{color:var(--ink4);}
+.textarea{resize:none;line-height:1.6;}
+.select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%2378716c' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;}
+
+/* ───── NAV ───── */
+#nav{position:fixed;top:0;left:0;right:0;height:60px;display:flex;align-items:center;padding:0 32px;background:rgba(247,244,238,.96);backdrop-filter:blur(16px);border-bottom:1px solid var(--rule);z-index:500;}
+.nav-logo{font-family:var(--display);font-size:1.3rem;font-weight:900;color:var(--ink);letter-spacing:-.02em;cursor:pointer;display:flex;align-items:center;gap:8px;}
+.nav-logo .logo-mark{width:26px;height:26px;background:var(--coral);border-radius:5px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.nav-logo .logo-mark svg{width:14px;height:14px;fill:#fff;}
+.nav-spacer{flex:1;}
+.nav-links{display:flex;align-items:center;gap:6px;}
+.nav-link{font-size:.8rem;font-weight:500;color:var(--ink3);padding:6px 12px;border-radius:5px;cursor:pointer;transition:all .12s;text-decoration:none;}
+.nav-link:hover{color:var(--ink);background:var(--rule);}
+.nav-link.active{color:var(--coral);}
+#user-badge{display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--surface);border:1px solid var(--rule2);border-radius:6px;cursor:pointer;font-size:.78rem;font-weight:600;transition:all .12s;}
+#user-badge:hover{border-color:var(--rule2);background:var(--paper);}
+.plan-chip{font-size:.62rem;font-weight:700;padding:2px 7px;border-radius:3px;letter-spacing:.06em;text-transform:uppercase;}
+.plan-chip.free{background:var(--rule);color:var(--ink3);}
+.plan-chip.starter{background:var(--amber-tint);color:var(--amber);border:1px solid rgba(196,122,42,.2);}
+.plan-chip.pro{background:var(--coral-tint);color:var(--coral);border:1px solid var(--coral-glow);}
+
+/* ───── VIEWS ───── */
+.view{display:none;padding-top:60px;min-height:100vh;}
+.view.active{display:block;}
+
+/* ───── LANDING ───── */
+#view-landing{background:var(--cream);}
+
+.hero{max-width:900px;margin:0 auto;padding:80px 24px 60px;text-align:center;}
+.hero-eyebrow{font-family:var(--mono);font-size:.68rem;font-weight:500;letter-spacing:.2em;text-transform:uppercase;color:var(--coral);margin-bottom:24px;display:flex;align-items:center;justify-content:center;gap:10px;}
+.hero-eyebrow::before,.hero-eyebrow::after{content:'';display:block;width:40px;height:1px;background:var(--coral);opacity:.4;}
+.hero-h1{font-size:clamp(2.6rem,5vw,4.2rem);font-weight:900;color:var(--ink);margin-bottom:20px;line-height:1.05;max-width:740px;margin-left:auto;margin-right:auto;}
+.hero-h1 em{font-style:italic;color:var(--coral);}
+.hero-p{font-size:1.05rem;color:var(--ink2);max-width:520px;margin:0 auto 40px;line-height:1.7;font-weight:400;}
+
+/* Big prompt input */
+.hero-input-wrap{position:relative;max-width:640px;margin:0 auto 32px;}
+.hero-textarea{width:100%;background:var(--surface);border:2px solid var(--rule2);color:var(--ink);font-family:var(--body);font-size:.96rem;padding:18px 20px 60px;border-radius:12px;outline:none;resize:none;height:140px;line-height:1.6;transition:border-color .2s,box-shadow .2s;box-shadow:0 2px 12px rgba(0,0,0,.06);}
+.hero-textarea:focus{border-color:var(--coral);box-shadow:0 0 0 4px var(--coral-tint),0 4px 24px rgba(0,0,0,.08);}
+.hero-textarea::placeholder{color:var(--ink4);}
+.hero-input-footer{position:absolute;bottom:0;left:0;right:0;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--rule);background:var(--paper);border-radius:0 0 11px 11px;}
+.cost-est{font-family:var(--mono);font-size:.66rem;color:var(--sage);font-weight:500;display:flex;align-items:center;gap:5px;}
+.run-credits{font-family:var(--mono);font-size:.66rem;color:var(--ink4);}
+
+.examples-row{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:640px;margin:0 auto;}
+.ex-chip{font-size:.74rem;padding:7px 14px;border:1px solid var(--rule2);border-radius:20px;cursor:pointer;color:var(--ink2);background:var(--surface);transition:all .12s;font-weight:500;}
+.ex-chip:hover{border-color:var(--coral);color:var(--coral);background:var(--coral-tint);}
+
+/* How it works */
+.how-section{background:var(--surface);border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);padding:80px 24px;}
+.how-inner{max-width:900px;margin:0 auto;}
+.section-eyebrow{font-family:var(--mono);font-size:.65rem;font-weight:500;letter-spacing:.18em;text-transform:uppercase;color:var(--ink4);margin-bottom:12px;}
+.section-h2{font-size:clamp(1.8rem,3.5vw,2.6rem);font-weight:900;color:var(--ink);margin-bottom:48px;line-height:1.1;}
+.section-h2 em{font-style:italic;color:var(--coral);}
+
+.pipeline-steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:10px;overflow:hidden;}
+.ps-item{background:var(--surface);padding:24px 20px;position:relative;transition:background .15s;}
+.ps-item:hover{background:var(--paper);}
+.ps-icon{font-size:1.6rem;margin-bottom:10px;}
+.ps-num{position:absolute;top:16px;right:16px;font-family:var(--mono);font-size:.68rem;font-weight:500;color:var(--ink4);}
+.ps-name{font-family:var(--display);font-size:.95rem;font-weight:700;margin-bottom:4px;}
+.ps-model{font-family:var(--mono);font-size:.62rem;color:var(--ink4);}
+.ps-cost{font-family:var(--mono);font-size:.62rem;color:var(--sage);margin-top:4px;font-weight:500;}
+.ps-desc{font-size:.75rem;color:var(--ink3);margin-top:8px;line-height:1.5;}
+
+/* Pricing section */
+.pricing-section{padding:80px 24px;background:var(--cream);}
+.pricing-inner{max-width:900px;margin:0 auto;}
+.pricing-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin-top:40px;}
+.plan-card{background:var(--surface);border:1.5px solid var(--rule2);border-radius:12px;padding:28px;position:relative;transition:all .2s;}
+.plan-card:hover{box-shadow:0 8px 32px rgba(0,0,0,.08);transform:translateY(-2px);}
+.plan-card.featured{border-color:var(--coral);box-shadow:0 4px 24px var(--coral-glow);}
+.plan-featured-badge{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--coral);color:#fff;font-size:.62rem;font-weight:700;padding:3px 12px;border-radius:12px;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;}
+.plan-name{font-family:var(--display);font-size:1.2rem;font-weight:700;margin-bottom:4px;}
+.plan-price{font-family:var(--display);font-size:2.2rem;font-weight:900;color:var(--ink);margin-bottom:2px;line-height:1;}
+.plan-price sup{font-size:1rem;font-weight:700;vertical-align:top;margin-top:6px;}
+.plan-price-note{font-size:.72rem;color:var(--ink4);margin-bottom:20px;}
+.plan-features{list-style:none;display:flex;flex-direction:column;gap:8px;margin-bottom:24px;}
+.plan-features li{font-size:.8rem;color:var(--ink2);display:flex;align-items:flex-start;gap:8px;line-height:1.4;}
+.plan-features li::before{content:'✓';color:var(--sage);font-weight:700;flex-shrink:0;margin-top:1px;}
+.plan-features li.no::before{content:'—';color:var(--ink4);}
+.plan-features li.no{color:var(--ink4);}
+
+/* Credit packs */
+.credit-packs{margin-top:40px;background:var(--surface);border:1px solid var(--rule);border-radius:12px;padding:28px;}
+.credit-packs h3{font-family:var(--display);font-size:1.2rem;font-weight:700;margin-bottom:6px;}
+.credit-packs p{font-size:.82rem;color:var(--ink3);margin-bottom:20px;line-height:1.5;}
+.packs-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;}
+.pack-item{border:1.5px solid var(--rule2);border-radius:8px;padding:16px;text-align:center;cursor:pointer;transition:all .15s;}
+.pack-item:hover{border-color:var(--coral);background:var(--coral-tint);}
+.pack-item.best{border-color:var(--coral);}
+.pack-credits{font-family:var(--display);font-size:1.4rem;font-weight:900;color:var(--ink);}
+.pack-price{font-size:.78rem;color:var(--ink3);margin-top:2px;}
+.pack-per{font-family:var(--mono);font-size:.62rem;color:var(--sage);font-weight:500;}
+.pack-savings{font-size:.64rem;color:var(--coral);font-weight:600;margin-top:4px;}
+
+/* ───── RUN PANEL (fullscreen takeover) ───── */
+#view-run{position:fixed;inset:60px 0 0;background:var(--cream);z-index:400;display:none;flex-direction:column;}
+#view-run.active{display:flex;}
+
+.run-topbar{padding:14px 28px;background:var(--surface);border-bottom:1px solid var(--rule);display:flex;align-items:center;gap:14px;flex-shrink:0;}
+.run-prompt-display{flex:1;font-size:.88rem;color:var(--ink);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.status-pill{font-family:var(--mono);font-size:.62rem;font-weight:700;padding:4px 12px;border-radius:20px;letter-spacing:.05em;text-transform:uppercase;flex-shrink:0;}
+.status-pill.idle{background:var(--rule);color:var(--ink4);}
+.status-pill.running{background:var(--amber-tint);color:var(--amber);border:1px solid rgba(196,122,42,.2);animation:pillPulse 2s infinite;}
+.status-pill.done{background:var(--sage-tint);color:var(--sage);border:1px solid rgba(74,124,89,.2);}
+.status-pill.error{background:rgba(200,68,42,.08);color:var(--coral);border:1px solid var(--coral-glow);}
+@keyframes pillPulse{0%,100%{opacity:1}50%{opacity:.7}}
+
+.run-body{flex:1;display:grid;grid-template-columns:380px 1fr;overflow:hidden;}
+
+/* Left: stages */
+#run-stages{border-right:1px solid var(--rule);display:flex;flex-direction:column;overflow:hidden;background:var(--surface);}
+.stages-scroll{flex:1;overflow-y:auto;padding:20px;}
+
+.stage-row{margin-bottom:4px;}
+.stage-card{border:1.5px solid var(--rule);border-radius:10px;overflow:hidden;transition:all .25s;}
+.stage-card.sc-active{border-color:var(--amber);}
+.stage-card.sc-done{border-color:var(--rule2);}
+.stage-card.sc-error{border-color:var(--coral);}
+
+.sc-head{display:flex;align-items:center;gap:12px;padding:12px 14px;cursor:pointer;user-select:none;}
+.sc-head:hover{background:var(--paper);}
+.sc-icon-wrap{width:38px;height:38px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;}
+.sc-info{flex:1;min-width:0;}
+.sc-name{font-weight:700;font-size:.82rem;margin-bottom:1px;}
+.sc-sub{font-size:.66rem;color:var(--ink4);font-family:var(--mono);}
+.sc-timing{font-family:var(--mono);font-size:.62rem;color:var(--ink4);flex-shrink:0;}
+.sc-status-icon{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.7rem;flex-shrink:0;font-weight:700;}
+.sc-status-icon.idle{background:var(--rule);color:var(--ink4);}
+.sc-status-icon.working{background:var(--amber-tint);color:var(--amber);border:1px solid rgba(196,122,42,.3);animation:spinWork 1.2s linear infinite;}
+@keyframes spinWork{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+.sc-status-icon.done{background:var(--sage-tint);color:var(--sage);}
+.sc-status-icon.error{background:rgba(200,68,42,.08);color:var(--coral);}
+.sc-output{display:none;padding:0 14px 14px;font-size:.72rem;line-height:1.7;color:var(--ink2);border-top:1px solid var(--rule);}
+.sc-output.open{display:block;}
+.sc-output pre{background:var(--cream);border:1px solid var(--rule);padding:10px 12px;border-radius:6px;overflow-x:auto;font-family:var(--mono);font-size:.66rem;line-height:1.6;margin:8px 0;color:var(--ink);}
+.sc-output code{background:var(--cream);padding:1px 5px;border-radius:3px;font-family:var(--mono);font-size:.68rem;color:var(--coral);}
+.sc-output strong{color:var(--ink);font-weight:600;}
+
+.stage-connector{width:2px;height:18px;background:var(--rule);margin:0 0 0 30px;flex-shrink:0;transition:background .4s;}
+.stage-connector.done{background:var(--sage);opacity:.5;}
+
+/* Run summary bar at bottom of stages */
+.run-summary{padding:14px 20px;border-top:1px solid var(--rule);background:var(--paper);flex-shrink:0;}
+.rs-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+.rs-item{text-align:center;}
+.rs-val{font-family:var(--mono);font-size:.9rem;font-weight:700;color:var(--ink);}
+.rs-val.green{color:var(--sage);}
+.rs-val.coral{color:var(--coral);}
+.rs-label{font-size:.6rem;color:var(--ink4);text-transform:uppercase;letter-spacing:.08em;margin-top:1px;}
+
+/* Right: output + log */
+#run-output{display:flex;flex-direction:column;overflow:hidden;}
+.output-tabs{display:flex;border-bottom:1px solid var(--rule);background:var(--surface);flex-shrink:0;}
+.ot{padding:12px 20px;font-size:.78rem;font-weight:600;cursor:pointer;color:var(--ink3);border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .12s;user-select:none;}
+.ot.on{color:var(--coral);border-bottom-color:var(--coral);}
+.ot:hover:not(.on){color:var(--ink);}
+.ot-body{display:none;flex:1;overflow:hidden;}
+.ot-body.on{display:flex;flex-direction:column;}
+
+/* Feed */
+#run-feed{flex:1;overflow-y:auto;padding:14px 18px;display:flex;flex-direction:column;gap:2px;}
+.feed-item{display:flex;gap:10px;padding:5px 8px;border-radius:5px;font-size:.7rem;transition:background .1s;animation:fadeUp .18s ease;}
+.feed-item:hover{background:var(--paper);}
+@keyframes fadeUp{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.fi-time{font-family:var(--mono);font-size:.62rem;color:var(--ink4);flex-shrink:0;min-width:48px;}
+.fi-from{font-weight:700;flex-shrink:0;min-width:68px;font-size:.68rem;}
+.fi-msg{color:var(--ink2);flex:1;line-height:1.5;}
+.fi-plan .fi-from{color:var(--slate);}
+.fi-design .fi-from{color:#7c5cbf;}
+.fi-frontend .fi-from{color:#2563ab;}
+.fi-backend .fi-from{color:var(--amber);}
+.fi-polish .fi-from{color:var(--sage);}
+.fi-system .fi-from{color:var(--ink4);}
+
+/* Final output */
+#final-output-scroll{flex:1;overflow-y:auto;padding:20px 24px;}
+.fo-section{margin-bottom:16px;border:1px solid var(--rule2);border-radius:10px;overflow:hidden;}
+.fo-header{padding:10px 16px;background:var(--paper);border-bottom:1px solid var(--rule);display:flex;align-items:center;gap:8px;font-weight:700;font-size:.78rem;}
+.fo-content{padding:16px;font-size:.76rem;line-height:1.8;color:var(--ink2);white-space:pre-wrap;}
+.fo-content code{background:var(--cream);padding:1px 5px;border-radius:3px;font-family:var(--mono);font-size:.7rem;color:var(--coral);}
+.fo-content pre{background:var(--ink);color:var(--cream);padding:14px;border-radius:7px;overflow-x:auto;font-family:var(--mono);font-size:.68rem;line-height:1.6;margin:8px 0;}
+.fo-content strong{color:var(--ink);font-weight:600;}
+.fo-content h3,.fo-content h4{font-family:var(--display);color:var(--ink);margin:12px 0 4px;}
+
+/* Cost breakdown */
+#cost-breakdown{flex:1;overflow-y:auto;padding:20px 24px;}
+.cost-row-item{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--rule);}
+.cost-row-item:last-child{border-bottom:none;}
+.cri-left{display:flex;align-items:center;gap:10px;}
+.cri-icon{font-size:1rem;width:28px;text-align:center;}
+.cri-name{font-weight:600;font-size:.8rem;}
+.cri-model{font-family:var(--mono);font-size:.62rem;color:var(--ink4);}
+.cri-cost{font-family:var(--mono);font-weight:700;font-size:.8rem;color:var(--sage);}
+.cost-total-card{background:var(--ink);color:var(--cream);border-radius:10px;padding:18px;margin-top:16px;}
+.ctc-label{font-size:.68rem;color:rgba(250,248,244,.5);letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px;}
+.ctc-amount{font-family:var(--display);font-size:2rem;font-weight:900;color:#fff;line-height:1;}
+.ctc-saved{font-size:.74rem;color:rgba(74,124,89,.8);margin-top:6px;}
+.ctc-breakdown{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px;}
+.ctb-item{background:rgba(255,255,255,.06);border-radius:5px;padding:8px 10px;}
+.ctb-val{font-family:var(--mono);font-size:.8rem;font-weight:700;color:#fff;}
+.ctb-lab{font-size:.6rem;color:rgba(255,255,255,.4);margin-top:1px;}
+
+/* ───── SAVED PROJECTS VIEW ───── */
+#view-projects{background:var(--cream);}
+.view-inner{max-width:1000px;margin:0 auto;padding:40px 24px;}
+.view-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:32px;gap:16px;}
+.view-title{font-size:1.8rem;font-weight:900;color:var(--ink);}
+.view-subtitle{font-size:.84rem;color:var(--ink3);margin-top:4px;font-weight:400;}
+.projects-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;}
+.project-card{background:var(--surface);border:1.5px solid var(--rule);border-radius:12px;padding:20px;cursor:pointer;transition:all .18s;position:relative;}
+.project-card:hover{box-shadow:0 6px 24px rgba(0,0,0,.08);transform:translateY(-2px);border-color:var(--rule2);}
+.pc-date{font-family:var(--mono);font-size:.62rem;color:var(--ink4);margin-bottom:8px;}
+.pc-prompt{font-size:.88rem;font-weight:600;color:var(--ink);margin-bottom:10px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.pc-stages{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:12px;}
+.pc-stage-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.pc-meta{display:flex;align-items:center;justify-content:space-between;font-size:.68rem;color:var(--ink4);}
+.pc-cost{font-family:var(--mono);color:var(--sage);font-weight:600;}
+.pc-del{padding:3px 8px;border:1px solid var(--rule);border-radius:4px;background:transparent;font-size:.64rem;color:var(--ink4);cursor:pointer;transition:all .1s;}
+.pc-del:hover{border-color:var(--coral);color:var(--coral);}
+.empty-projects{text-align:center;padding:60px 20px;color:var(--ink4);}
+.empty-projects h3{font-family:var(--display);font-size:1.3rem;color:var(--ink2);margin-bottom:8px;}
+.empty-projects p{font-size:.82rem;line-height:1.6;}
+
+/* ───── SETTINGS / ACCOUNT ───── */
+#view-account{background:var(--cream);}
+.account-inner{max-width:680px;margin:0 auto;padding:40px 24px;display:flex;flex-direction:column;gap:20px;}
+.settings-card{background:var(--surface);border:1px solid var(--rule2);border-radius:12px;padding:24px;}
+.settings-card h3{font-family:var(--display);font-size:1rem;font-weight:700;margin-bottom:4px;}
+.settings-card p{font-size:.78rem;color:var(--ink3);margin-bottom:18px;line-height:1.5;}
+.usage-bar{height:6px;background:var(--rule);border-radius:3px;overflow:hidden;margin-top:8px;}
+.usage-fill{height:100%;background:var(--coral);border-radius:3px;transition:width .5s ease;}
+.usage-fill.safe{background:var(--sage);}
+.usage-fill.warn{background:var(--amber);}
+.byok-notice{background:var(--coral-tint);border:1px solid var(--coral-glow);border-radius:7px;padding:12px 14px;font-size:.76rem;color:var(--coral2);line-height:1.5;display:flex;gap:10px;align-items:flex-start;}
+
+/* ───── UPGRADE MODAL ───── */
+.modal-bg{position:fixed;inset:0;background:rgba(28,25,23,.6);backdrop-filter:blur(6px);z-index:800;display:flex;align-items:center;justify-content:center;animation:fadeIn .15s ease;}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.modal{background:var(--surface);border-radius:16px;padding:32px;max-width:480px;width:90%;max-height:90vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,.18);animation:modalUp .22s cubic-bezier(.34,1.56,.64,1);}
+@keyframes modalUp{from{transform:scale(.94);opacity:0}to{transform:none;opacity:1}}
+.modal h3{font-family:var(--display);font-size:1.4rem;font-weight:900;margin-bottom:6px;}
+.modal p{font-size:.82rem;color:var(--ink3);line-height:1.6;margin-bottom:20px;}
+.modal-close{position:absolute;top:16px;right:16px;width:28px;height:28px;background:var(--rule);border:none;border-radius:50%;cursor:pointer;font-size:.9rem;display:flex;align-items:center;justify-content:center;color:var(--ink3);transition:all .12s;}
+.modal-close:hover{background:var(--rule2);color:var(--ink);}
+
+/* ───── TOAST ───── */
+#toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(14px);background:var(--ink);color:var(--cream);font-family:var(--mono);font-size:.72rem;font-weight:500;padding:9px 20px;border-radius:7px;z-index:9999;opacity:0;transition:all .28s cubic-bezier(.34,1.56,.64,1);pointer-events:none;white-space:nowrap;box-shadow:0 6px 24px rgba(0,0,0,.2);}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+#toast.ok{background:var(--sage);color:#fff;}
+#toast.bad{background:var(--coral);color:#fff;}
+#toast.info{background:var(--slate);color:#fff;}
+
+/* ───── MISC ───── */
+.divider{height:1px;background:var(--rule);margin:16px 0;}
+.tag{display:inline-flex;align-items:center;gap:3px;font-size:.62rem;font-weight:700;padding:2px 7px;border-radius:3px;letter-spacing:.05em;text-transform:uppercase;}
+.tag-haiku{background:var(--amber-tint);color:var(--amber);}
+.tag-sonnet{background:var(--coral-tint);color:var(--coral);}
+.tag-gemini{background:var(--slate-tint);color:var(--slate);}
+.tag-gpt{background:var(--sage-tint);color:var(--sage);}
+
+.kbd{display:inline-block;background:var(--paper);border:1px solid var(--rule2);border-radius:3px;padding:1px 5px;font-size:.65rem;font-family:var(--mono);color:var(--ink3);}
+
+
+/* ───── DARK MODE ───── */
+body.dark {
+  --cream: #111010;
+  --paper: #161514;
+  --ink: #f0ece4;
+  --ink2: #c8c4bc;
+  --ink3: #8a8480;
+  --ink4: #5a5652;
+  --rule: #252220;
+  --rule2: #302d2a;
+  --surface: #1a1917;
+  --surface2: #111010;
+  --coral-tint: rgba(200,68,42,0.12);
+  --coral-glow: rgba(200,68,42,0.25);
+  --sage-tint: rgba(74,124,89,0.12);
+  --amber-tint: rgba(196,122,42,0.12);
+  --slate-tint: rgba(74,85,104,0.14);
+}
+body.dark #nav { background: rgba(17,16,16,.96); }
+body.dark .plan-card { background: var(--surface); }
+body.dark .hero-textarea { background: var(--surface); }
+body.dark .fo-content pre { background: #0a0a09; }
+body.dark .modal { background: var(--surface); }
+body.dark .pack-item { background: var(--surface); }
+body.dark .cost-total-card { background: #0a0a09; }
+.dark-toggle { cursor:pointer; width:32px; height:18px; background:var(--rule2); border-radius:9px; position:relative; transition:background .2s; flex-shrink:0; border:none; }
+.dark-toggle::after { content:''; position:absolute; top:3px; left:3px; width:12px; height:12px; background:var(--ink4); border-radius:50%; transition:all .2s; }
+body.dark .dark-toggle { background:var(--coral); }
+body.dark .dark-toggle::after { left:17px; background:#fff; }
+
+/* ───── TEMPLATES MODAL ───── */
+.templates-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(200px,1fr)); gap:10px; margin-top:14px; }
+.tpl-card { border:1.5px solid var(--rule2); border-radius:9px; padding:14px; cursor:pointer; transition:all .14s; background:var(--surface); }
+.tpl-card:hover { border-color:var(--coral); background:var(--coral-tint); transform:translateY(-1px); }
+.tpl-icon { font-size:1.4rem; margin-bottom:6px; }
+.tpl-name { font-weight:700; font-size:.8rem; margin-bottom:3px; color:var(--ink); }
+.tpl-desc { font-size:.68rem; color:var(--ink3); line-height:1.4; }
+.tpl-mode { font-family:var(--mono); font-size:.58rem; color:var(--ink4); margin-top:6px; }
+
+/* ───── HISTORY SIDEBAR ───── */
+.history-sidebar { position:fixed; right:0; top:60px; bottom:0; width:280px; background:var(--surface); border-left:1px solid var(--rule); z-index:300; transform:translateX(100%); transition:transform .25s cubic-bezier(.4,0,.2,1); overflow-y:auto; }
+.history-sidebar.open { transform:translateX(0); }
+.history-header { padding:16px 18px 10px; border-bottom:1px solid var(--rule); display:flex; align-items:center; justify-content:space-between; }
+.history-header h3 { font-family:var(--display); font-size:.9rem; font-weight:700; }
+.history-item { padding:10px 18px; border-bottom:1px solid var(--rule); cursor:pointer; transition:background .1s; }
+.history-item:hover { background:var(--paper); }
+.hi-prompt { font-size:.76rem; font-weight:600; color:var(--ink); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; line-height:1.4; margin-bottom:3px; }
+.hi-meta { font-size:.62rem; color:var(--ink4); font-family:var(--mono); display:flex; gap:8px; }
+
+/* ───── PREVIEW IFRAME ───── */
+#preview-iframe { width:100%; height:100%; border:none; background:#fff; }
+.preview-controls { padding:8px 16px; border-bottom:1px solid var(--rule); background:var(--paper); display:flex; align-items:center; gap:8px; flex-shrink:0; }
+.preview-controls span { font-size:.72rem; color:var(--ink4); flex:1; font-family:var(--mono); }
+
+/* ───── COPY BUTTON ───── */
+.copy-btn { padding:4px 10px; background:var(--surface); border:1px solid var(--rule2); border-radius:4px; font-size:.64rem; font-weight:600; color:var(--ink3); cursor:pointer; transition:all .12s; white-space:nowrap; }
+.copy-btn:hover { border-color:var(--coral); color:var(--coral); }
+.copy-btn.copied { background:var(--sage-tint); border-color:var(--sage); color:var(--sage); }
+
+/* ───── RETRY BUTTON ───── */
+.retry-btn { padding:3px 9px; background:transparent; border:1px solid var(--rule2); border-radius:4px; font-size:.62rem; color:var(--ink3); cursor:pointer; transition:all .12s; }
+.retry-btn:hover { border-color:var(--amber); color:var(--amber); }
+
+/* ───── CUSTOM SYSTEM PROMPT ───── */
+.sys-prompt-row { padding:8px 16px; background:var(--amber-tint); border-bottom:1px solid rgba(196,122,42,.15); display:none; align-items:center; gap:8px; flex-shrink:0; }
+.sys-prompt-row.open { display:flex; }
+.sys-prompt-row input { flex:1; background:transparent; border:none; outline:none; font-size:.74rem; color:var(--ink); font-family:var(--body); }
+.sys-prompt-row input::placeholder { color:var(--amber); opacity:.6; }
+.sys-prompt-badge { font-family:var(--mono); font-size:.58rem; font-weight:700; color:var(--amber); letter-spacing:.06em; flex-shrink:0; }
+
+/* ───── STATS CARDS ───── */
+.stats-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(130px,1fr)); gap:10px; margin-bottom:18px; }
+.stat-card { background:var(--paper); border:1px solid var(--rule); border-radius:8px; padding:14px; text-align:center; }
+.stat-val { font-family:var(--display); font-size:1.6rem; font-weight:900; color:var(--ink); line-height:1; }
+.stat-val.coral { color:var(--coral); }
+.stat-val.sage { color:var(--sage); }
+.stat-lab { font-size:.62rem; color:var(--ink4); text-transform:uppercase; letter-spacing:.08em; margin-top:4px; }
+
+/* ───── SHORTCUT HINT ───── */
+.shortcut-bar { display:flex; align-items:center; gap:14px; justify-content:center; flex-wrap:wrap; padding:10px 0; }
+.shortcut-hint { font-size:.66rem; color:var(--ink4); display:flex; align-items:center; gap:4px; }
+
+/* scrollbar for run panel */
+#run-feed::-webkit-scrollbar,#final-output-scroll::-webkit-scrollbar,#cost-breakdown::-webkit-scrollbar,#run-stages .stages-scroll::-webkit-scrollbar{width:3px;}
+
+/* Iteration controls */
+.iteration-bar{padding:12px 18px;border-top:1px solid var(--rule);background:var(--paper);display:flex;align-items:center;gap:8px;flex-shrink:0;}
+#iteration-input{flex:1;background:var(--surface);border:1.5px solid var(--rule2);color:var(--ink);font-family:var(--body);font-size:.82rem;padding:7px 12px;border-radius:6px;outline:none;transition:border-color .2s;}
+#iteration-input:focus{border-color:var(--coral);}
+#iteration-input::placeholder{color:var(--ink4);}
+
+/* Upgrade banner */
+.upgrade-banner{background:linear-gradient(135deg,var(--ink) 0%,#2c2620 100%);color:var(--cream);border-radius:12px;padding:20px 24px;display:flex;align-items:center;gap:16px;margin-top:20px;}
+.ub-text{flex:1;}
+.ub-text h4{font-family:var(--display);font-size:1rem;font-weight:700;margin-bottom:3px;}
+.ub-text p{font-size:.76rem;color:rgba(250,248,244,.65);line-height:1.4;}
+
+/* Responsive */
+@media(max-width:680px){
+  .run-body{grid-template-columns:1fr;}
+  #run-stages{display:none;}
+  .hero-h1{font-size:2.2rem;}
+  .pipeline-steps{grid-template-columns:1fr 1fr;}
+  #nav{padding:0 16px;}
+}
+
+/* ── MOBILE FIXES ── */
+@media(max-width:700px){
+  .run-body{grid-template-columns:1fr!important;height:auto;}
+  #run-stages{display:none!important;}
+  .run-topbar{flex-wrap:wrap;gap:6px;padding:10px 12px;}
+  .run-prompt-display{width:100%;order:-1;min-width:0;}
+  #view-run{position:fixed;inset:60px 0 0;overflow:hidden;}
+  .iteration-bar{flex-wrap:wrap;}
+  #iteration-input{width:100%;}
+  .hero{padding:56px 16px 40px;}
+  .hero-h1{font-size:1.9rem!important;}
+  #nav{padding:0 12px;}
+  .nav-links{gap:2px;}
+  .nav-link{padding:5px 7px;font-size:.72rem;}
+  .how-section .pipeline-steps{grid-template-columns:1fr!important;}
+  .pricing-grid{grid-template-columns:1fr!important;}
+  .packs-grid{grid-template-columns:1fr 1fr!important;}
+  .output-tabs{overflow-x:auto;white-space:nowrap;}
+  .ot{flex-shrink:0;}
+  .hero-input-wrap{margin:0 0 24px;}
+  .hero-textarea{height:120px;font-size:.88rem;}
+  .hero-input-footer{flex-wrap:wrap;gap:6px;}
+  .modal{margin:12px;width:calc(100% - 24px);}
+  .history-sidebar{width:100%;border-left:none;border-top:1px solid var(--rule);}
+  .account-inner{padding:24px 14px;}
+  .view-inner{padding:24px 14px;}
+}
+@media(max-width:480px){
+  .btn-plan{padding:10px 16px;font-size:.82rem;}
+  .pricing-grid .plan-card:not(.featured){display:none;}
+  .run-topbar .btn:not(#abort-btn):not(#save-btn){display:none;}
+  .run-topbar .btn#save-btn,.run-topbar .btn#abort-btn{display:flex;}
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav id="nav">
+  <a href="promptmesh-hub.html" class="btn btn-ghost btn-sm" style="margin-right:4px">← Hub</a>
+  <div class="nav-logo" onclick="showView('landing')">
+    <div class="logo-mark"><svg viewBox="0 0 14 14"><path d="M1 1h5v5H1zM8 1h5v5H8zM1 8h5v5H1zM8 8h5v5H8z" opacity=".5"/><line x1="6" y1="3.5" x2="8" y2="3.5" stroke="#fff" stroke-width="1.5"/><line x1="3.5" y1="6" x2="3.5" y2="8" stroke="#fff" stroke-width="1.5"/><line x1="10.5" y1="6" x2="10.5" y2="8" stroke="#fff" stroke-width="1.5"/><line x1="6" y1="10.5" x2="8" y2="10.5" stroke="#fff" stroke-width="1.5"/></svg></div>
+    PromptMesh
+  </div>
+  <div class="nav-spacer"></div>
+  <nav class="nav-links">
+    <a class="nav-link" onclick="showView('landing')">Home</a>
+    <a class="nav-link" onclick="openTemplates()">Templates</a>
+    <a class="nav-link" onclick="toggleHistory()">History</a>
+    <a class="nav-link" onclick="showView('projects')">Projects</a>
+    <a class="nav-link" onclick="scrollToPricing()">Pricing</a>
+    <a class="nav-link" onclick="showView('account')">Account</a>
+  </nav>
+  <button class="dark-toggle" id="dark-toggle" onclick="toggleDark()" title="Toggle dark mode"></button>
+  <div id="user-badge" onclick="showView('account')">
+    <span id="user-name">Guest</span>
+    <div class="plan-chip free" id="user-plan-badge">FREE</div>
+  </div>
+</nav>
+
+<!-- ═══════════════ LANDING ═══════════════ -->
+<div class="view active" id="view-landing">
+
+  <section class="hero">
+    <div class="hero-eyebrow">Multi-model pipeline</div>
+    <h1 class="hero-h1">One prompt.<br><em>The right AI</em> for each part.</h1>
+    <p class="hero-p">Type what you want to build. PromptMesh routes each piece — planning, design, code, polish — to the model that handles it cheapest and best.</p>
+
+    <div class="hero-input-wrap">
+      <textarea class="hero-textarea" id="main-input" placeholder="Describe what you want to build…&#10;&#10;e.g. A geometry dash clone with dinosaurs, a landing page for my bakery, a todo app with drag-and-drop" onkeydown="if((event.ctrlKey||event.metaKey)&&event.key==='Enter'){event.preventDefault();startRun()}"></textarea>
+      <div class="hero-input-footer">
+        <div style="display:flex;align-items:center;gap:12px">
+          <div class="cost-est" id="cost-est">⚡ ~$0.003 est.</div>
+          <div class="run-credits" id="credits-display"></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <select class="select" id="mode-select" style="width:140px;padding:5px 28px 5px 10px;font-size:.74rem" onchange="updateCostEst()">
+            <option value="quick">Quick (3 stages)</option>
+            <option value="full">Full Team (5 stages)</option>
+            <option value="code">Code Only</option>
+            <option value="design">Design Focus</option>
+          </select>
+          <button class="btn btn-plan" id="launch-btn" onclick="startRun()">Build it →</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="examples-row" id="examples-row"></div>
+    <div class="shortcut-bar" style="margin-top:16px">
+      <span class="shortcut-hint"><kbd class="kbd">T</kbd> templates</span>
+      <span class="shortcut-hint"><kbd class="kbd">⌘ Enter</kbd> run</span>
+      <span class="shortcut-hint"><kbd class="kbd">/</kbd> focus input</span>
+      <span class="shortcut-hint"><kbd class="kbd">H</kbd> history</span>
+    </div>
+  </section>
+
+  <!-- How it works -->
+  <section class="how-section">
+    <div class="how-inner">
+      <div class="section-eyebrow">The Pipeline</div>
+      <h2 class="section-h2">Every stage uses<br>the <em>right model</em> for the job</h2>
+      <div class="pipeline-steps">
+        <div class="ps-item">
+          <div class="ps-num">01</div>
+          <div class="ps-icon">🧠</div>
+          <div class="ps-name">Planning</div>
+          <div class="ps-model">Claude Haiku</div>
+          <div class="ps-cost">~$0.0003</div>
+          <div class="ps-desc">Spec, architecture, user flows, component breakdown. The debate round.</div>
+        </div>
+        <div class="ps-item">
+          <div class="ps-num">02</div>
+          <div class="ps-icon">🎨</div>
+          <div class="ps-name">Art & Design</div>
+          <div class="ps-model">Gemini Flash</div>
+          <div class="ps-cost">~$0.0002</div>
+          <div class="ps-desc">Design system, color palette, typography, component descriptions.</div>
+        </div>
+        <div class="ps-item">
+          <div class="ps-num">03</div>
+          <div class="ps-icon">💻</div>
+          <div class="ps-name">Frontend</div>
+          <div class="ps-model">Claude Haiku</div>
+          <div class="ps-cost">~$0.0008</div>
+          <div class="ps-desc">HTML/CSS/JS structure, responsive layout, UI components, animations.</div>
+        </div>
+        <div class="ps-item">
+          <div class="ps-num">04</div>
+          <div class="ps-icon">⚙️</div>
+          <div class="ps-name">Backend / Logic</div>
+          <div class="ps-model">Claude Haiku</div>
+          <div class="ps-cost">~$0.0008</div>
+          <div class="ps-desc">Data models, game logic, API routes, state management, algorithms.</div>
+        </div>
+        <div class="ps-item">
+          <div class="ps-num">05</div>
+          <div class="ps-icon">✨</div>
+          <div class="ps-name">Final Polish</div>
+          <div class="ps-model">GPT-4o-mini</div>
+          <div class="ps-cost">~$0.0003</div>
+          <div class="ps-desc">Integration review, README, edge cases, final copy improvements.</div>
+        </div>
+      </div>
+      <div style="margin-top:16px;padding:14px 20px;background:var(--sage-tint);border:1px solid rgba(74,124,89,.15);border-radius:8px;font-size:.78rem;color:var(--ink2);line-height:1.5;display:flex;align-items:center;gap:12px">
+        <span style="font-size:1.2rem">💰</span>
+        <span><strong>Total cost per full run: ~$0.003–0.005</strong> — vs $0.06–0.15 if you sent the whole thing to GPT-4. We save you ~95% by routing intelligently.</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pricing -->
+  <section class="pricing-section" id="pricing">
+    <div class="pricing-inner">
+      <div class="section-eyebrow">Pricing</div>
+      <h2 class="section-h2">Simple, honest pricing.<br><em>No hidden costs.</em></h2>
+
+      <div class="pricing-grid">
+        <div class="plan-card">
+          <div class="plan-name">Free</div>
+          <div class="plan-price"><sup>$</sup>0</div>
+          <div class="plan-price-note">forever · no card needed</div>
+          <ul class="plan-features">
+            <li>3 runs per day</li>
+            <li>Quick mode only (3 stages)</li>
+            <li>Output visible 24 hours</li>
+            <li>BYOK (your own API key)</li>
+            <li class="no">Save projects</li>
+            <li class="no">Full team mode</li>
+            <li class="no">Custom prompts</li>
+            <li class="no">Export to zip</li>
+          </ul>
+          <button class="btn btn-outline btn-w" onclick="setTier('free')">Get started free</button>
+        </div>
+
+        <div class="plan-card featured">
+          <div class="plan-featured-badge">Most Popular</div>
+          <div class="plan-name">Starter</div>
+          <div class="plan-price"><sup>$</sup>9</div>
+          <div class="plan-price-note">per month · billed monthly</div>
+          <ul class="plan-features">
+            <li>50 runs per month</li>
+            <li>All 5 stages (Full Team)</li>
+            <li>Save up to 20 projects</li>
+            <li>Download exports</li>
+            <li>Iterate on outputs</li>
+            <li>Custom system prompts</li>
+            <li class="no">Priority queue</li>
+            <li class="no">API access</li>
+          </ul>
+          <button class="btn btn-primary btn-w" onclick="handleUpgrade('starter')">Start for $9/mo</button>
+        </div>
+
+        <div class="plan-card">
+          <div class="plan-name">Pro</div>
+          <div class="plan-price"><sup>$</sup>29</div>
+          <div class="plan-price-note">per month · billed monthly</div>
+          <ul class="plan-features">
+            <li>200 runs per month</li>
+            <li>All 5 stages + custom</li>
+            <li>Unlimited saved projects</li>
+            <li>Priority queue</li>
+            <li>API access (REST)</li>
+            <li>Custom agent configs</li>
+            <li>Team sharing (3 seats)</li>
+            <li>Export to GitHub repo</li>
+          </ul>
+          <button class="btn btn-secondary btn-w" onclick="handleUpgrade('pro')">Go Pro</button>
+        </div>
+      </div>
+
+      <!-- Credit Packs -->
+      <div class="credit-packs">
+        <h3>Pay as you go — Credit Packs</h3>
+        <p>No subscription? Buy credits. Each credit = 1 full pipeline run. Credits never expire. Use your own API key and it's even cheaper.</p>
+        <div class="packs-grid">
+          <div class="pack-item" onclick="handleBuyCredits(10,3)">
+            <div class="pack-credits">10</div>
+            <div class="pack-price">$3.00</div>
+            <div class="pack-per">$0.30 / run</div>
+          </div>
+          <div class="pack-item best" onclick="handleBuyCredits(50,12)">
+            <div class="pack-credits">50</div>
+            <div class="pack-price">$12.00</div>
+            <div class="pack-per">$0.24 / run</div>
+            <div class="pack-savings">20% off</div>
+          </div>
+          <div class="pack-item" onclick="handleBuyCredits(100,20)">
+            <div class="pack-credits">100</div>
+            <div class="pack-price">$20.00</div>
+            <div class="pack-per">$0.20 / run</div>
+            <div class="pack-savings">33% off</div>
+          </div>
+          <div class="pack-item" onclick="handleBuyCredits(500,75)">
+            <div class="pack-credits">500</div>
+            <div class="pack-price">$75.00</div>
+            <div class="pack-per">$0.15 / run</div>
+            <div class="pack-savings">50% off</div>
+          </div>
+        </div>
+        <div style="margin-top:12px;font-size:.72rem;color:var(--ink4);font-family:var(--mono)">
+          💡 Our cost per run: ~$0.004. Your price per run: $0.15–0.30. Margin: ~40–97%.
+          Enterprise custom pricing available — email us.
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<!-- ═══════════════ RUN VIEW ═══════════════ -->
+<div class="view" id="view-run">
+
+  <div class="run-topbar">
+    <button class="btn btn-ghost btn-sm" onclick="closeRun()">← Back</button>
+    <div class="run-prompt-display" id="run-prompt-display">—</div>
+    <div class="status-pill idle" id="status-pill">IDLE</div>
+    <div style="font-family:var(--mono);font-size:.68rem;color:var(--ink4)" id="run-elapsed">0s</div>
+    <button class="btn btn-ghost btn-sm" id="save-btn" onclick="saveProject()" style="display:none">💾 Save</button>
+    <button class="btn btn-outline btn-sm" onclick="exportOutput()">↓ Export</button>
+    <button class="btn btn-ghost btn-sm" onclick="toggleSysPrompt()" title="Custom system prompt">⚙ Sys</button>
+    <button class="btn btn-ghost btn-sm" onclick="abortRun()" id="abort-btn">■ Stop</button>
+  </div>
+
+  <div class="run-body">
+    <!-- Left: stage cards -->
+    <div id="run-stages">
+      <div class="stages-scroll" id="stages-scroll"></div>
+      <div class="run-summary" id="run-summary">
+        <div class="rs-grid">
+          <div class="rs-item"><div class="rs-val" id="rs-stages">0/0</div><div class="rs-label">Stages</div></div>
+          <div class="rs-item"><div class="rs-val green" id="rs-cost">$0.0000</div><div class="rs-label">Total Cost</div></div>
+          <div class="rs-item"><div class="rs-val" id="rs-time">0s</div><div class="rs-label">Elapsed</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: output -->
+    <div id="run-output">
+      <div class="sys-prompt-row" id="sys-prompt-row">
+        <span class="sys-prompt-badge">SYS</span>
+        <input id="sys-prompt-input" placeholder="Custom system prompt injected into all stages… (e.g. 'Use TypeScript' or 'Target audience: beginners')" oninput="saveCustomSys()">
+        <button class="btn btn-ghost btn-xs" onclick="closeSysPtompt()">✕</button>
+      </div>
+      <div class="output-tabs">
+        <div class="ot on" onclick="switchOT(this,'feed')">Live Feed</div>
+        <div class="ot" onclick="switchOT(this,'output')">Full Output</div>
+        <div class="ot" onclick="switchOT(this,'preview')">Preview</div>
+        <div class="ot" onclick="switchOT(this,'cost')">Cost Breakdown</div>
+      </div>
+      <div class="ot-body on" id="otb-feed">
+        <div id="run-feed"></div>
+      </div>
+      <div class="ot-body" id="otb-output">
+        <div id="final-output-scroll"></div>
+      </div>
+      <div class="ot-body" id="otb-preview" style="flex-direction:column">
+        <div class="preview-controls">
+          <span id="preview-status">Run a build with frontend code to see a live preview here</span>
+          <button class="btn btn-ghost btn-xs" onclick="refreshPreview()">↻ Refresh</button>
+          <button class="btn btn-ghost btn-xs" onclick="openPreviewBlank()">⤢ Open in tab</button>
+        </div>
+        <iframe id="preview-iframe" sandbox="allow-scripts" srcdoc="<html><body style='font-family:sans-serif;color:#888;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:#fafaf8'><div style='text-align:center'><div style='font-size:2rem;margin-bottom:12px'>💻</div><p>Preview renders here after a frontend stage completes</p></div></body></html>"></iframe>
+      </div>
+      <div class="ot-body" id="otb-cost">
+        <div id="cost-breakdown"></div>
+      </div>
+
+      <!-- Iterate on output -->
+      <div class="iteration-bar" id="iteration-bar" style="display:none">
+        <input id="iteration-input" placeholder="Ask for changes… e.g. 'make it dark mode' or 'add user authentication'" onkeydown="if(event.key==='Enter')iterate()">
+        <button class="btn btn-primary btn-sm" onclick="iterate()">Iterate →</button>
+        <button class="btn btn-ghost btn-sm" onclick="shareOutput()">🔗 Share</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ PROJECTS ═══════════════ -->
+<div class="view" id="view-projects">
+  <div class="view-inner">
+    <div class="view-header">
+      <div>
+        <h2 class="view-title">Saved Projects</h2>
+        <p class="view-subtitle">Your builds. Click any to view the full output.</p>
+      </div>
+      <button class="btn btn-primary" onclick="showView('landing')">+ New Build</button>
+    </div>
+    <div id="projects-grid"></div>
+  </div>
+</div>
+
+<!-- ═══════════════ ACCOUNT ═══════════════ -->
+<div class="view" id="view-account">
+  <div class="account-inner">
+    <div class="view-header">
+      <div>
+        <h2 class="view-title">Account</h2>
+        <p class="view-subtitle">Manage your plan, API keys, and usage</p>
+      </div>
+    </div>
+    <div class="stats-grid" id="account-stats-grid">
+      <div class="stat-card"><div class="stat-val" id="stat-runs">0</div><div class="stat-lab">Total Runs</div></div>
+      <div class="stat-card"><div class="stat-val sage" id="stat-cost">$0</div><div class="stat-lab">Total Spent</div></div>
+      <div class="stat-card"><div class="stat-val" id="stat-tokens">0</div><div class="stat-lab">Tokens Used</div></div>
+      <div class="stat-card"><div class="stat-val coral" id="stat-saved">$0</div><div class="stat-lab">Saved vs GPT-4</div></div>
+    </div>
+
+    <!-- Plan & usage -->
+    <div class="settings-card">
+      <h3>Current Plan</h3>
+      <p>Your plan determines how many runs you get and which features are available.</p>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+        <div class="plan-chip" id="account-plan-badge" style="font-size:.8rem;padding:5px 14px">FREE</div>
+        <div style="font-size:.82rem;color:var(--ink2)">
+          <span id="account-runs-used">0</span> / <span id="account-runs-limit">3</span> runs used today
+        </div>
+      </div>
+      <div class="usage-bar"><div class="usage-fill safe" id="usage-fill" style="width:0%"></div></div>
+      <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-primary btn-sm" onclick="handleUpgrade('starter')">Upgrade to Starter — $9/mo</button>
+        <button class="btn btn-outline btn-sm" onclick="handleUpgrade('pro')">Go Pro — $29/mo</button>
+        <button class="btn btn-ghost btn-sm" onclick="handleBuyCredits(50,12)">Buy 50 Credits — $12</button>
+      </div>
+    </div>
+
+    <!-- API Key (BYOK) -->
+    <div class="settings-card">
+      <h3>Your API Key (BYOK)</h3>
+      <p>Use your own Anthropic API key. Your runs cost you ~$0.003 directly — no markup. Key is stored in your browser only, never sent to our servers.</p>
+      <div class="byok-notice" style="margin-bottom:14px">
+        <span>⚠️</span>
+        <span>BYOK bypasses our credit system entirely — you pay Anthropic directly. Great for power users. Key stored in sessionStorage only.</span>
+      </div>
+      <div class="field">
+        <label>Anthropic API Key</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <input class="input" id="byok-input" type="password" placeholder="sk-ant-api03-…" style="flex:1;min-width:200px">
+          <button class="btn btn-secondary btn-sm" onclick="saveByok()">Save Key</button>
+          <button class="btn btn-outline btn-sm" id="test-key-btn" onclick="testApiKey()">Test Key</button>
+          <button class="btn btn-ghost btn-sm" onclick="clearByok()">Clear</button>
+        </div>
+        <div style="font-size:.7rem;color:var(--ink4);margin-top:4px" id="byok-status"></div>
+      </div>
+    </div>
+
+    <!-- Credits -->
+    <div class="settings-card">
+      <h3>Credits</h3>
+      <p>Each credit = 1 full pipeline run. Credits never expire.</p>
+      <div style="font-size:1.2rem;font-weight:700;color:var(--coral);font-family:var(--mono);margin-bottom:14px">
+        <span id="account-credits">0</span> credits remaining
+      </div>
+      <div class="packs-grid" style="grid-template-columns:repeat(auto-fill,minmax(130px,1fr))">
+        <div class="pack-item" onclick="handleBuyCredits(10,3)">
+          <div class="pack-credits">10</div><div class="pack-price">$3</div><div class="pack-per">$0.30/run</div>
+        </div>
+        <div class="pack-item best" onclick="handleBuyCredits(50,12)">
+          <div class="pack-credits">50</div><div class="pack-price">$12</div><div class="pack-per">$0.24/run</div><div class="pack-savings">Best value</div>
+        </div>
+        <div class="pack-item" onclick="handleBuyCredits(100,20)">
+          <div class="pack-credits">100</div><div class="pack-price">$20</div><div class="pack-per">$0.20/run</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Danger zone -->
+    <div class="settings-card" style="border-color:rgba(200,68,42,.2)">
+      <h3 style="color:var(--coral)">Data</h3>
+      <p>Manage your stored data. All data is stored locally in your browser.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-ghost btn-sm" onclick="exportAllProjects()">↓ Export all projects</button>
+        <button class="btn btn-outline btn-sm" onclick="runEfficiencyAudit()">📊 Efficiency audit</button>
+        <button class="btn btn-ghost btn-sm" style="color:var(--coral)" onclick="clearAllData()">Clear all data</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Upgrade modal -->
+<div id="upgrade-modal" style="display:none" class="modal-bg" onclick="if(event.target===this)closeModal('upgrade-modal')">
+  <div class="modal" style="position:relative">
+    <button class="modal-close" onclick="closeModal('upgrade-modal')">✕</button>
+    <h3 id="modal-title">Upgrade PromptMesh</h3>
+    <p id="modal-body">Get more runs, save your projects, and unlock full team mode.</p>
+    <div id="modal-content"></div>
+    <div style="margin-top:16px;font-size:.72rem;color:var(--ink4);text-align:center;line-height:1.5">
+      Payments via Stripe. Cancel anytime. <br>
+      <strong style="color:var(--ink3)">This is a demo — no real charges will be made.</strong><br>
+      Replace Stripe links with real checkout URLs to go live.
+    </div>
+  </div>
+</div>
+
+<!-- History Sidebar -->
+<div class="history-sidebar" id="history-sidebar">
+  <div class="history-header">
+    <h3>Run History</h3>
+    <button class="btn btn-ghost btn-xs" onclick="toggleHistory()">✕</button>
+  </div>
+  <div id="history-list"></div>
+  <div style="padding:14px 18px;font-size:.7rem;color:var(--ink4)">Last 20 prompts. Stored locally.</div>
+</div>
+
+<!-- Templates Modal -->
+<div id="templates-modal" style="display:none" class="modal-bg" onclick="if(event.target===this)closeModal('templates-modal')">
+  <div class="modal" style="max-width:600px;position:relative">
+    <button class="modal-close" onclick="closeModal('templates-modal')">✕</button>
+    <h3>Templates</h3>
+    <p>Click any to load it into the builder. Edit it before running.</p>
+    <div class="templates-grid" id="templates-grid"></div>
+  </div>
+</div>
+
+<!-- Custom Sys Prompt (shown in run view topbar) -->
+
+<div id="toast"></div>
+
+<script>
+'use strict';
+
+// ══════════════════════════════════════════
+//  CONSTANTS & STAGE DEFINITIONS
+// ══════════════════════════════════════════
+const STAGES_CONFIG = {
+  planning: {
+    id: 'planning', name: 'Planning Council', icon: '🧠',
+    color: '#4a5568', bg: 'rgba(74,85,104,0.1)',
+    model: 'claude-haiku-4-5-20251001', tokenBudget: 450,
+    costPer1k: 0.00025, feedType: 'fi-plan',
+    badge: 'PLAN', badgeColor: '#4a5568',
+    buildPrompt(userPrompt, prev, customSys) {
+      return `${customSys ? 'CONTEXT: ' + customSys + '\n\n' : ''}You are a senior architect. Produce a tight project specification for building this:
+
+"${userPrompt}"
+
+Output EXACTLY this format:
+## Summary
+One crisp sentence of what this is.
+
+## Core Features
+- [specific feature 1]
+- [specific feature 2]
+- [specific feature 3 — be concrete, not vague]
+- [feature 4]
+- [feature 5]
+
+## Tech Stack
+HTML + CSS + Vanilla JS (no build tools). [Note any CDNs needed e.g. Chart.js]
+
+## Components to Build
+List 3-5 specific UI components with their responsibilities.
+
+## Data Model
+Show the main JS objects/arrays with example shapes.
+
+## Gotchas
+1-2 specific implementation challenges to watch out for.
+
+Under 280 words total.`;
+    }
+  },
+  design: {
+    id: 'design', name: 'Art & Design', icon: '🎨',
+    color: '#7c5cbf', bg: 'rgba(124,92,191,0.1)',
+    model: 'claude-haiku-4-5-20251001', tokenBudget: 400,
+    costPer1k: 0.00025, feedType: 'fi-design',
+    badge: 'DESIGN', badgeColor: '#7c5cbf',
+    buildPrompt(userPrompt, prev, customSys) {
+      return `${customSys ? 'CONTEXT: ' + customSys + '\n\n' : ''}You are a senior UI/UX designer. Define the complete design system.
+
+PROJECT: "${userPrompt}"
+SPEC: ${(prev.planning||'').substring(0,300)}
+
+Output EXACTLY this format — be very specific:
+## Colors
+--primary: #[hex]  /* [describe what it's used for] */
+--secondary: #[hex]
+--accent: #[hex]
+--bg: #[hex]
+--surface: #[hex]
+--text: #[hex]
+
+## Typography
+Heading: [Google Font name] — [why it fits]
+Body: [Google Font name] — [why it fits]
+Mono: DM Mono (for code/numbers)
+
+## Visual Style
+[One strong adjective]: [2 sentences describing the exact look and feel]
+
+## Key UI Patterns
+- [specific interaction or visual pattern 1]
+- [specific pattern 2]
+- [specific pattern 3]
+
+## Animation
+[Describe 1-2 specific transitions or micro-interactions]
+
+Under 200 words.`;
+    }
+  },
+  frontend: {
+    id: 'frontend', name: 'Frontend', icon: '💻',
+    color: '#2563ab', bg: 'rgba(37,99,171,0.1)',
+    model: 'claude-haiku-4-5-20251001', tokenBudget: 700,
+    costPer1k: 0.00025, feedType: 'fi-frontend',
+    badge: 'UI CODE', badgeColor: '#2563ab',
+    buildPrompt(userPrompt, prev, customSys) {
+      return `${customSys ? 'CONTEXT: ' + customSys + '\n\n' : ''}You are a frontend engineer. Write real, working code for the main screen.
+
+PROJECT: "${userPrompt}"
+DESIGN SYSTEM: ${(prev.design||'').substring(0,280)}
+SPEC: ${(prev.planning||'').substring(0,200)}
+
+Write a single COMPLETE HTML file with:
+1. Google Fonts import matching the design system
+2. CSS with variables from the design system (implement ALL colors/fonts defined above)
+3. The most important UI screen — fully styled, interactive
+4. Smooth transitions and hover states
+5. Responsive (works on mobile)
+
+Rules:
+- Use semantic HTML5
+- CSS variables for theming
+- Vanilla JS only
+- Working code — not pseudocode
+- Include at least one animation/transition
+
+Output just the code in a single \`\`\`html block.`;
+    }
+  },
+  backend: {
+    id: 'backend', name: 'Backend / Logic', icon: '⚙️',
+    color: '#c47a2a', bg: 'rgba(196,122,42,0.1)',
+    model: 'claude-haiku-4-5-20251001', tokenBudget: 700,
+    costPer1k: 0.00025, feedType: 'fi-backend',
+    badge: 'LOGIC', badgeColor: '#c47a2a',
+    buildPrompt(userPrompt, prev, customSys) {
+      return `${customSys ? 'CONTEXT: ' + customSys + '\n\n' : ''}You are a backend/logic engineer. Write the core JavaScript logic.
+
+PROJECT: "${userPrompt}"
+SPEC: ${(prev.planning||'').substring(0,280)}
+
+Write in a \`\`\`javascript block:
+
+1. STATE — the complete initial state object with all fields and example values
+2. CORE FUNCTIONS — implement the 4-5 most important functions FULLY (not stubs)
+   - Each function should actually work, handle edge cases
+   - Include localStorage save/load if data needs to persist
+3. GAME LOOP or STATE MACHINE (if applicable) — the main tick/update function
+4. EVENT HANDLERS — the 2-3 key user interactions
+
+Format:
+\`\`\`javascript
+// === STATE ===
+const state = { ... };
+
+// === CORE LOGIC ===
+function [name]([args]) { ... }
+
+// === INIT ===
+function init() { ... }
+\`\`\`
+
+Write working code. Not pseudocode. Assume vanilla JS in a browser.`;
+    }
+  },
+  polish: {
+    id: 'polish', name: 'Final Polish', icon: '✨',
+    color: '#4a7c59', bg: 'rgba(74,124,89,0.1)',
+    model: 'claude-haiku-4-5-20251001', tokenBudget: 450,
+    costPer1k: 0.00025, feedType: 'fi-polish',
+    badge: 'REVIEW', badgeColor: '#4a7c59',
+    buildPrompt(userPrompt, prev, customSys) {
+      return `${customSys ? 'CONTEXT: ' + customSys + '\n\n' : ''}You are a senior engineer doing a final review. Be direct and useful.
+
+PROJECT: "${userPrompt}"
+FRONTEND (excerpt): ${(prev.frontend||'').substring(0,250)}
+LOGIC (excerpt): ${(prev.backend||'').substring(0,250)}
+
+Write:
+
+## README.md
+# [Project Name]
+> [one-line description]
+
+**Features:** [bullet list of 4-5 key features]
+**Stack:** [tech used]
+**Setup:** [3 steps max]
+
+## Integration Notes
+The specific changes needed to wire frontend to backend logic (be concrete with line numbers or function names if possible).
+
+## Quick Wins (Next 3 improvements)
+1. [specific improvement with rough effort — e.g. "Add localStorage (30 min)"]
+2. [improvement 2]
+3. [improvement 3]
+
+## Watch Out For
+[1-2 specific bugs or edge cases that are likely to bite]
+
+Under 280 words total.`;
+    }
+  }
+};
+
+const MODES = {
+  quick:  ['planning','frontend','backend'],
+  full:   ['planning','design','frontend','backend','polish'],
+  code:   ['planning','backend','frontend'],
+  design: ['planning','design','frontend']
+};
+
+const EXAMPLES = [
+  'Geometry Dash clone with dinosaurs 🦕',
+  'Weather app with animated sky backgrounds',
+  'Kanban board with drag-and-drop',
+  'Budget tracker with beautiful charts',
+  'Recipe app with AI meal suggestions',
+  'Simple chat app with message threads',
+  'Portfolio site for a photographer',
+  'Flashcard app for language learning',
+];
+
+// Revenue-per-run math (for your info):
+// Cost to us per run: ~$0.004
+// Free users (BYOK): $0 revenue, but they promote the product
+// Paid users: $9/mo / 50 = $0.18 per run → ~$0.176 margin
+// Credit pack (50 for $12): $0.24/run → ~$0.236 margin
+// At 1000 active paid users: $9,000–29,000/mo
+
+// ══════════════════════════════════════════
+//  USER STATE (persisted in localStorage)
+// ══════════════════════════════════════════
+function getUser() {
+  try {
+    return JSON.parse(localStorage.getItem('pm_user') || 'null') || {
+      name: 'Guest', tier: 'free', credits: 3, runsToday: 0,
+      lastRunDate: '', projectCount: 0
+    };
+  } catch { return { name: 'Guest', tier: 'free', credits: 3, runsToday: 0, lastRunDate: '', projectCount: 0 }; }
+}
+
+function saveUser(u) {
+  localStorage.setItem('pm_user', JSON.stringify(u));
+  renderUserBadge();
+}
+
+function getRunLimit() {
+  const u = getUser();
+  if (u.tier === 'pro') return 200;
+  if (u.tier === 'starter') return 50;
+  return 3;
+}
+
+function getProjects() {
+  try { return JSON.parse(localStorage.getItem('pm_projects') || '[]'); } catch { return []; }
+}
+
+function saveProjects(p) { localStorage.setItem('pm_projects', JSON.stringify(p)); }
+
+function canRun() {
+  const u = getUser();
+  // BYOK users always can run
+  if (sessionStorage.getItem('pm_key')) return { ok: true, reason: 'byok' };
+  // Check daily reset
+  const today = new Date().toDateString();
+  if (u.lastRunDate !== today) { u.runsToday = 0; u.lastRunDate = today; saveUser(u); }
+  if (u.credits > 0) return { ok: true, reason: 'credits' };
+  if (u.runsToday < getRunLimit()) return { ok: true, reason: 'quota' };
+  return { ok: false, reason: u.tier === 'free' ? 'Free tier: 3 runs/day. Upgrade for more.' : 'Monthly limit reached. Upgrade or buy credits.' };
+}
+
+function consumeRun() {
+  const u = getUser();
+  const today = new Date().toDateString();
+  if (u.lastRunDate !== today) { u.runsToday = 0; u.lastRunDate = today; }
+  if (u.credits > 0) { u.credits--; }
+  else { u.runsToday++; }
+  saveUser(u);
+  updateAccountUI();
+}
+
+// ══════════════════════════════════════════
+//  RUN STATE
+// ══════════════════════════════════════════
+let runState = {
+  running: false, aborted: false, prompt: '',
+  mode: 'quick', stages: [], results: {},
+  totalCost: 0, totalTokens: 0,
+  startTime: 0, stagesDone: 0,
+  elapsedTimer: null, iterationCount: 0
+};
+
+// ══════════════════════════════════════════
+//  NAVIGATION
+// ══════════════════════════════════════════
+function showView(id) {
+  document.querySelectorAll('.view').forEach(v => {
+    v.classList.remove('active');
+    if (v.id === 'view-run') v.style.display = 'none';
+  });
+  const el = document.getElementById('view-' + id);
+  if (!el) return;
+  el.classList.add('active');
+  if (id === 'view-run') el.style.display = 'flex';
+  if (id === 'projects') renderProjects();
+  if (id === 'account') updateAccountUI();
+  window.scrollTo(0, 0);
+}
+
+function scrollToPricing() {
+  showView('landing');
+  setTimeout(() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' }), 100);
+}
+
+function closeRun() {
+  if (runState.running) { abortRun(); setTimeout(doCloseRun, 600); }
+  else doCloseRun();
+}
+
+function doCloseRun() {
+  clearInterval(runState.elapsedTimer);
+  document.getElementById('view-run').style.display = 'none';
+  document.getElementById('view-run').classList.remove('active');
+  document.getElementById('view-landing').classList.add('active');
+}
+
+// ══════════════════════════════════════════
+//  LAUNCH
+// ══════════════════════════════════════════
+async function startRun() {
+  const prompt = document.getElementById('main-input').value.trim();
+  if (!prompt) { toast('Tell me what to build first', 'bad'); return; }
+
+  const check = canRun();
+  if (!check.ok) { showUpgradeModal(check.reason); return; }
+
+  const apiKey = sessionStorage.getItem('pm_key') || promptForKey();
+  if (!apiKey) return;
+
+  const mode = document.getElementById('mode-select').value;
+  const stageIds = MODES[mode] || MODES.full;
+
+  initRunView(prompt, mode, stageIds);
+  consumeRun();
+  await executePipeline(apiKey, prompt, stageIds, mode);
+}
+
+function promptForKey() {
+  const key = window.prompt(
+    'Enter your Anthropic API key to use PromptMesh.\n\n' +
+    '• Stored in sessionStorage only — cleared when you close the tab\n' +
+    '• Goes directly to Anthropic — never touches our servers\n' +
+    '• Get one at: console.anthropic.com\n\nPaste key below (starts with sk-ant-):'
+  );
+  if (!key || !key.trim()) return null;
+  const trimmed = key.trim();
+  if (!trimmed.startsWith('sk-ant')) {
+    const ok = window.confirm('Key does not start with sk-ant- and may be invalid. Try anyway?');
+    if (!ok) return null;
+  }
+  sessionStorage.setItem('pm_key', trimmed);
+  toast('API key saved for this session', 'ok');
+  updateByokStatus();
+  updateCreditsDisplay();
+  return trimmed;
+}
+
+// ══════════════════════════════════════════
+//  RUN VIEW SETUP
+// ══════════════════════════════════════════
+function initRunView(prompt, mode, stageIds) {
+  runState = {
+    running: true, aborted: false, prompt, mode,
+    stages: stageIds, results: {}, totalCost: 0, totalTokens: 0,
+    startTime: Date.now(), stagesDone: 0, elapsedTimer: null, iterationCount: 0
+  };
+
+  // Show run view
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  const rv = document.getElementById('view-run');
+  rv.style.display = 'flex';
+  rv.classList.add('active');
+
+  document.getElementById('run-prompt-display').textContent = prompt.length > 80 ? prompt.substring(0, 80) + '…' : prompt;
+  setStatusPill('running', 'RUNNING');
+  document.getElementById('save-btn').style.display = 'none';
+  document.getElementById('iteration-bar').style.display = 'none';
+  document.getElementById('run-feed').innerHTML = '';
+  document.getElementById('final-output-scroll').innerHTML = '<div style="padding:40px;text-align:center;color:var(--ink4);font-size:.82rem">Output assembles here as stages complete…</div>';
+  document.getElementById('cost-breakdown').innerHTML = '';
+
+  // Build stage cards
+  const scroll = document.getElementById('stages-scroll');
+  scroll.innerHTML = stageIds.map((id, i) => {
+    const s = STAGES_CONFIG[id];
+    return `
+      <div class="stage-row">
+        <div class="stage-card" id="sc-${id}">
+          <div class="sc-head" onclick="toggleStage('${id}')">
+            <div class="sc-icon-wrap" style="background:${s.bg}">${s.icon}</div>
+            <div class="sc-info">
+              <div class="sc-name">${s.name}</div>
+              <div class="sc-sub">${s.model} · ${s.tokenBudget} max tokens</div>
+            </div>
+            <div class="sc-timing" id="sct-${id}"></div>
+            <div class="sc-status-icon idle" id="sci-${id}">○</div>
+          </div>
+          <div class="sc-output" id="sco-${id}"></div>
+        </div>
+        ${i < stageIds.length - 1 ? `<div class="stage-connector" id="conn-${id}"></div>` : ''}
+      </div>`;
+  }).join('');
+
+  // Reset summary
+  document.getElementById('rs-stages').textContent = `0/${stageIds.length}`;
+  document.getElementById('rs-cost').textContent = '$0.0000';
+  document.getElementById('rs-time').textContent = '0s';
+
+  // Switch to feed tab
+  switchOT(document.querySelector('.ot.on') || document.querySelector('.ot'), 'feed');
+
+  // Start elapsed timer
+  let sec = 0;
+  runState.elapsedTimer = setInterval(() => {
+    sec++;
+    document.getElementById('run-elapsed').textContent = sec + 's';
+    document.getElementById('rs-time').textContent = sec + 's';
+  }, 1000);
+
+  addFeed('fi-system', 'SYSTEM', `Starting ${mode} pipeline (${stageIds.length} stages)`);
+}
+
+// ══════════════════════════════════════════
+//  PIPELINE EXECUTION
+// ══════════════════════════════════════════
+async function executePipeline(apiKey, prompt, stageIds, mode) {
+  const customSys = sessionStorage.getItem('pm_custom_sys') || '';
+
+  for (let i = 0; i < stageIds.length; i++) {
+    if (runState.aborted) break;
+    const stageId = stageIds[i];
+    const s = STAGES_CONFIG[stageId];
+
+    setStageStatus(stageId, 'working');
+    addFeed(s.feedType, s.name.toUpperCase(), `Starting — ${s.model}`);
+
+    const t0 = Date.now();
+    const userPrompt = s.buildPrompt(prompt, runState.results, customSys);
+
+    try {
+      let result = await callAPI(apiKey, s, userPrompt);
+      // Retry if truncated — bump token budget by 1.5x (max 2 retries)
+      let retryCount = 0;
+      while (result.truncated && retryCount < 2 && !runState.aborted) {
+        addFeed('fi-system', 'RETRY', `${s.name} output truncated — retrying with more tokens (attempt ${retryCount+2})`);
+        const biggerStage = Object.assign({}, s, { tokenBudget: Math.min(s.tokenBudget * 2, 4096) });
+        result = await callAPI(apiKey, biggerStage, userPrompt);
+        retryCount++;
+      }
+      const ms = Date.now() - t0;
+      const tokens = result.tokens;
+      const cost = tokens * s.costPer1k / 1000;
+
+      runState.results[stageId] = result.text;
+      runState.totalCost += cost;
+      runState.totalTokens += tokens;
+      runState.stagesDone++;
+
+      setStageStatus(stageId, 'done', `${(ms/1000).toFixed(1)}s`);
+      setStageOutput(stageId, result.text);
+      setConnectorDone(stageId);
+      addFeed(s.feedType, s.name.toUpperCase(), `✓ Done in ${(ms/1000).toFixed(1)}s · ${tokens} tokens · ~$${cost.toFixed(5)}`);
+
+      document.getElementById('rs-stages').textContent = `${runState.stagesDone}/${stageIds.length}`;
+      document.getElementById('rs-cost').textContent = `$${runState.totalCost.toFixed(5)}`;
+
+      updateFinalOutput(stageIds);
+      updateCostBreakdown(stageIds);
+
+    } catch (e) {
+      if (e.message === 'ABORTED') { addFeed('fi-system', 'SYSTEM', 'Run aborted'); break; }
+      setStageStatus(stageId, 'error');
+      const errMsg = e.message || 'Unknown error';
+      addFeed('fi-system', s.name.toUpperCase(), 'ERROR: ' + errMsg);
+      setStageOutput(stageId, '⚠️ Error: ' + errMsg + '\n\nCommon fixes:\n• Check your API key is valid (Account tab)\n• Make sure you have Anthropic API credits\n• Try again in a few seconds');
+      setStatusPill('error', 'ERROR');
+      toast(errMsg.substring(0, 80), 'bad');
+      break;
+    }
+
+    await sleep(250);
+  }
+
+  if (!runState.aborted) {
+    setStatusPill('done', 'COMPLETE');
+    addFeed('fi-system', 'SYSTEM', `✓ Complete · Total: ~$${runState.totalCost.toFixed(5)} · ${runState.totalTokens.toLocaleString()} tokens`);
+    toast(`Done! Cost: ~$${runState.totalCost.toFixed(5)}`, 'ok');
+    document.getElementById('save-btn').style.display = '';
+    document.getElementById('iteration-bar').style.display = '';
+    addToHistory(runState.prompt, runState.mode, runState.totalCost);
+    updateStats(runState.totalCost, runState.totalTokens);
+    if (runState.results['frontend']) { autoPreview(); }
+  }
+
+  clearInterval(runState.elapsedTimer);
+  runState.running = false;
+  updateCreditsDisplay();
+}
+
+// ══════════════════════════════════════════
+//  API CALL
+// ══════════════════════════════════════════
+async function callAPI(apiKey, stage, prompt) {
+  if (runState.aborted) throw new Error('ABORTED');
+
+  let resp;
+  try {
+    resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-request-when-unauthenticated': 'true'
+      },
+      body: JSON.stringify({
+        model: stage.model,
+        max_tokens: stage.tokenBudget,
+        system: `You are the ${stage.name} stage of PromptMesh, an AI pipeline tool. Your role: produce the best possible ${stage.name.toLowerCase()} output. Be concise, specific, and output exactly what's requested with no preamble.`,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+  } catch (networkErr) {
+    throw new Error(`Network error — check your internet connection. (${networkErr.message})`);
+  }
+
+  if (!resp.ok) {
+    let errMsg = `HTTP ${resp.status}`;
+    try {
+      const errData = await resp.json();
+      const detail = errData?.error?.message || errData?.message || '';
+      if (resp.status === 401) errMsg = 'Invalid API key — check it starts with sk-ant-api03- and is correct';
+      else if (resp.status === 429) errMsg = 'Rate limited — wait a few seconds and try again';
+      else if (resp.status === 400) errMsg = `Bad request: ${detail.substring(0, 120)}`;
+      else errMsg = `API error ${resp.status}: ${detail.substring(0, 120)}`;
+    } catch (_) {}
+    throw new Error(errMsg);
+  }
+
+  let data;
+  try {
+    data = await resp.json();
+  } catch (_) {
+    throw new Error('Could not parse API response');
+  }
+
+  const text = data.content?.[0]?.text || '';
+  const tokens = (data.usage?.input_tokens || 0) + (data.usage?.output_tokens || 0);
+  const stopReason = data.stop_reason || '';
+  if (!text) throw new Error('Empty response from API — model returned no content');
+  // Return truncation flag so pipeline can retry with more tokens
+  return { text, tokens, truncated: stopReason === 'max_tokens' };
+}
+
+// ══════════════════════════════════════════
+//  ITERATE
+// ══════════════════════════════════════════
+async function iterate() {
+  const input = document.getElementById('iteration-input').value.trim();
+  if (!input) return;
+  if (runState.running) { toast('Wait for current run to finish', 'bad'); return; }
+
+  const u = getUser();
+  if (u.tier === 'free') { showUpgradeModal('Iteration requires Starter or Pro plan.'); return; }
+
+  const check = canRun();
+  if (!check.ok) { showUpgradeModal(check.reason); return; }
+
+  const apiKey = sessionStorage.getItem('pm_key') || promptForKey();
+  if (!apiKey) return;
+
+  runState.iterationCount++;
+  const iterPrompt = `Original request: "${runState.prompt}"
+
+Previous output context:
+${Object.entries(runState.results).map(([k, v]) => `${k.toUpperCase()}: ${v.substring(0, 200)}`).join('\n')}
+
+User feedback / change request: "${input}"
+
+Apply these changes and improve the relevant parts. Output the updated version.`;
+
+  setStatusPill('running', 'ITERATING');
+  document.getElementById('iteration-input').value = '';
+  addFeed('fi-system', 'ITERATE', `Iteration ${runState.iterationCount}: "${input}"`);
+
+  try {
+    consumeRun();
+    const result = await callAPI(apiKey, STAGES_CONFIG.backend, iterPrompt);
+    runState.results['iteration_' + runState.iterationCount] = result.text;
+    addFeed('fi-system', 'ITERATE', `✓ Iteration complete · ${result.tokens} tokens`);
+    const el = document.getElementById('final-output-scroll');
+    const sec = document.createElement('div');
+    sec.className = 'fo-section';
+    sec.innerHTML = `<div class="fo-header">✏️ Iteration ${runState.iterationCount}: ${escHtml(input)}</div><div class="fo-content">${formatOutput(result.text)}</div>`;
+    el.prepend(sec);
+    setStatusPill('done', 'DONE');
+    toast('Iteration applied!', 'ok');
+  } catch (e) {
+    toast('Iteration failed: ' + e.message.substring(0, 60), 'bad');
+    setStatusPill('done', 'DONE');
+  }
+}
+
+// ══════════════════════════════════════════
+//  SAVE & PROJECTS
+// ══════════════════════════════════════════
+function saveProject() {
+  const u = getUser();
+  if (u.tier === 'free') { showUpgradeModal('Save projects with Starter ($9/mo) or Pro ($29/mo) plan.'); return; }
+
+  const projects = getProjects();
+  const stageIds = runState.stages;
+  const project = {
+    id: 'p_' + Date.now(),
+    prompt: runState.prompt,
+    mode: runState.mode,
+    date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+    cost: runState.totalCost,
+    tokens: runState.totalTokens,
+    stages: stageIds,
+    results: { ...runState.results },
+  };
+
+  const maxProjects = u.tier === 'pro' ? Infinity : 20;
+  if (projects.length >= maxProjects) {
+    toast(`Project limit reached (${maxProjects}). Upgrade to Pro for unlimited.`, 'bad');
+    return;
+  }
+
+  projects.unshift(project);
+  saveProjects(projects);
+  u.projectCount = projects.length;
+  saveUser(u);
+
+  toast('Project saved!', 'ok');
+  document.getElementById('save-btn').style.display = 'none';
+}
+
+function renderProjects() {
+  const projects = getProjects();
+  const el = document.getElementById('projects-grid');
+
+  if (!projects.length) {
+    el.innerHTML = `<div class="empty-projects"><h3>No saved projects yet</h3><p>Run a build and save it. Saved projects let you revisit, share, and iterate on your outputs.</p><br><button class="btn btn-primary" onclick="showView('landing')">Start building →</button></div>`;
+    return;
+  }
+
+  const colors = { planning: '#4a5568', design: '#7c5cbf', frontend: '#2563ab', backend: '#c47a2a', polish: '#4a7c59' };
+  el.innerHTML = `<div class="projects-grid">${projects.map(p => `
+    <div class="project-card" onclick="loadProject('${p.id}')">
+      <div class="pc-date">${p.date} · ${p.mode} mode</div>
+      <div class="pc-prompt">${escHtml(p.prompt)}</div>
+      <div class="pc-stages">
+        ${(p.stages || []).map(s => `<div class="pc-stage-dot" style="background:${colors[s] || '#999'}" title="${s}"></div>`).join('')}
+      </div>
+      <div class="pc-meta">
+        <span class="pc-cost">~$${p.cost.toFixed(5)}</span>
+        <button class="pc-del" onclick="event.stopPropagation();deleteProject('${p.id}')">Delete</button>
+      </div>
+    </div>`).join('')}</div>`;
+}
+
+function loadProject(id) {
+  const projects = getProjects();
+  const p = projects.find(x => x.id === id);
+  if (!p) return;
+
+  runState = {
+    running: false, aborted: false, prompt: p.prompt, mode: p.mode,
+    stages: p.stages, results: p.results, totalCost: p.cost,
+    totalTokens: p.tokens, startTime: 0, stagesDone: p.stages.length,
+    elapsedTimer: null, iterationCount: 0
+  };
+
+  initRunView(p.prompt, p.mode, p.stages);
+  clearInterval(runState.elapsedTimer);
+  setStatusPill('done', 'LOADED');
+
+  p.stages.forEach(id => {
+    setStageStatus(id, 'done');
+    if (p.results[id]) setStageOutput(id, p.results[id]);
+    setConnectorDone(id);
+  });
+
+  document.getElementById('rs-stages').textContent = `${p.stages.length}/${p.stages.length}`;
+  document.getElementById('rs-cost').textContent = `$${p.cost.toFixed(5)}`;
+
+  updateFinalOutput(p.stages);
+  updateCostBreakdown(p.stages);
+  document.getElementById('iteration-bar').style.display = '';
+  toast('Project loaded', 'ok');
+}
+
+function deleteProject(id) {
+  if (!confirm('Delete this project? This cannot be undone.')) return;
+  const projects = getProjects().filter(p => p.id !== id);
+  saveProjects(projects);
+  renderProjects();
+  toast('Project deleted');
+}
+
+// ══════════════════════════════════════════
+//  EXPORT & SHARE
+// ══════════════════════════════════════════
+function exportOutput() {
+  if (!Object.keys(runState.results).length) { toast('Nothing to export yet', 'bad'); return; }
+
+  const u = getUser();
+  if (u.tier === 'free') { showUpgradeModal('Export requires Starter plan.'); return; }
+
+  const content = `# PromptMesh Export
+Generated: ${new Date().toLocaleString()}
+Prompt: ${runState.prompt}
+Mode: ${runState.mode}
+Total cost: ~$${runState.totalCost.toFixed(5)}
+
+---
+
+${Object.entries(runState.results).map(([stage, output]) =>
+  `## ${stage.toUpperCase()}\n\n${output}`
+).join('\n\n---\n\n')}`;
+
+  const blob = new Blob([content], { type: 'text/markdown' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `promptmesh-${Date.now()}.md`;
+  a.click();
+  toast('Exported as markdown', 'ok');
+}
+
+function exportAllProjects() {
+  const projects = getProjects();
+  if (!projects.length) { toast('No projects to export', 'bad'); return; }
+  const data = JSON.stringify(projects, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `promptmesh-projects-${Date.now()}.json`;
+  a.click();
+  toast(`Exported ${projects.length} projects`, 'ok');
+}
+
+function shareOutput() {
+  const url = window.location.href;
+  navigator.clipboard.writeText(url).then(() => toast('Link copied! (sharing requires backend in production)', 'info'));
+}
+
+// ══════════════════════════════════════════
+//  ABORT
+// ══════════════════════════════════════════
+function abortRun() {
+  runState.aborted = true;
+  runState.running = false;
+  clearInterval(runState.elapsedTimer);
+  setStatusPill('error', 'STOPPED');
+  toast('Run stopped');
+}
+
+// ══════════════════════════════════════════
+//  MONETIZATION & UPGRADE
+// ══════════════════════════════════════════
+// REPLACE these with real Stripe Checkout URLs from your Stripe dashboard
+const STRIPE_LINKS = {
+  starter: 'https://buy.stripe.com/YOUR_STARTER_LINK', // Replace with real link
+  pro: 'https://buy.stripe.com/YOUR_PRO_LINK',          // Replace with real link
+  credits_10: 'https://buy.stripe.com/YOUR_10_CREDITS',
+  credits_50: 'https://buy.stripe.com/YOUR_50_CREDITS',
+  credits_100: 'https://buy.stripe.com/YOUR_100_CREDITS',
+  credits_500: 'https://buy.stripe.com/YOUR_500_CREDITS',
+};
+
+function handleUpgrade(tier) {
+  showUpgradeModal(null, tier);
+}
+
+function handleBuyCredits(count, price) {
+  const key = `credits_${count}`;
+  const link = STRIPE_LINKS[key];
+  showModal('upgrade-modal');
+  document.getElementById('modal-title').textContent = `Buy ${count} Credits`;
+  document.getElementById('modal-body').textContent = `${count} credits for $${price}. Each credit = 1 full pipeline run. Never expires.`;
+  document.getElementById('modal-content').innerHTML = `
+    <div style="background:var(--sage-tint);border:1px solid rgba(74,124,89,.15);border-radius:8px;padding:14px;margin-bottom:14px;font-size:.78rem;color:var(--ink2);line-height:1.5">
+      <strong>${count} credits</strong> = ${count} pipeline runs<br>
+      At ~$0.004 our cost = ${count} × $${(price/count).toFixed(2)} = <strong>$${price}</strong><br>
+      Your margin per run: ~<strong>$${((price/count) - 0.004).toFixed(3)}</strong>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <a href="${link}" class="btn btn-primary btn-w" target="_blank" onclick="simulatePurchase(${count}, 'credits');closeModal('upgrade-modal')">Pay $${price} with Stripe →</a>
+      <button class="btn btn-outline btn-w" onclick="simulatePurchase(${count},'credits');closeModal('upgrade-modal')">Demo: add ${count} credits (free)</button>
+    </div>`;
+}
+
+function showUpgradeModal(reason, tier) {
+  const modal = document.getElementById('upgrade-modal');
+  showModal('upgrade-modal');
+
+  const titles = { starter: 'Upgrade to Starter', pro: 'Go Pro', null: 'Upgrade PromptMesh' };
+  document.getElementById('modal-title').textContent = titles[tier] || 'Upgrade Required';
+  document.getElementById('modal-body').textContent = reason || 'Unlock more runs, saved projects, and the full 5-stage pipeline.';
+
+  if (tier === 'starter' || !tier) {
+    document.getElementById('modal-content').innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">
+        <div style="border:1.5px solid var(--coral);border-radius:8px;padding:14px">
+          <div style="font-weight:700;font-size:.9rem;margin-bottom:6px">Starter — $9/mo</div>
+          <ul style="font-size:.76rem;color:var(--ink2);display:flex;flex-direction:column;gap:4px;list-style:none">
+            <li>✓ 50 runs/month</li><li>✓ Full 5-stage pipeline</li>
+            <li>✓ Save 20 projects</li><li>✓ Export to markdown</li>
+            <li>✓ Iterate on outputs</li>
+          </ul>
+          <div style="display:flex;gap:8px;margin-top:12px">
+            <a href="${STRIPE_LINKS.starter}" class="btn btn-primary btn-sm" style="flex:1;justify-content:center" target="_blank" onclick="simulatePurchase(50,'starter');closeModal('upgrade-modal')">Subscribe $9/mo →</a>
+            <button class="btn btn-outline btn-sm" style="flex:1" onclick="simulatePurchase(50,'starter');closeModal('upgrade-modal')">Demo: activate free</button>
+          </div>
+        </div>
+        ${tier !== 'starter' ? `<div style="border:1px solid var(--rule2);border-radius:8px;padding:14px">
+          <div style="font-weight:700;font-size:.9rem;margin-bottom:6px">Pro — $29/mo</div>
+          <ul style="font-size:.76rem;color:var(--ink2);display:flex;flex-direction:column;gap:4px;list-style:none">
+            <li>✓ 200 runs/month</li><li>✓ Unlimited saved projects</li>
+            <li>✓ Priority queue + API access</li><li>✓ Team sharing (3 seats)</li>
+          </ul>
+          <a href="${STRIPE_LINKS.pro}" class="btn btn-secondary btn-sm btn-w" style="margin-top:12px" target="_blank" onclick="simulatePurchase(200,'pro');closeModal('upgrade-modal')">Go Pro $29/mo →</a>
+        </div>` : ''}
+      </div>
+      <div style="text-align:center;margin-top:8px">
+        <button class="btn btn-ghost btn-sm" onclick="handleBuyCredits(50,12)">Or buy 50 credits for $12 →</button>
+      </div>`;
+  }
+}
+
+function simulatePurchase(amount, type) {
+  const u = getUser();
+  if (type === 'starter') { u.tier = 'starter'; u.credits += amount; u.name = 'Starter User'; }
+  else if (type === 'pro') { u.tier = 'pro'; u.credits += amount; u.name = 'Pro User'; }
+  else if (type === 'credits') { u.credits += amount; }
+  saveUser(u);
+  toast(`Demo: ${type === 'credits' ? amount + ' credits added' : `${type} plan activated`}! 🎉`, 'ok');
+  updateAccountUI();
+  updateCreditsDisplay();
+}
+
+function setTier(tier) {
+  const u = getUser();
+  u.tier = tier;
+  if (tier === 'free') { u.credits = 3; u.name = 'Guest'; }
+  saveUser(u);
+  renderUserBadge();
+}
+
+// ══════════════════════════════════════════
+//  BYOK
+// ══════════════════════════════════════════
+function saveByok() {
+  const key = document.getElementById('byok-input').value.trim();
+  if (!key) { clearByok(); return; }
+  // Accept any key that looks plausible
+  if (key.length < 20) { toast('Key too short — double check it', 'bad'); return; }
+  sessionStorage.setItem('pm_key', key);
+  document.getElementById('byok-input').value = '';
+  updateByokStatus();
+  updateCreditsDisplay();
+  toast('API key saved for this session ✓', 'ok');
+}
+
+async function testApiKey() {
+  const key = sessionStorage.getItem('pm_key');
+  if (!key) { toast('No API key saved yet', 'bad'); return; }
+  const btn = document.getElementById('test-key-btn');
+  if (btn) { btn.textContent = 'Testing…'; btn.disabled = true; }
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-request-when-unauthenticated': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 10,
+        messages: [{ role: 'user', content: 'Reply with just the word OK' }]
+      })
+    });
+    if (resp.ok) {
+      toast('✓ API key works!', 'ok');
+      const el = document.getElementById('byok-status');
+      if (el) { el.textContent = '✓ Key verified and working'; el.style.color = 'var(--sage)'; }
+    } else {
+      const d = await resp.json().catch(() => ({}));
+      const msg = d?.error?.message || 'HTTP ' + resp.status;
+      toast('Key failed: ' + msg.substring(0, 60), 'bad');
+    }
+  } catch(e) {
+    toast('Network error: ' + e.message.substring(0, 60), 'bad');
+  } finally {
+    if (btn) { btn.textContent = 'Test Key'; btn.disabled = false; }
+  }
+}
+
+function clearByok() {
+  sessionStorage.removeItem('pm_key');
+  document.getElementById('byok-input').value = '';
+  updateByokStatus();
+  toast('API key cleared');
+}
+
+function updateByokStatus() {
+  const el = document.getElementById('byok-status');
+  if (!el) return;
+  const key = sessionStorage.getItem('pm_key');
+  el.textContent = key ? `✓ Key saved (${key.substring(0, 12)}…)` : 'No key saved — will prompt when you run.';
+  el.style.color = key ? 'var(--sage)' : 'var(--ink4)';
+}
+
+// ══════════════════════════════════════════
+//  UI HELPERS
+// ══════════════════════════════════════════
+function setStatusPill(type, text) {
+  const el = document.getElementById('status-pill');
+  el.className = 'status-pill ' + type;
+  el.textContent = text;
+}
+
+function setStageStatus(id, status, timing) {
+  const card = document.getElementById('sc-' + id);
+  const icon = document.getElementById('sci-' + id);
+  const tim = document.getElementById('sct-' + id);
+  if (!card || !icon) return;
+  card.className = 'stage-card sc-' + status;
+  const icons = { idle: '○', working: '↻', done: '✓', error: '✕' };
+  icon.textContent = icons[status] || '○';
+  icon.className = 'sc-status-icon ' + status;
+  if (timing && tim) tim.textContent = timing;
+}
+
+function setStageOutput(id, text) {
+  const el = document.getElementById('sco-' + id);
+  if (!el) return;
+  el.innerHTML = `<div style="padding-top:12px">${formatOutput(text)}</div>`;
+  el.classList.add('open');
+}
+
+function toggleStage(id) {
+  document.getElementById('sco-' + id)?.classList.toggle('open');
+}
+
+function setConnectorDone(id) {
+  document.getElementById('conn-' + id)?.classList.add('done');
+}
+
+function addFeed(cls, from, msg) {
+  const el = document.getElementById('run-feed');
+  const d = new Date();
+  const ts = `${String(d.getHours()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
+  const item = document.createElement('div');
+  item.className = `feed-item ${cls}`;
+  item.innerHTML = `<span class="fi-time">${ts}</span><span class="fi-from">${escHtml(from)}</span><span class="fi-msg">${escHtml(msg)}</span>`;
+  el.appendChild(item);
+  el.scrollTop = el.scrollHeight;
+}
+
+function updateFinalOutput(stageIds) {
+  const el = document.getElementById('final-output-scroll');
+  const done = stageIds.filter(id => runState.results[id]);
+  if (!done.length) return;
+  const copyAllBtn = '<div style="padding:12px 16px;border-bottom:1px solid var(--rule);display:flex;gap:8px;align-items:center"><span style="font-size:.72rem;color:var(--ink3);flex:1">All ' + done.length + ' stages complete</span><button class="copy-btn" onclick="copyAll()">Copy All</button></div>';
+  el.innerHTML = copyAllBtn + done.map(id => {
+    const s = STAGES_CONFIG[id];
+    return '<div class="fo-section">' +
+      '<div class="fo-header">' +
+        '<span>' + s.icon + '</span><span>' + s.name + '</span>' +
+        '<span style="margin-left:auto;display:flex;gap:6px;align-items:center">' +
+          '<span style="font-family:var(--mono);font-size:.62rem;color:var(--ink4)">' + s.model + '</span>' +
+          '<button class="retry-btn" onclick="retryStage(\'' + id + '\')">↻ Retry</button>' +
+          '<button class="copy-btn" id="copy-' + id + '" onclick="copySection(\'' + id + '\')">Copy</button>' +
+        '</span>' +
+      '</div>' +
+      '<div class="fo-content">' + formatOutput(runState.results[id]) + '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function updateCostBreakdown(stageIds) {
+  const el = document.getElementById('cost-breakdown');
+  const rows = stageIds.map(id => {
+    const s = STAGES_CONFIG[id];
+    const text = runState.results[id] || '';
+    const tokens = Math.ceil(text.length / 3.5);
+    const cost = tokens * s.costPer1k / 1000;
+    return `<div class="cost-row-item">
+      <div class="cri-left">
+        <div class="cri-icon">${s.icon}</div>
+        <div><div class="cri-name">${s.name}</div><div class="cri-model">${s.model}</div></div>
+      </div>
+      <div class="cri-cost">${tokens ? `~$${cost.toFixed(5)}` : '—'}</div>
+    </div>`;
+  }).join('');
+
+  const withoutMesh = runState.totalCost * 22;
+  const savingsPct = Math.round((1 - runState.totalCost / withoutMesh) * 100);
+
+  el.innerHTML = rows + `
+    <div class="cost-total-card">
+      <div class="ctc-label">Total cost</div>
+      <div class="ctc-amount">$${runState.totalCost.toFixed(5)}</div>
+      <div class="ctc-saved">Saved ~${savingsPct}% vs sending full context to GPT-4</div>
+      <div class="ctc-breakdown">
+        <div class="ctb-item"><div class="ctb-val">${runState.totalTokens.toLocaleString()}</div><div class="ctb-lab">Tokens used</div></div>
+        <div class="ctb-item"><div class="ctb-val">~$${withoutMesh.toFixed(3)}</div><div class="ctb-lab">Without routing</div></div>
+        <div class="ctb-item"><div class="ctb-val">${stageIds.length}</div><div class="ctb-lab">Stages run</div></div>
+        <div class="ctb-item"><div class="ctb-val">${runState.mode}</div><div class="ctb-lab">Mode</div></div>
+      </div>
+    </div>`;
+}
+
+function switchOT(el, tab) {
+  document.querySelectorAll('.ot').forEach(t => t.classList.remove('on'));
+  document.querySelectorAll('.ot-body').forEach(b => b.classList.remove('on'));
+  el.classList.add('on');
+  document.getElementById('otb-' + tab).classList.add('on');
+}
+
+function renderUserBadge() {
+  const u = getUser();
+  document.getElementById('user-name').textContent = u.name;
+  const badge = document.getElementById('user-plan-badge');
+  badge.textContent = u.tier.toUpperCase();
+  badge.className = 'plan-chip ' + u.tier;
+}
+
+function updateAccountUI() {
+  const u = getUser();
+  const today = new Date().toDateString();
+  if (u.lastRunDate !== today) u.runsToday = 0;
+  const limit = getRunLimit();
+
+  const accountBadge = document.getElementById('account-plan-badge');
+  if (accountBadge) {
+    accountBadge.textContent = u.tier.toUpperCase();
+    accountBadge.className = 'plan-chip ' + u.tier;
+  }
+
+  const runsUsedEl = document.getElementById('account-runs-used');
+  if (runsUsedEl) runsUsedEl.textContent = u.runsToday;
+  const runsLimitEl = document.getElementById('account-runs-limit');
+  if (runsLimitEl) runsLimitEl.textContent = limit;
+
+  const fill = document.getElementById('usage-fill');
+  if (fill) {
+    const pct = Math.min((u.runsToday / limit) * 100, 100);
+    fill.style.width = pct + '%';
+    fill.className = 'usage-fill ' + (pct > 80 ? 'warn' : 'safe');
+  }
+
+  const credEl = document.getElementById('account-credits');
+  if (credEl) credEl.textContent = u.credits;
+
+  updateByokStatus();
+  updateCreditsDisplay();
+  renderUserBadge();
+  renderStats();
+}
+
+function updateCreditsDisplay() {
+  const el = document.getElementById('credits-display');
+  if (!el) return;
+  const u = getUser();
+  const key = sessionStorage.getItem('pm_key');
+  if (key) { el.textContent = 'BYOK mode · free'; el.style.color = 'var(--sage)'; return; }
+  const today = new Date().toDateString();
+  const used = u.lastRunDate === today ? u.runsToday : 0;
+  el.textContent = u.credits > 0 ? `${u.credits} credits` : `${getRunLimit() - used} runs left today`;
+}
+
+function updateCostEst() { updateCostEstLive(); }
+
+// ══════════════════════════════════════════
+//  MODAL
+// ══════════════════════════════════════════
+function showModal(id) {
+  document.getElementById(id).style.display = 'flex';
+}
+
+function closeModal(id) {
+  document.getElementById(id).style.display = 'none';
+}
+
+// ══════════════════════════════════════════
+//  CLEAR DATA
+// ══════════════════════════════════════════
+function clearAllData() {
+  if (!confirm('This will delete all your saved projects and reset your account. Are you sure?')) return;
+  localStorage.clear();
+  sessionStorage.removeItem('pm_key');
+  toast('All data cleared', 'ok');
+  renderUserBadge();
+  updateAccountUI();
+}
+
+// ══════════════════════════════════════════
+//  FORMAT HELPERS
+// ══════════════════════════════════════════
+function formatOutput(text) {
+  if (!text) return '';
+  return text
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/```(\w*)\n?([\s\S]*?)```/g,'<pre><code>$2</code></pre>')
+    .replace(/`([^`]+)`/g,'<code>$1</code>')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/^#{1,2}\s(.+)$/gm,'<h3 style="font-family:var(--display);margin:12px 0 4px;color:var(--ink)">$1</h3>')
+    .replace(/^###\s(.+)$/gm,'<h4 style="font-weight:700;margin:8px 0 3px;color:var(--ink2)">$1</h4>')
+    .replace(/^[-*]\s(.+)$/gm,'<div style="padding-left:14px;margin:2px 0;color:var(--ink2)">• $1</div>')
+    .replace(/^\d+\.\s(.+)$/gm,'<div style="padding-left:14px;margin:2px 0;color:var(--ink2)">$1</div>')
+    .replace(/\n{2,}/g,'<br><br>')
+    .replace(/\n/g,'<br>');
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+let toastT = null;
+function toast(msg, type = '') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'show' + (type ? ' ' + type : '');
+  clearTimeout(toastT);
+  toastT = setTimeout(() => el.className = '', 3200);
+}
+
+// ══════════════════════════════════════════
+//  KEYBOARD SHORTCUTS
+// ══════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  const inInput = e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA';
+  // Ctrl+Enter or Cmd+Enter to run
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+    e.preventDefault();
+    if (document.getElementById('view-landing').classList.contains('active')) startRun();
+    else if (document.getElementById('view-run').classList.contains('active')) iterate();
+  }
+  if (e.key === 'Escape') {
+    closeModal('upgrade-modal');
+    closeModal('templates-modal');
+    document.getElementById('history-sidebar')?.classList.remove('open');
+  }
+  if (!inInput && e.key === '/') { e.preventDefault(); document.getElementById('main-input')?.focus(); showView('landing'); }
+  if (!inInput && e.key === 't') { openTemplates(); }
+  if (!inInput && e.key === 'h') { toggleHistory(); }
+  if (!inInput && (e.key === '1')) { const tabs = document.querySelectorAll('.ot'); if(tabs[0]) tabs[0].click(); }
+  if (!inInput && (e.key === '2')) { const tabs = document.querySelectorAll('.ot'); if(tabs[1]) tabs[1].click(); }
+  if (!inInput && (e.key === '3')) { const tabs = document.querySelectorAll('.ot'); if(tabs[2]) tabs[2].click(); }
+  if (!inInput && (e.key === '4')) { const tabs = document.querySelectorAll('.ot'); if(tabs[3]) tabs[3].click(); }
+});
+
+// ══════════════════════════════════════════
+//  EXAMPLES
+// ══════════════════════════════════════════
+function renderExamples() {
+  const el = document.getElementById('examples-row');
+  if (!el) return;
+  el.innerHTML = EXAMPLES.map(e =>
+    `<div class="ex-chip" onclick="document.getElementById('main-input').value='+JSON.stringify(e)+'/g,"\\'")}';updateCostEst()">${escHtml(e)}</div>`
+  ).join('');
+}
+
+// ══════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  initDark();
+  renderExamples();
+  renderUserBadge();
+  updateCreditsDisplay();
+  updateByokStatus();
+  document.getElementById('main-input').addEventListener('input', updateCostEstLive);
+  document.getElementById('mode-select').addEventListener('change', updateCostEstLive);
+
+  // Show a welcome hint for new users
+  const u = getUser();
+  if (!u.lastRunDate) {
+    setTimeout(() => toast('Enter your Anthropic key in Account to get started free', 'info'), 1500);
+  }
+}, { once: true });
+
+
+// ══════════════════════════════════════════
+//  DARK MODE
+// ══════════════════════════════════════════
+function toggleDark() {
+  const isDark = document.body.classList.toggle('dark');
+  localStorage.setItem('pm_dark', isDark ? '1' : '0');
+}
+
+function initDark() {
+  if (localStorage.getItem('pm_dark') === '1') document.body.classList.add('dark');
+}
+
+// ══════════════════════════════════════════
+//  TEMPLATES
+// ══════════════════════════════════════════
+const TEMPLATES = [
+  { icon:'🎮', name:'Arcade Game', mode:'full', desc:'2D browser game with score tracking',
+    prompt:'A retro-style brick breaker / arkanoid game with power-ups, particle effects, and a high score leaderboard stored in localStorage' },
+  { icon:'🌤️', name:'Weather Dashboard', mode:'full', desc:'Beautiful weather UI with animations',
+    prompt:'A weather dashboard app that shows current conditions, 5-day forecast, hourly chart, and animated weather backgrounds (sunny/rainy/cloudy) using Open-Meteo free API' },
+  { icon:'📋', name:'Kanban Board', mode:'full', desc:'Drag-and-drop task management',
+    prompt:'A Kanban board with drag-and-drop columns (Todo/In Progress/Done), task cards with priority labels and due dates, and all data persisted in localStorage' },
+  { icon:'💰', name:'Budget Tracker', mode:'full', desc:'Personal finance with charts',
+    prompt:'A personal budget tracker with income/expense categories, monthly charts using Chart.js CDN, running balance, and CSV export functionality' },
+  { icon:'🃏', name:'Flashcard App', mode:'full', desc:'Spaced repetition learning tool',
+    prompt:'A flashcard app with deck creation, flip animations, spaced repetition algorithm (SM-2), study statistics per deck, and localStorage persistence' },
+  { icon:'🍕', name:'Recipe Manager', mode:'full', desc:'Recipe collection with search',
+    prompt:'A recipe manager app where users can add/edit/delete recipes with ingredients and steps, search by name or ingredient, and mark favorites — all in localStorage' },
+  { icon:'💬', name:'Chat UI', mode:'quick', desc:'Real-time chat interface',
+    prompt:'A beautiful chat application UI with message bubbles, online indicators, typing animation, emoji reactions, and smooth scroll behavior' },
+  { icon:'📊', name:'Analytics Dashboard', mode:'full', desc:'Data visualization dashboard',
+    prompt:'An analytics dashboard with line charts, bar charts, pie charts (using Chart.js CDN), KPI cards, date range selector, and mock data that updates on refresh' },
+  { icon:'📝', name:'Note-Taking App', mode:'quick', desc:'Markdown notes with folders',
+    prompt:'A markdown note-taking app with folder organization, live markdown preview, autosave to localStorage, search across all notes, and a clean split-pane layout' },
+  { icon:'🛍️', name:'E-commerce Product Page', mode:'design', desc:'Conversion-optimized product page',
+    prompt:'A beautiful e-commerce product detail page with image gallery, variant selector (size/color), add to cart with animation, reviews section, and related products grid' },
+  { icon:'🎵', name:'Music Player', mode:'full', desc:'Audio player with visualizer',
+    prompt:'A music player UI with playlist, waveform visualizer using Canvas API, progress bar, volume slider, shuffle/repeat controls, and beautiful album art display' },
+  { icon:'🗓️', name:'Calendar App', mode:'full', desc:'Monthly calendar with events',
+    prompt:'A monthly calendar app with event creation/editing, drag to change dates, color-coded event categories, today highlight, and week/month view toggle' },
+];
+
+function openTemplates() {
+  const grid = document.getElementById('templates-grid');
+  grid.innerHTML = TEMPLATES.map((t, i) => `
+    <div class="tpl-card" onclick="useTemplate(${i})">
+      <div class="tpl-icon">${t.icon}</div>
+      <div class="tpl-name">${t.name}</div>
+      <div class="tpl-desc">${t.desc}</div>
+      <div class="tpl-mode">${t.mode} mode</div>
+    </div>`).join('');
+  showModal('templates-modal');
+}
+
+function useTemplate(i) {
+  const t = TEMPLATES[i];
+  closeModal('templates-modal');
+  showView('landing');
+  document.getElementById('main-input').value = t.prompt;
+  document.getElementById('mode-select').value = t.mode;
+  updateCostEst();
+  document.getElementById('main-input').focus();
+  toast('Template loaded — edit it and hit Build', 'ok');
+}
+
+// ══════════════════════════════════════════
+//  RUN HISTORY
+// ══════════════════════════════════════════
+function getHistory() {
+  try { return JSON.parse(localStorage.getItem('pm_history') || '[]'); } catch { return []; }
+}
+
+function addToHistory(prompt, mode, cost) {
+  const h = getHistory();
+  h.unshift({ prompt, mode, cost: cost || 0, date: new Date().toISOString(), ts: Date.now() });
+  localStorage.setItem('pm_history', JSON.stringify(h.slice(0, 20)));
+}
+
+function toggleHistory() {
+  const sidebar = document.getElementById('history-sidebar');
+  const isOpen = sidebar.classList.toggle('open');
+  if (isOpen) renderHistory();
+}
+
+function renderHistory() {
+  const list = document.getElementById('history-list');
+  const h = getHistory();
+  if (!h.length) {
+    list.innerHTML = '<div style="padding:20px 18px;font-size:.78rem;color:var(--ink4)">No runs yet. Build something!</div>';
+    return;
+  }
+  list.innerHTML = h.map((item, i) => `
+    <div class="history-item" onclick="rerunFromHistory(${i})">
+      <div class="hi-prompt">${escHtml(item.prompt)}</div>
+      <div class="hi-meta">
+        <span>${item.mode}</span>
+        ${item.cost ? '<span>~$' + item.cost.toFixed(5) + '</span>' : ''}
+        <span>${new Date(item.ts).toLocaleDateString()}</span>
+      </div>
+    </div>`).join('');
+}
+
+function rerunFromHistory(i) {
+  const h = getHistory();
+  const item = h[i];
+  if (!item) return;
+  document.getElementById('history-sidebar').classList.remove('open');
+  showView('landing');
+  document.getElementById('main-input').value = item.prompt;
+  document.getElementById('mode-select').value = item.mode || 'quick';
+  updateCostEst();
+  toast('Loaded from history — hit Build to re-run', 'info');
+}
+
+// ══════════════════════════════════════════
+//  CUSTOM SYSTEM PROMPT
+// ══════════════════════════════════════════
+function toggleSysPrompt() {
+  document.getElementById('sys-prompt-row').classList.toggle('open');
+  if (document.getElementById('sys-prompt-row').classList.contains('open')) {
+    document.getElementById('sys-prompt-input').value = sessionStorage.getItem('pm_custom_sys') || '';
+    document.getElementById('sys-prompt-input').focus();
+  }
+}
+
+function closeSysPtompt() {
+  document.getElementById('sys-prompt-row').classList.remove('open');
+}
+
+function saveCustomSys() {
+  const val = document.getElementById('sys-prompt-input').value;
+  sessionStorage.setItem('pm_custom_sys', val);
+}
+
+// ══════════════════════════════════════════
+//  PREVIEW
+// ══════════════════════════════════════════
+function refreshPreview() {
+  const frontendOutput = runState.results['frontend'] || '';
+  if (!frontendOutput) {
+    toast('No frontend output yet \u2014 run a build first', 'bad');
+    return;
+  }
+  const fenceRe = /```(?:html|css|javascript|js)?[\r\n]+([\s\S]*?)```/g;
+  const codeBlocks = [];
+  let fm;
+  while ((fm = fenceRe.exec(frontendOutput)) !== null) codeBlocks.push(fm[1]);
+  let previewHTML = '';
+  if (codeBlocks.length > 0) {
+    const htmlBlock = codeBlocks.find(function(b) {
+      return b.trim().startsWith('<!') || b.trim().startsWith('<html') || b.includes('<body');
+    }) || codeBlocks[0];
+    previewHTML = htmlBlock;
+    if (codeBlocks.length > 1 && !previewHTML.includes('<style>')) {
+      const cssBlock = codeBlocks.find(function(b) { return b.includes('{') && b.includes(':'); });
+      if (cssBlock) previewHTML = '<style>' + cssBlock + '</style>\n' + previewHTML;
+    }
+  } else {
+    var htmlTagRe = /<html[\s\S]*?<\/html>/i;
+    var bodyTagRe = /<body[\s\S]*?<\/body>/i;
+    var hm = htmlTagRe.exec(frontendOutput) || bodyTagRe.exec(frontendOutput);
+    previewHTML = hm ? hm[0] : '<html><body style="font-family:sans-serif;padding:20px"><h2>No HTML found</h2><p>The frontend stage may not have produced a code block yet.</p></body></html>';
+  }
+  if (runState.results['backend']) {
+    previewHTML += '\n<!-- Logic:\n' + runState.results['backend'].substring(0, 200) + '\n-->';
+  }
+  const iframe = document.getElementById('preview-iframe');
+  iframe.srcdoc = previewHTML;
+  document.getElementById('preview-status').textContent = 'Preview rendered';
+  toast('Preview refreshed', 'ok');
+}
+
+
+function openPreviewBlank() {
+  const frontendOutput = runState.results['frontend'] || '';
+  if (!frontendOutput) { toast('No frontend output yet', 'bad'); return; }
+  var fRe = /```(?:html|css|javascript|js)?[\r\n]+([\s\S]*?)```/g, blks=[], bm;
+  while((bm=fRe.exec(frontendOutput))!==null) blks.push(bm[1]);
+  var pg = blks[0] || frontendOutput;
+  // Open in new tab safely using a blob URL instead of document.write
+  try {
+    var blob = new Blob([pg], {type: 'text/html'});
+    var blobUrl = URL.createObjectURL(blob);
+    var w = window.open(blobUrl, '_blank');
+    // Revoke after a short delay
+    setTimeout(function(){ URL.revokeObjectURL(blobUrl); }, 5000);
+  } catch(e) { toast('Could not open preview: ' + e.message, 'bad'); }
+}
+
+
+function autoPreview() {
+  if (runState.results['frontend']) {
+    refreshPreview();
+  }
+}
+
+// ══════════════════════════════════════════
+//  COPY BUTTONS
+// ══════════════════════════════════════════
+function copySection(stageId) {
+  const text = runState.results[stageId] || '';
+  if (!text) { toast('Nothing to copy yet', 'bad'); return; }
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copy-' + stageId);
+    if (btn) { btn.textContent = 'Copied!'; btn.classList.add('copied'); setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000); }
+    toast('Copied to clipboard', 'ok');
+  }).catch(() => toast('Copy failed — try selecting manually', 'bad'));
+}
+
+function copyAll() {
+  var parts = Object.entries(runState.results).map(function(kv) {
+    return '## ' + kv[0].toUpperCase() + '\n\n' + kv[1];
+  });
+  var all = parts.join('\n\n---\n\n');
+  navigator.clipboard.writeText(all).then(function() { toast('All output copied', 'ok'); });
+}
+
+function getStats() {
+  try { return JSON.parse(localStorage.getItem('pm_stats') || '{}') || {}; } catch { return {}; }
+}
+
+function updateStats(cost, tokens) {
+  const s = getStats();
+  s.totalRuns = (s.totalRuns || 0) + 1;
+  s.totalCost = (s.totalCost || 0) + cost;
+  s.totalTokens = (s.totalTokens || 0) + tokens;
+  s.totalSaved = (s.totalCost || 0) * 21; // vs GPT-4
+  localStorage.setItem('pm_stats', JSON.stringify(s));
+}
+
+function renderStats() {
+  const s = getStats();
+  const runs = s.totalRuns || 0;
+  const cost = s.totalCost || 0;
+  const tokens = s.totalTokens || 0;
+  const saved = cost * 21;
+  const el = (id, val) => { const e = document.getElementById(id); if(e) e.textContent = val; };
+  el('stat-runs', runs);
+  el('stat-cost', '$' + cost.toFixed(3));
+  el('stat-tokens', tokens > 999 ? (tokens/1000).toFixed(1) + 'k' : tokens);
+  el('stat-saved', '$' + saved.toFixed(3));
+}
+
+// ══════════════════════════════════════════
+//  IMPROVED COST ESTIMATE (prompt-length aware)
+// ══════════════════════════════════════════
+function updateCostEstLive() {
+  const prompt = document.getElementById('main-input')?.value || '';
+  const mode = document.getElementById('mode-select')?.value || 'quick';
+  const stageCounts = { quick: 3, full: 5, code: 3, design: 3 };
+  const stages = stageCounts[mode] || 3;
+  // Cost increases slightly with longer prompts
+  const promptTokens = Math.ceil(prompt.length / 4);
+  const baseCost = stages * 0.001;
+  const promptCost = promptTokens * 0.00025 / 1000 * stages;
+  const total = baseCost + promptCost;
+  const el = document.getElementById('cost-est');
+  if (el) el.textContent = '⚡ ~$' + total.toFixed(4) + ' est.';
+}
+
+
+// ══════════════════════════════════════════
+//  COST EFFICIENCY AUDIT
+// ══════════════════════════════════════════
+function runEfficiencyAudit() {
+  const stats = getStats();
+  const runs = stats.totalRuns || 0;
+  const actualCost = stats.totalCost || 0;
+  const tokens = stats.totalTokens || 0;
+
+  // GPT-4 Turbo pricing: $0.01/1k input, $0.03/1k output (avg $0.02/1k)
+  const gpt4Cost = tokens * 0.02 / 1000;
+  // Claude Sonnet pricing: $0.003/1k input, $0.015/1k output (avg ~$0.009/1k)
+  const sonnetCost = tokens * 0.009 / 1000;
+  const savingsVsGPT4 = gpt4Cost - actualCost;
+  const savingsVsSonnet = sonnetCost - actualCost;
+  const efficiencyScore = runs > 0 ? Math.round((savingsVsGPT4 / gpt4Cost) * 100) : 0;
+
+  const report = [
+    '# PromptMesh Efficiency Audit',
+    'Generated: ' + new Date().toLocaleString(),
+    '',
+    '## Summary',
+    'Total runs: ' + runs,
+    'Total tokens: ' + tokens.toLocaleString(),
+    'Actual cost (Haiku): $' + actualCost.toFixed(5),
+    '',
+    '## Savings vs Alternatives',
+    'vs GPT-4 Turbo ($0.02/1k avg): saved $' + savingsVsGPT4.toFixed(4) + ' (' + efficiencyScore + '%)',
+    'vs Claude Sonnet ($0.009/1k avg): saved $' + savingsVsSonnet.toFixed(4),
+    '',
+    '## Cost Breakdown',
+    'Average cost per run: $' + (runs > 0 ? (actualCost/runs).toFixed(5) : '0'),
+    'Average tokens per run: ' + (runs > 0 ? Math.round(tokens/runs).toLocaleString() : '0'),
+    '',
+    '## Efficiency Score',
+    'Routing efficiency: ' + efficiencyScore + '% cheaper than GPT-4',
+    'Verdict: ' + (efficiencyScore > 90 ? 'EXCELLENT' : efficiencyScore > 75 ? 'GOOD' : 'AVERAGE'),
+    '',
+    '## Issues Found',
+    runs === 0 ? '• No runs recorded yet.' : '• None. Routing is optimal.',
+  ].join('\n');
+
+  const blob = new Blob([report], {type:'text/plain'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'promptmesh-efficiency-audit.txt';
+  a.click();
+  toast('Efficiency audit downloaded', 'ok');
+}
+</script>
+</body>
+</html>

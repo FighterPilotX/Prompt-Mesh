@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PromptMesh — The AI Pipeline Platform</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --cream:#f7f4ee;--paper:#faf8f4;--ink:#1c1917;--ink2:#44403c;--ink3:#78716c;--ink4:#a8a29e;
+  --rule:#e7e2d8;--rule2:#d6cfc4;--coral:#c8442a;--coral2:#b03b23;--coral-glow:rgba(200,68,42,.15);
+  --sage:#4a7c59;--amber:#c47a2a;--purple:#7c3aed;--surface:#fff;
+  --body:'DM Sans',system-ui,sans-serif;--display:'Playfair Display',Georgia,serif;--mono:'DM Mono',monospace;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{font-family:var(--body);background:var(--cream);color:var(--ink);font-size:14px;line-height:1.5;min-height:100vh;overflow-x:hidden;}
+body.dark{--cream:#111010;--paper:#161514;--ink:#f0ece4;--ink2:#c8c4bc;--ink3:#8a8480;--ink4:#5a5652;--rule:#252220;--rule2:#302d2a;--surface:#1a1917;}
+
+nav{position:fixed;top:0;left:0;right:0;height:58px;display:flex;align-items:center;padding:0 28px;background:rgba(247,244,238,.95);backdrop-filter:blur(16px);border-bottom:1px solid var(--rule);z-index:100;}
+body.dark nav{background:rgba(17,16,16,.95);}
+.logo{font-family:var(--display);font-size:1.25rem;font-weight:900;color:var(--ink);display:flex;align-items:center;gap:8px;text-decoration:none;}
+.logo-box{width:28px;height:28px;background:var(--coral);border-radius:6px;display:grid;grid-template-columns:1fr 1fr;gap:2px;padding:5px;flex-shrink:0;}
+.logo-box span{background:#fff;border-radius:1px;opacity:.85;}
+.logo-box span:nth-child(2){opacity:.45;}
+.logo-box span:nth-child(3){opacity:.45;}
+.nav-r{margin-left:auto;display:flex;align-items:center;gap:8px;}
+.btn{display:inline-flex;align-items:center;gap:6px;font-family:var(--body);font-size:.8rem;font-weight:600;padding:8px 16px;border-radius:6px;cursor:pointer;transition:all .15s;border:none;background:transparent;text-decoration:none;white-space:nowrap;}
+.btn-ghost{color:var(--ink3);border:1px solid transparent;}
+.btn-ghost:hover{background:var(--rule);color:var(--ink);}
+.btn-outline{color:var(--ink);border:1.5px solid var(--rule2);}
+.btn-outline:hover{border-color:var(--ink);}
+.dark-btn{width:30px;height:17px;background:var(--rule2);border-radius:9px;border:none;cursor:pointer;position:relative;transition:background .2s;}
+.dark-btn::after{content:'';position:absolute;top:2.5px;left:2.5px;width:12px;height:12px;background:var(--ink4);border-radius:50%;transition:all .2s;}
+body.dark .dark-btn{background:var(--coral);}
+body.dark .dark-btn::after{left:15.5px;background:#fff;}
+
+.hero{max-width:900px;margin:0 auto;padding:110px 24px 70px;text-align:center;}
+.eyebrow{font-family:var(--mono);font-size:.65rem;font-weight:500;letter-spacing:.22em;text-transform:uppercase;color:var(--coral);margin-bottom:22px;display:flex;align-items:center;justify-content:center;gap:10px;}
+.eyebrow::before,.eyebrow::after{content:'';display:block;width:36px;height:1px;background:var(--coral);opacity:.4;}
+h1{font-size:clamp(2.8rem,6vw,5rem);font-weight:900;line-height:1.02;letter-spacing:-.02em;margin-bottom:22px;font-family:var(--display);}
+h1 em{font-style:italic;color:var(--coral);}
+.hero-p{font-size:1.08rem;color:var(--ink2);max-width:500px;margin:0 auto 44px;line-height:1.7;}
+
+.products{max-width:1080px;margin:0 auto;padding:0 20px 80px;display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px;}
+.product-card{background:var(--surface);border:2px solid var(--rule2);border-radius:16px;padding:30px;display:flex;flex-direction:column;transition:all .22s;position:relative;overflow:hidden;}
+.product-card::before{content:'';position:absolute;inset:0;opacity:0;transition:opacity .22s;pointer-events:none;}
+.product-card:hover{transform:translateY(-4px);box-shadow:0 16px 48px rgba(0,0,0,.1);}
+.product-card.studio:hover{border-color:var(--coral);}
+.product-card.studio::before{background:radial-gradient(circle at top left,rgba(200,68,42,.06) 0%,transparent 60%);}
+.product-card.studio:hover::before{opacity:1;}
+.product-card.enterprise:hover{border-color:var(--sage);}
+.product-card.enterprise::before{background:radial-gradient(circle at top left,rgba(74,124,89,.06) 0%,transparent 60%);}
+.product-card.enterprise:hover::before{opacity:1;}
+.product-card.dev:hover{border-color:var(--purple);}
+.product-card.dev::before{background:radial-gradient(circle at top left,rgba(124,58,237,.06) 0%,transparent 60%);}
+.product-card.dev:hover::before{opacity:1;}
+.product-badge{font-family:var(--mono);font-size:.6rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:3px 10px;border-radius:3px;display:inline-block;margin-bottom:16px;}
+.badge-studio{background:rgba(200,68,42,.1);color:var(--coral);}
+.badge-enterprise{background:rgba(74,124,89,.1);color:var(--sage);}
+.badge-dev{background:rgba(124,58,237,.1);color:var(--purple);}
+.product-icon{font-size:2.2rem;margin-bottom:12px;}
+.product-name{font-family:var(--display);font-size:1.5rem;font-weight:900;margin-bottom:8px;}
+.product-desc{font-size:.84rem;color:var(--ink3);line-height:1.6;flex:1;margin-bottom:22px;}
+.product-features{list-style:none;display:flex;flex-direction:column;gap:6px;margin-bottom:24px;}
+.product-features li{font-size:.75rem;color:var(--ink2);display:flex;align-items:flex-start;gap:7px;line-height:1.4;}
+.product-features li .fi{flex-shrink:0;width:14px;font-size:.7rem;}
+.cta-studio{background:var(--coral);color:#fff;}
+.cta-studio:hover{background:var(--coral2);}
+.cta-enterprise{background:var(--sage);color:#fff;}
+.cta-enterprise:hover{background:#3d6648;}
+.cta-dev{background:var(--purple);color:#fff;}
+.cta-dev:hover{background:#6d28d9;}
+.cta-btn{display:flex;align-items:center;justify-content:center;width:100%;padding:12px;border-radius:8px;font-family:var(--body);font-size:.88rem;font-weight:700;cursor:pointer;border:none;transition:all .15s;margin-top:auto;}
+.cta-btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(0,0,0,.15);}
+
+.compare-section{background:var(--surface);border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);padding:70px 24px;}
+body.dark .compare-section{background:var(--paper);}
+.compare-inner{max-width:860px;margin:0 auto;}
+.section-label{font-family:var(--mono);font-size:.62rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink4);margin-bottom:10px;}
+h2{font-family:var(--display);font-size:clamp(1.6rem,3.5vw,2.4rem);font-weight:900;line-height:1.1;margin-bottom:40px;}
+h2 em{font-style:italic;color:var(--coral);}
+.compare-table{width:100%;border-collapse:collapse;font-size:.8rem;}
+.compare-table th{font-weight:700;padding:10px 14px;text-align:left;border-bottom:2px solid var(--rule2);color:var(--ink3);font-family:var(--mono);font-size:.65rem;letter-spacing:.06em;text-transform:uppercase;}
+.compare-table td{padding:10px 14px;border-bottom:1px solid var(--rule);}
+.compare-table tr:hover td{background:var(--cream);}
+body.dark .compare-table tr:hover td{background:var(--paper);}
+.compare-table .feature{font-weight:600;color:var(--ink);}
+.check{color:var(--sage);font-weight:700;}
+.dash{color:var(--ink4);}
+
+.how-section{padding:70px 24px;max-width:860px;margin:0 auto;}
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-top:32px;}
+.step{text-align:center;padding:24px 16px;}
+.step-num{font-family:var(--mono);font-size:.65rem;color:var(--coral);font-weight:700;letter-spacing:.1em;margin-bottom:8px;}
+.step-icon{font-size:1.8rem;margin-bottom:10px;}
+.step-title{font-weight:700;font-size:.9rem;margin-bottom:5px;}
+.step-desc{font-size:.74rem;color:var(--ink3);line-height:1.5;}
+
+.bottom-cta{background:var(--ink);color:var(--cream);padding:70px 24px;text-align:center;}
+body.dark .bottom-cta{background:#0a0a09;}
+.bottom-cta h2{color:#fff;font-size:clamp(1.8rem,4vw,3rem);margin-bottom:14px;}
+.bottom-cta p{color:rgba(240,236,228,.6);font-size:.92rem;max-width:440px;margin:0 auto 32px;line-height:1.6;}
+.bottom-cta-btns{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;}
+
+footer{background:var(--ink);border-top:1px solid rgba(255,255,255,.06);padding:24px;text-align:center;}
+body.dark footer{background:#0a0a09;}
+footer p{font-size:.72rem;color:rgba(240,236,228,.3);font-family:var(--mono);}
+
+@media(max-width:640px){
+  .products{grid-template-columns:1fr;}
+  h1{font-size:2.4rem;}
+  nav{padding:0 16px;}
+  .nav-r .btn-outline{display:none;}
+}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
+.hero{animation:fadeUp .6s ease both;}
+.products{animation:fadeUp .7s .15s ease both;}
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="logo" href="#">
+    <div class="logo-box"><span></span><span></span><span></span><span></span></div>
+    PromptMesh
+  </a>
+  <div class="nav-r">
+    <a class="btn btn-ghost" href="#compare">Compare</a>
+    <button class="btn btn-outline" onclick="go('studio')">Launch Studio →</button>
+    <button class="dark-btn" onclick="toggleDark()" title="Toggle dark mode"></button>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="eyebrow">Three products. One platform.</div>
+  <h1>The right AI<br>for every <em>workflow</em></h1>
+  <p class="hero-p">PromptMesh routes each task to the cheapest capable model. Consumer builds, enterprise routing, developer competitions — pick your product.</p>
+</section>
+
+<div class="products">
+
+  <div class="product-card studio">
+    <div class="product-badge badge-studio">Studio</div>
+    <div class="product-icon">✦</div>
+    <div class="product-name">PromptMesh Studio</div>
+    <p class="product-desc">One prompt → a complete product. A 5-stage pipeline routes planning, design, frontend, backend, and polish to the right model at each step. 95% cheaper than using GPT-4 for everything.</p>
+    <ul class="product-features">
+      <li><span class="fi">✓</span> 5-stage AI pipeline (Plan → Design → Code → Logic → Polish)</li>
+      <li><span class="fi">✓</span> Live HTML preview of generated frontend</li>
+      <li><span class="fi">✓</span> 12 curated templates, dark mode, export</li>
+      <li><span class="fi">✓</span> Retry failed stages, iterate on output</li>
+      <li><span class="fi">✓</span> BYOK (bring your own Anthropic key)</li>
+      <li><span class="fi">✓</span> Run history, saved projects, cost tracking</li>
+    </ul>
+    <button class="cta-btn cta-studio" onclick="go('studio')">Open Studio →</button>
+  </div>
+
+  <div class="product-card enterprise">
+    <div class="product-badge badge-enterprise">Enterprise</div>
+    <div class="product-icon">⬡</div>
+    <div class="product-name">PromptMesh Enterprise</div>
+    <p class="product-desc">Hook up your company's AI agents and bots. PromptMesh analyzes each incoming task and routes it to the agent best suited to handle it — reducing costs 83–98% vs defaulting to GPT-4.</p>
+    <ul class="product-features">
+      <li><span class="fi">✓</span> Connect any agent (Claude, OpenAI, Gemini, custom)</li>
+      <li><span class="fi">✓</span> Intelligent routing with explainable decisions</li>
+      <li><span class="fi">✓</span> Real-time cost analytics dashboard</li>
+      <li><span class="fi">✓</span> Custom routing rules and fallback chains</li>
+      <li><span class="fi">✓</span> Agent performance comparison</li>
+      <li><span class="fi">✓</span> Team management, audit logs</li>
+    </ul>
+    <button class="cta-btn cta-enterprise" onclick="go('enterprise')">Open Enterprise →</button>
+  </div>
+
+  <div class="product-card dev">
+    <div class="product-badge badge-dev">Dev</div>
+    <div class="product-icon">⬡</div>
+    <div class="product-name">PromptMesh Dev</div>
+    <p class="product-desc">Build, deploy, and battle-test your own AI bots. Define a bot's system prompt, model, and parameters — then enter it into challenges where bots compete head-to-head on real tasks.</p>
+    <ul class="product-features">
+      <li><span class="fi">✓</span> Bot builder with system prompt editor</li>
+      <li><span class="fi">✓</span> Competition arena — bots vs bots on standardized challenges</li>
+      <li><span class="fi">✓</span> Live leaderboard with ELO ranking</li>
+      <li><span class="fi">✓</span> Cost efficiency scoring (quality / cost)</li>
+      <li><span class="fi">✓</span> Challenge categories: code, writing, reasoning, math</li>
+      <li><span class="fi">✓</span> Share bots, fork public bots</li>
+    </ul>
+    <button class="cta-btn cta-dev" onclick="go('dev')">Open Dev Arena →</button>
+  </div>
+</div>
+
+<section class="compare-section" id="compare">
+  <div class="compare-inner">
+    <div class="section-label">Comparison</div>
+    <h2>Which product is<br><em>right for you?</em></h2>
+    <div style="overflow-x:auto">
+    <table class="compare-table">
+      <thead>
+        <tr><th>Feature</th><th>Studio</th><th>Enterprise</th><th>Dev</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="feature">Target user</td><td>Builders &amp; makers</td><td>Companies with AI agents</td><td>AI developers</td></tr>
+        <tr><td class="feature">Core concept</td><td>Prompt to full product</td><td>Route tasks to best agent</td><td>Build &amp; compete bots</td></tr>
+        <tr><td class="feature">BYOK support</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td></tr>
+        <tr><td class="feature">Cost tracking</td><td class="check">✓</td><td class="check">✓ (advanced)</td><td class="check">✓ (per competition)</td></tr>
+        <tr><td class="feature">Multi-agent routing</td><td class="dash">—</td><td class="check">✓ (core feature)</td><td class="check">✓ (arena)</td></tr>
+        <tr><td class="feature">Custom bots</td><td class="dash">—</td><td class="check">✓</td><td class="check">✓ (competitive)</td></tr>
+        <tr><td class="feature">Competition arena</td><td class="dash">—</td><td class="dash">—</td><td class="check">✓</td></tr>
+        <tr><td class="feature">Team features</td><td class="dash">—</td><td class="check">✓</td><td class="dash">—</td></tr>
+        <tr><td class="feature">Templates</td><td class="check">✓ (12)</td><td class="dash">—</td><td class="check">✓ (challenges)</td></tr>
+        <tr><td class="feature">HTML preview</td><td class="check">✓</td><td class="dash">—</td><td class="check">✓ (output review)</td></tr>
+        <tr><td class="feature">Export / download</td><td class="check">✓</td><td class="check">✓ (CSV/JSON)</td><td class="check">✓ (bot configs)</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+</section>
+
+<section class="how-section">
+  <div class="section-label">How it works</div>
+  <h2>Powered by <em>intelligent routing</em></h2>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">01</div>
+      <div class="step-icon">🧠</div>
+      <div class="step-title">Analyze the task</div>
+      <div class="step-desc">A lightweight router (Claude Haiku, ~$0.0001) classifies the task by type and complexity.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">02</div>
+      <div class="step-icon">⚡</div>
+      <div class="step-title">Route intelligently</div>
+      <div class="step-desc">Each sub-task goes to the cheapest model that can handle it well.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">03</div>
+      <div class="step-icon">📊</div>
+      <div class="step-title">Track every dollar</div>
+      <div class="step-desc">See cost per stage, total savings vs naive GPT-4 routing, and cumulative analytics.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">04</div>
+      <div class="step-icon">🔁</div>
+      <div class="step-title">Retry on truncation</div>
+      <div class="step-desc">If a response is cut short, we automatically retry with higher token limits.</div>
+    </div>
+  </div>
+</section>
+
+<div class="bottom-cta">
+  <h2>Start building today</h2>
+  <p>All three products are free to try with your own Anthropic API key. No credit card needed.</p>
+  <div class="bottom-cta-btns">
+    <button class="btn" style="background:var(--coral);color:#fff;padding:12px 24px;font-size:.9rem" onclick="go('studio')">Studio →</button>
+    <button class="btn" style="background:var(--sage);color:#fff;padding:12px 24px;font-size:.9rem" onclick="go('enterprise')">Enterprise →</button>
+    <button class="btn" style="background:var(--purple);color:#fff;padding:12px 24px;font-size:.9rem" onclick="go('dev')">Dev Arena →</button>
+  </div>
+</div>
+
+<footer>
+  <p>PromptMesh · Built with Claude Haiku · ~$0.004/run · © 2026</p>
+</footer>
+
+<script>
+var FILES = {
+  studio: 'promptmesh-studio.html',
+  enterprise: 'promptmesh-enterprise.html',
+  dev: 'promptmesh-dev.html'
+};
+
+function go(product) {
+  var filename = FILES[product];
+  if (!filename) return;
+
+  // Build the sibling URL relative to wherever THIS file lives
+  var here = window.location.href;
+  var base = here.substring(0, here.lastIndexOf('/') + 1);
+  var target = base + filename;
+
+  window.location.href = target;
+}
+
+function toggleDark() {
+  document.body.classList.toggle('dark');
+  localStorage.setItem('pm_dark', document.body.classList.contains('dark') ? '1' : '0');
+}
+if (localStorage.getItem('pm_dark') === '1') document.body.classList.add('dark');
+</script>
+</body>
+</html>

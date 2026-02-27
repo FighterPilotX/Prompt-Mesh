@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://api.anthropic.com;">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PromptMesh Dev — Bot Arena</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0f0e0d;--paper:#161412;--card:#1c1a17;--card2:#221f1b;
+  --ink:#f0ece2;--ink2:#c0bbb0;--ink3:#8a8478;--ink4:#5a5750;
+  --rule:#2a2720;--rule2:#343028;
+  --purple:#8b5cf6;--purple2:#7c3aed;--purple-tint:rgba(139,92,246,.12);--purple-glow:rgba(139,92,246,.25);
+  --amber:#f59e0b;--amber-tint:rgba(245,158,11,.1);
+  --green:#10b981;--green-tint:rgba(16,185,129,.1);
+  --red:#ef4444;--red-tint:rgba(239,68,68,.1);
+  --blue:#3b82f6;--blue-tint:rgba(59,130,246,.1);
+  --body:'Space Grotesk',system-ui,sans-serif;--mono:'JetBrains Mono',monospace;
+}
+body.light{--bg:#f0ece2;--paper:#faf8f2;--card:#fff;--card2:#f4f1e9;--ink:#1a1714;--ink2:#3d3830;--ink3:#78736a;--ink4:#b0ab9f;--rule:#e4dfd5;--rule2:#d0cabf;}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:var(--body);background:var(--bg);color:var(--ink);font-size:13.5px;line-height:1.5;min-height:100vh;overflow-x:hidden;}
+
+/* LAYOUT */
+#app{display:grid;grid-template-columns:220px 1fr;grid-template-rows:56px 1fr;height:100vh;overflow:hidden;}
+#topbar{grid-column:1/-1;background:var(--paper);border-bottom:1px solid var(--rule);display:flex;align-items:center;padding:0 18px;gap:12px;z-index:50;}
+#sidebar{grid-column:1;background:var(--paper);border-right:1px solid var(--rule);display:flex;flex-direction:column;overflow:hidden;}
+#main{grid-column:2;overflow:hidden;display:flex;flex-direction:column;}
+
+/* TOPBAR */
+.tb-logo{font-family:var(--mono);font-size:.85rem;font-weight:700;color:var(--ink);display:flex;align-items:center;gap:8px;text-decoration:none;}
+.logo-hex{width:26px;height:26px;background:var(--purple);clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);display:flex;align-items:center;justify-content:center;font-size:.65rem;font-family:var(--mono);font-weight:700;color:#fff;flex-shrink:0;}
+.tb-space{flex:1;}
+.tb-elo{font-family:var(--mono);font-size:.68rem;background:var(--purple-tint);color:var(--purple);padding:4px 12px;border-radius:4px;border:1px solid rgba(139,92,246,.25);font-weight:700;}
+.btn{display:inline-flex;align-items:center;gap:5px;font-family:var(--body);font-size:.75rem;font-weight:600;padding:6px 14px;border-radius:6px;cursor:pointer;transition:all .13s;border:none;white-space:nowrap;}
+.btn-purple{background:var(--purple);color:#fff;}
+.btn-purple:hover{background:var(--purple2);transform:translateY(-1px);box-shadow:0 4px 14px var(--purple-glow);}
+.btn-outline{background:transparent;color:var(--ink);border:1px solid var(--rule2);}
+.btn-outline:hover{border-color:var(--ink3);}
+.btn-ghost{background:transparent;color:var(--ink3);border:1px solid transparent;}
+.btn-ghost:hover{background:var(--rule);color:var(--ink);}
+.btn-sm{padding:4px 10px;font-size:.68rem;}
+.btn-xs{padding:3px 7px;font-size:.62rem;}
+.btn-w{width:100%;justify-content:center;}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none!important;box-shadow:none!important;}
+.dark-btn{width:28px;height:16px;background:var(--rule2);border:none;border-radius:8px;cursor:pointer;position:relative;}
+.dark-btn::after{content:'';position:absolute;top:2.5px;left:2.5px;width:11px;height:11px;background:var(--ink4);border-radius:50%;transition:all .2s;}
+body.light .dark-btn{background:var(--purple);}
+body.light .dark-btn::after{left:15px;background:#fff;}
+
+/* SIDEBAR */
+.sb-item{display:flex;align-items:center;gap:9px;padding:9px 14px;cursor:pointer;font-size:.77rem;font-weight:500;border-left:2px solid transparent;color:var(--ink3);transition:all .1s;}
+.sb-item:hover{background:var(--rule);color:var(--ink);}
+.sb-item.active{background:var(--purple-tint);border-left-color:var(--purple);color:var(--purple);font-weight:600;}
+.sb-icon{width:16px;text-align:center;flex-shrink:0;}
+.sb-label{font-family:var(--mono);font-size:.58rem;font-weight:700;color:var(--ink4);letter-spacing:.1em;text-transform:uppercase;padding:12px 14px 4px;}
+.sb-bot-list{flex:1;overflow-y:auto;padding:4px 8px;}
+.sb-bot{display:flex;align-items:center;gap:7px;padding:6px 8px;border-radius:5px;cursor:pointer;transition:background .1s;font-size:.73rem;}
+.sb-bot:hover{background:var(--rule);}
+.sb-bot-elo{font-family:var(--mono);font-size:.6rem;color:var(--purple);font-weight:700;margin-left:auto;}
+.sb-bottom{padding:12px;border-top:1px solid var(--rule);}
+.key-input-wrap{display:flex;gap:5px;margin-bottom:8px;}
+.key-input{flex:1;background:var(--card);border:1px solid var(--rule2);color:var(--ink);font-family:var(--mono);font-size:.65rem;padding:5px 8px;border-radius:4px;outline:none;}
+.key-input:focus{border-color:var(--purple);}
+.key-status{font-family:var(--mono);font-size:.58rem;color:var(--ink4);text-align:center;}
+
+/* VIEWS */
+.view-panel{display:none;flex:1;overflow:hidden;flex-direction:column;}
+.view-panel.active{display:flex;}
+.view-header{padding:16px 22px 12px;border-bottom:1px solid var(--rule);}
+.view-header h2{font-size:1.1rem;font-weight:700;font-family:var(--mono);color:var(--ink);}
+.view-header p{font-size:.72rem;color:var(--ink3);margin-top:3px;}
+.vh-actions{display:flex;align-items:center;gap:7px;margin-top:10px;flex-wrap:wrap;}
+
+/* BOT BUILDER */
+.builder-layout{display:grid;grid-template-columns:1fr 1fr;flex:1;overflow:hidden;}
+.builder-left,.builder-right{display:flex;flex-direction:column;overflow:hidden;}
+.builder-left{border-right:1px solid var(--rule);}
+.builder-scroll{flex:1;overflow-y:auto;padding:16px;}
+
+.field{display:flex;flex-direction:column;gap:4px;margin-bottom:12px;}
+.field label{font-family:var(--mono);font-size:.58rem;font-weight:700;color:var(--ink4);letter-spacing:.08em;text-transform:uppercase;}
+.input,.textarea,.select{width:100%;background:var(--card);border:1.5px solid var(--rule2);color:var(--ink);font-family:var(--body);font-size:.79rem;padding:8px 11px;border-radius:5px;outline:none;transition:border-color .18s;}
+.input:focus,.textarea:focus,.select:focus{border-color:var(--purple);}
+.textarea{resize:vertical;line-height:1.55;font-family:var(--mono);font-size:.74rem;}
+.select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23888' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;}
+
+/* BOT CARDS */
+.bots-scroll{flex:1;overflow-y:auto;padding:18px 22px;}
+.bots-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;}
+.bot-card{background:var(--card);border:1.5px solid var(--rule2);border-radius:10px;padding:16px;transition:all .15s;cursor:pointer;position:relative;}
+.bot-card:hover{border-color:var(--purple);box-shadow:0 4px 20px var(--purple-tint);transform:translateY(-1px);}
+.bot-card.mine{border-color:rgba(139,92,246,.4);}
+.bot-elo-badge{position:absolute;top:12px;right:12px;font-family:var(--mono);font-size:.62rem;font-weight:700;background:var(--purple-tint);color:var(--purple);padding:3px 9px;border-radius:3px;border:1px solid rgba(139,92,246,.2);}
+.bot-avatar{width:40px;height:40px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;margin-bottom:10px;flex-shrink:0;}
+.bot-name{font-weight:700;font-size:.88rem;margin-bottom:3px;}
+.bot-model{font-family:var(--mono);font-size:.62rem;color:var(--ink4);margin-bottom:6px;}
+.bot-spec{font-size:.72rem;color:var(--ink3);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:10px;}
+.bot-stats{display:flex;gap:12px;font-family:var(--mono);font-size:.62rem;color:var(--ink3);}
+.bot-stat strong{color:var(--ink);font-weight:700;}
+.bot-actions{display:flex;gap:5px;margin-top:10px;flex-wrap:wrap;}
+
+/* ARENA */
+.arena-layout{display:grid;grid-template-columns:1fr 1fr;flex:1;overflow:hidden;}
+.arena-setup{border-right:1px solid var(--rule);display:flex;flex-direction:column;overflow:hidden;}
+.arena-scroll{flex:1;overflow-y:auto;padding:16px 18px;}
+.arena-results{display:flex;flex-direction:column;overflow:hidden;}
+
+.challenge-card{background:var(--card);border:1.5px solid var(--rule2);border-radius:8px;padding:14px;cursor:pointer;transition:all .12s;margin-bottom:8px;}
+.challenge-card:hover,.challenge-card.selected{border-color:var(--purple);}
+.challenge-card.selected{background:var(--purple-tint);}
+.ch-category{font-family:var(--mono);font-size:.58rem;font-weight:700;color:var(--purple);letter-spacing:.08em;text-transform:uppercase;margin-bottom:5px;}
+.ch-title{font-weight:700;font-size:.82rem;margin-bottom:3px;}
+.ch-desc{font-size:.7rem;color:var(--ink3);line-height:1.45;}
+.ch-diff{display:inline-block;font-family:var(--mono);font-size:.58rem;padding:2px 7px;border-radius:3px;margin-top:6px;}
+.diff-easy{background:var(--green-tint);color:var(--green);}
+.diff-medium{background:var(--amber-tint);color:var(--amber);}
+.diff-hard{background:var(--red-tint);color:var(--red);}
+
+.bot-select{display:flex;gap:8px;margin-bottom:12px;}
+.bot-select-slot{flex:1;background:var(--card);border:1.5px dashed var(--rule2);border-radius:8px;padding:12px;text-align:center;cursor:pointer;transition:all .12s;font-size:.74rem;color:var(--ink4);}
+.bot-select-slot.filled{border-style:solid;border-color:var(--purple);background:var(--purple-tint);color:var(--purple);}
+.bot-select-slot:hover{border-color:var(--purple);color:var(--purple);}
+
+.vs-badge{font-family:var(--mono);font-size:.78rem;font-weight:700;color:var(--ink4);padding:8px 4px;display:flex;align-items:center;}
+
+.arena-feed{flex:1;overflow-y:auto;padding:14px 18px;font-size:.7rem;}
+.af-item{display:flex;gap:10px;padding:4px 0;border-bottom:1px solid var(--rule);animation:afIn .15s ease;}
+@keyframes afIn{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+.af-ts{font-family:var(--mono);font-size:.6rem;color:var(--ink4);flex-shrink:0;width:38px;}
+.af-who{font-weight:700;width:70px;flex-shrink:0;}
+.af-msg{color:var(--ink2);flex:1;line-height:1.4;}
+.af-a{color:var(--purple);}
+.af-b{color:var(--amber);}
+.af-sys{color:var(--ink4);}
+
+.result-card{background:var(--card);border:1px solid var(--rule2);border-radius:8px;margin:12px 16px;overflow:hidden;}
+.rc-head{padding:10px 14px;border-bottom:1px solid var(--rule);display:flex;align-items:center;gap:8px;}
+.rc-winner{font-family:var(--mono);font-size:.72rem;font-weight:700;color:var(--purple);}
+.rc-body{padding:12px 14px;display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.rr-panel{background:var(--card2);border-radius:6px;padding:10px;}
+.rr-bot{font-weight:700;font-size:.78rem;margin-bottom:5px;}
+.rr-score{font-family:var(--mono);font-size:1.2rem;font-weight:700;color:var(--purple);line-height:1;}
+.rr-meta{font-size:.65rem;color:var(--ink4);margin-top:4px;font-family:var(--mono);}
+.rr-text{font-size:.7rem;color:var(--ink2);line-height:1.5;margin-top:8px;white-space:pre-wrap;max-height:120px;overflow-y:auto;}
+.win-badge{display:inline-block;font-family:var(--mono);font-size:.6rem;font-weight:700;padding:2px 8px;border-radius:3px;background:var(--purple);color:#fff;margin-left:6px;}
+
+/* LEADERBOARD */
+.lb-scroll{flex:1;overflow-y:auto;padding:20px 22px;}
+.lb-table{width:100%;border-collapse:collapse;}
+.lb-table th{font-family:var(--mono);font-size:.6rem;font-weight:700;color:var(--ink4);letter-spacing:.08em;text-transform:uppercase;padding:8px 12px;border-bottom:2px solid var(--rule2);text-align:left;}
+.lb-table td{padding:10px 12px;border-bottom:1px solid var(--rule);font-size:.76rem;}
+.lb-table tr:hover td{background:var(--card2);}
+.rank-1 td:first-child{color:var(--amber);font-weight:700;}
+.rank-2 td:first-child{color:var(--ink2);font-weight:600;}
+.rank-3 td:first-child{color:var(--amber);font-weight:600;opacity:.7;}
+.elo-pill{font-family:var(--mono);font-size:.68rem;font-weight:700;background:var(--purple-tint);color:var(--purple);padding:3px 9px;border-radius:3px;}
+.trend-up{color:var(--green);}
+.trend-down{color:var(--red);}
+.trend-flat{color:var(--ink4);}
+
+/* MODAL */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(8px);z-index:200;display:flex;align-items:center;justify-content:center;animation:mf .15s ease;}
+@keyframes mf{from{opacity:0}to{opacity:1}}
+.modal{background:var(--card);border:1px solid var(--rule2);border-radius:12px;padding:24px;max-width:440px;width:90%;max-height:88vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,.4);animation:mu .22s cubic-bezier(.34,1.56,.64,1);position:relative;}
+@keyframes mu{from{transform:scale(.92);opacity:0}to{transform:none;opacity:1}}
+.modal h3{font-family:var(--mono);font-size:1rem;font-weight:700;margin-bottom:5px;}
+.modal p{font-size:.74rem;color:var(--ink3);margin-bottom:16px;line-height:1.5;}
+.mc{position:absolute;top:14px;right:14px;width:24px;height:24px;background:var(--rule);border:none;border-radius:50%;cursor:pointer;font-size:.8rem;color:var(--ink3);display:flex;align-items:center;justify-content:center;}
+.mc:hover{background:var(--rule2);}
+
+/* TOAST */
+#toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(12px);background:var(--card);color:var(--ink);font-family:var(--mono);font-size:.68rem;padding:8px 18px;border-radius:6px;z-index:999;opacity:0;transition:all .25s cubic-bezier(.34,1.56,.64,1);pointer-events:none;white-space:nowrap;border:1px solid var(--rule2);}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+#toast.ok{background:var(--green);color:#fff;border-color:transparent;}
+#toast.bad{background:var(--red);color:#fff;border-color:transparent;}
+#toast.info{background:var(--purple);color:#fff;border-color:transparent;}
+
+/* MOBILE */
+@media(max-width:720px){
+  #app{grid-template-columns:1fr;grid-template-rows:56px auto 1fr;}
+  #sidebar{grid-row:2;flex-direction:row;border-right:none;border-bottom:1px solid var(--rule);height:auto;overflow-x:auto;}
+  .sb-label,.sb-bot-list,.sb-bottom{display:none;}
+  #main{grid-row:3;}
+  .builder-layout,.arena-layout{grid-template-columns:1fr;}
+  .builder-left{border-right:none;border-bottom:1px solid var(--rule);max-height:260px;}
+  .arena-setup{border-right:none;border-bottom:1px solid var(--rule);max-height:300px;}
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- TOPBAR -->
+<div id="topbar">
+  <a href="promptmesh-hub.html" class="tb-logo">
+    <div class="logo-hex">PM</div>
+    PromptMesh <span style="color:var(--purple);margin-left:4px;font-weight:700">Dev</span>
+  </a>
+  <div class="tb-space"></div>
+  <div class="tb-elo" id="my-elo">Your ELO: 1000</div>
+  <button class="btn btn-purple" onclick="showPanel('builder')">+ New Bot</button>
+  <button class="dark-btn" onclick="toggleDark()"></button>
+</div>
+
+<!-- SIDEBAR -->
+<div id="sidebar">
+  <div class="sb-label">Navigate</div>
+  <div class="sb-item active" onclick="showPanel('bots')" data-panel="bots"><span class="sb-icon">⬡</span> My Bots</div>
+  <div class="sb-item" onclick="showPanel('builder')" data-panel="builder"><span class="sb-icon">✦</span> Bot Builder</div>
+  <div class="sb-item" onclick="showPanel('arena')" data-panel="arena"><span class="sb-icon">⚡</span> Arena</div>
+  <div class="sb-item" onclick="showPanel('leaderboard')" data-panel="leaderboard"><span class="sb-icon">↑</span> Leaderboard</div>
+  <div class="sb-item" onclick="showPanel('challenges')" data-panel="challenges"><span class="sb-icon">⊞</span> Challenges</div>
+
+  <div class="sb-label" style="margin-top:8px">My Bots</div>
+  <div class="sb-bot-list" id="sb-bot-list"></div>
+
+  <div class="sb-bottom">
+    <div class="key-input-wrap">
+      <input class="key-input" id="dev-key-input" type="password" placeholder="sk-ant-… API key">
+      <button class="btn btn-purple btn-xs" onclick="saveDevKey()">Set</button>
+    </div>
+    <div class="key-status" id="dev-key-status">No key — bots can't run without it</div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+
+  <!-- MY BOTS -->
+  <div class="view-panel active" id="panel-bots">
+    <div class="view-header">
+      <h2>My Bots</h2>
+      <p>Your AI bots — each is a system prompt + model configuration. Enter them in the Arena to compete.</p>
+      <div class="vh-actions">
+        <button class="btn btn-purple" onclick="showPanel('builder')">+ Create Bot</button>
+        <button class="btn btn-outline btn-sm" onclick="importBot()">↑ Import</button>
+        <button class="btn btn-ghost btn-sm" onclick="renderBots()">↻</button>
+      </div>
+    </div>
+    <div class="bots-scroll">
+      <div class="bots-grid" id="bots-grid"></div>
+    </div>
+  </div>
+
+  <!-- BOT BUILDER -->
+  <div class="view-panel" id="panel-builder">
+    <div class="view-header">
+      <h2>Bot Builder</h2>
+      <p>Define your bot's identity, model, and system prompt. The system prompt is everything.</p>
+    </div>
+    <div class="builder-layout">
+      <div class="builder-left">
+        <div class="builder-scroll">
+          <div class="field"><label>Bot Name</label><input class="input" id="b-name" placeholder="e.g. CodeMaster 3000, The Haiku Poet…"></div>
+          <div class="field"><label>Emoji / Avatar</label>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:2px">
+              <span style="font-size:1.4rem;cursor:pointer" onclick="setEmoji(this.textContent)">🤖</span>
+              <span style="font-size:1.4rem;cursor:pointer" onclick="setEmoji(this.textContent)">⚡</span>
+              <span style="font-size:1.4rem;cursor:pointer" onclick="setEmoji(this.textContent)">🔮</span>
+              <span style="font-size:1.4rem;cursor:pointer" onclick="setEmoji(this.textContent)">🦊</span>
+              <span style="font-size:1.4rem;cursor:pointer" onclick="setEmoji(this.textContent)">🎯</span>
+              <span style="font-size:1.4rem;cursor:pointer" onclick="setEmoji(this.textContent)">🧬</span>
+              <span style="font-size:1.4rem;cursor:pointer" onclick="setEmoji(this.textContent)">🌊</span>
+              <span style="font-size:1.4rem;cursor:pointer" onclick="setEmoji(this.textContent)">🔥</span>
+              <span style="font-size:1.4rem;cursor:pointer" onclick="setEmoji(this.textContent)">💡</span>
+              <span style="font-size:1.4rem;cursor:pointer" onclick="setEmoji(this.textContent)">🎲</span>
+              <input class="input" id="b-emoji" placeholder="🤖" style="width:70px;text-align:center;font-size:1.2rem">
+            </div>
+          </div>
+          <div class="field"><label>Model</label>
+            <select class="select" id="b-model" onchange="updateCostEst()">
+              <option value="claude-haiku-4-5-20251001">claude-haiku-4-5-20251001 — cheapest, fastest</option>
+              <option value="claude-sonnet-4-6">claude-sonnet-4-6 — balanced, capable</option>
+              <option value="claude-opus-4-6">claude-opus-4-6 — most capable, expensive</option>
+            </select>
+          </div>
+          <div class="field"><label>Max Tokens</label>
+            <select class="select" id="b-tokens">
+              <option value="256">256 — fast response (competitions)</option>
+              <option value="512" selected>512 — standard</option>
+              <option value="1024">1024 — detailed</option>
+              <option value="2048">2048 — thorough</option>
+            </select>
+          </div>
+          <div class="field"><label>Temperature (0 = precise, 1 = creative)</label>
+            <input class="input" id="b-temp" type="range" min="0" max="1" step="0.1" value="0.7" oninput="document.getElementById('b-temp-val').textContent=this.value" style="padding:6px 0;border:none;background:transparent;accent-color:var(--purple)">
+            <div style="font-family:var(--mono);font-size:.68rem;color:var(--purple)">Temperature: <span id="b-temp-val">0.7</span></div>
+          </div>
+          <div style="background:var(--card2);border-radius:5px;padding:8px 10px;font-family:var(--mono);font-size:.62rem;color:var(--ink4);margin-bottom:12px">
+            Est. cost per competition run: <span id="b-cost-est" style="color:var(--purple)">~$0.00003</span>
+          </div>
+          <div class="field"><label>Specialization Tags (comma-separated)</label>
+            <input class="input" id="b-tags" placeholder="code, python, debugging, concise…"></div>
+          <div class="field"><label>Description (shown on card)</label>
+            <input class="input" id="b-desc" placeholder="One sentence about what makes your bot great"></div>
+
+          <div style="display:flex;gap:8px;margin-top:4px">
+            <button class="btn btn-purple" style="flex:1;justify-content:center" onclick="saveBot()">Save Bot</button>
+            <button class="btn btn-outline" onclick="clearBuilder()">Clear</button>
+          </div>
+          <div style="margin-top:10px;font-size:.7rem;color:var(--ink4)"><span id="editing-bot-label"></span></div>
+        </div>
+      </div>
+      <div class="builder-right">
+        <div class="builder-scroll">
+          <div class="field" style="flex:1">
+            <label>System Prompt <span style="color:var(--purple);font-size:.7rem;font-weight:400">(this is your bot's entire personality)</span></label>
+            <textarea class="textarea" id="b-sys" rows="18" placeholder="You are [name], an AI assistant specialized in [specialty].
+
+Your approach:
+- [quality 1]
+- [quality 2]
+- [quality 3]
+
+Always [behavior]. Never [behavior].
+
+Your responses should be [style]."></textarea>
+          </div>
+          <div style="margin-top:10px">
+            <div style="font-family:var(--mono);font-size:.6rem;color:var(--ink4);letter-spacing:.07em;text-transform:uppercase;margin-bottom:8px">Prompt Templates</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px">
+              <button class="btn btn-ghost btn-xs" onclick="loadSysTemplate('code')">Code Expert</button>
+              <button class="btn btn-ghost btn-xs" onclick="loadSysTemplate('writer')">Writer</button>
+              <button class="btn btn-ghost btn-xs" onclick="loadSysTemplate('analyst')">Analyst</button>
+              <button class="btn btn-ghost btn-xs" onclick="loadSysTemplate('concise')">Concise Bot</button>
+              <button class="btn btn-ghost btn-xs" onclick="loadSysTemplate('creative')">Creative</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ARENA -->
+  <div class="view-panel" id="panel-arena">
+    <div class="view-header">
+      <h2>⚡ Arena</h2>
+      <p>Select two bots and a challenge. They compete head-to-head. The better response wins ELO points.</p>
+    </div>
+    <div class="arena-layout">
+      <div class="arena-setup">
+        <div class="arena-scroll">
+          <!-- Bot selection -->
+          <div style="font-family:var(--mono);font-size:.6rem;font-weight:700;color:var(--ink4);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px">Select Competitors</div>
+          <div class="bot-select">
+            <div class="bot-select-slot" id="slot-a" onclick="openBotPicker('a')">
+              <div style="font-size:1.4rem;margin-bottom:4px" id="slot-a-emoji">?</div>
+              <div id="slot-a-name">Pick Bot A</div>
+            </div>
+            <div class="vs-badge">VS</div>
+            <div class="bot-select-slot" id="slot-b" onclick="openBotPicker('b')">
+              <div style="font-size:1.4rem;margin-bottom:4px" id="slot-b-emoji">?</div>
+              <div id="slot-b-name">Pick Bot B</div>
+            </div>
+          </div>
+
+          <!-- Challenge selection -->
+          <div style="font-family:var(--mono);font-size:.6rem;font-weight:700;color:var(--ink4);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;margin-top:14px">Select Challenge</div>
+          <div id="challenge-list"></div>
+
+          <!-- Custom challenge -->
+          <div class="field" style="margin-top:10px">
+            <label>Or write a custom challenge prompt</label>
+            <textarea class="textarea" id="custom-challenge" rows="3" placeholder="Give both bots the same task and judge which responds better…"></textarea>
+          </div>
+
+          <button class="btn btn-purple btn-w" style="margin-top:4px;padding:10px" onclick="runArena()" id="arena-btn">
+            ⚡ Start Battle
+          </button>
+
+          <div style="margin-top:10px;background:var(--card2);border-radius:5px;padding:8px 10px;font-size:.7rem;color:var(--ink4)">
+            Winner gains ELO. Judged by a neutral Claude Haiku reviewer. Each battle costs ~$0.001–0.003.
+          </div>
+        </div>
+      </div>
+
+      <div class="arena-results">
+        <div style="padding:10px 16px;border-bottom:1px solid var(--rule);display:flex;align-items:center;gap:10px;background:var(--paper)">
+          <span id="arena-status" style="font-family:var(--mono);font-size:.62rem;color:var(--ink4)">Ready</span>
+          <div style="flex:1"></div>
+          <button class="btn btn-ghost btn-xs" onclick="clearArena()">Clear</button>
+        </div>
+        <div id="arena-feed" class="arena-feed" style="max-height:200px;border-bottom:1px solid var(--rule)"></div>
+        <div id="arena-result" style="flex:1;overflow-y:auto"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LEADERBOARD -->
+  <div class="view-panel" id="panel-leaderboard">
+    <div class="view-header">
+      <h2>Leaderboard</h2>
+      <p>ELO-ranked bots from all competitions. Higher ELO = better win rate against strong opponents.</p>
+      <div class="vh-actions">
+        <button class="btn btn-ghost btn-sm" onclick="renderLeaderboard()">↻ Refresh</button>
+        <button class="btn btn-ghost btn-sm" onclick="exportLeaderboard()">↓ Export</button>
+      </div>
+    </div>
+    <div class="lb-scroll">
+      <table class="lb-table">
+        <thead>
+          <tr>
+            <th>#</th><th>Bot</th><th>ELO</th><th>W/L/D</th><th>Win Rate</th><th>Avg Cost/Battle</th><th>Efficiency</th>
+          </tr>
+        </thead>
+        <tbody id="lb-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- CHALLENGES BROWSER -->
+  <div class="view-panel" id="panel-challenges">
+    <div class="view-header">
+      <h2>Challenge Library</h2>
+      <p>Browse all available challenges. Click any to run it in the Arena.</p>
+    </div>
+    <div class="bots-scroll">
+      <div id="challenges-full-list"></div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+</div><!-- /app -->
+
+<!-- BOT PICKER MODAL -->
+<div id="bot-picker-modal" style="display:none" class="modal-bg" onclick="if(event.target===this)closeModal('bot-picker-modal')">
+  <div class="modal">
+    <button class="mc" onclick="closeModal('bot-picker-modal')">✕</button>
+    <h3>Select Bot</h3>
+    <p>Pick a bot for this slot.</p>
+    <div id="bot-picker-list" style="display:flex;flex-direction:column;gap:7px"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+'use strict';
+
+// ══════════ DATA ══════════
+const CHALLENGES = [
+  {id:'ch1',cat:'Code',title:'FizzBuzz Plus',desc:'Write FizzBuzz 1-30, but multiples of 7 also say "Zap". Output only the sequence, no explanation.',diff:'easy',judge:'correctness and conciseness'},
+  {id:'ch2',cat:'Code',title:'Reverse a Linked List',desc:'Explain how to reverse a singly linked list in Python. Include working code.',diff:'medium',judge:'correctness, code quality, and clarity'},
+  {id:'ch3',cat:'Code',title:'Regex Email Validator',desc:'Write a Python regex function to validate email addresses. Handle edge cases.',diff:'medium',judge:'correctness and edge case handling'},
+  {id:'ch4',cat:'Reasoning',title:'River Crossing',desc:'A farmer has a fox, chicken, and bag of grain. Solve the classic river crossing puzzle step by step.',diff:'easy',judge:'correctness and clarity of explanation'},
+  {id:'ch5',cat:'Reasoning',title:'Trolley Problem Variant',desc:'You can save 5 strangers or 1 family member. Argue your ethical position clearly and briefly.',diff:'medium',judge:'reasoning depth and intellectual honesty'},
+  {id:'ch6',cat:'Writing',title:'One-Sentence Pitch',desc:'Write a one-sentence pitch for "Uber for dogs" that would make an investor say yes.',diff:'easy',judge:'creativity, clarity, and persuasiveness'},
+  {id:'ch7',cat:'Writing',title:'Haiku about Bugs',desc:'Write a haiku about software bugs that is both technically accurate and poetic.',diff:'easy',judge:'creativity and technical accuracy'},
+  {id:'ch8',cat:'Writing',title:'Villain Origin Story',desc:'Write a compelling 100-word origin story for a supervillain whose power is predicting the stock market.',diff:'medium',judge:'creativity, characterization, and brevity'},
+  {id:'ch9',cat:'Math',title:'Probability Puzzler',desc:'If I flip a coin 10 times and get heads every time, what is the probability of getting tails on flip 11? Explain.',diff:'easy',judge:'correctness and pedagogical clarity'},
+  {id:'ch10',cat:'Math',title:'Fermi Estimation',desc:'Estimate how many piano tuners are in Chicago. Show your reasoning step by step.',diff:'medium',judge:'methodology and reasonable estimation'},
+  {id:'ch11',cat:'Code',title:'Async Rate Limiter',desc:'Design a token bucket rate limiter in JavaScript. Implement it cleanly with comments.',diff:'hard',judge:'design quality, correctness, and code style'},
+  {id:'ch12',cat:'Reasoning',title:'Spot the Logical Fallacy',desc:'Identify and name the logical fallacy: "We should ban cars because some people drive drunk."',diff:'easy',judge:'correctness and quality of explanation'},
+];
+
+const SYS_TEMPLATES = {
+  code:`You are a precise, expert software engineer. You write clean, idiomatic code with brief explanations. You prefer working examples over theory. You note edge cases and potential bugs. Format code in markdown blocks. Be concise — no filler text.`,
+  writer:`You are a skilled writer with a distinctive, literary voice. You craft precise sentences, use vivid imagery, and avoid clichés. Every word earns its place. You adapt your register to the task — whether playful, serious, or persuasive. Show, don't tell.`,
+  analyst:`You are a rigorous analytical thinker. You break problems into components, consider multiple perspectives, quantify uncertainty, and draw clear conclusions. You use frameworks when helpful. You acknowledge what you don't know. Be structured and direct.`,
+  concise:`You are an expert at radical conciseness. You strip every response to its essential core. No filler, no hedging, no repetition. You answer questions in as few words as possible while being fully correct. Quality over quantity, always.`,
+  creative:`You are a wildly creative AI with an unexpected, surprising take on every prompt. You find unusual angles, make unexpected connections, and delight in originality. You never give the boring answer. But you remain helpful — creative doesn't mean confusing.`,
+};
+
+function getBots(){try{return JSON.parse(localStorage.getItem('dev_bots')||'[]');}catch{return[];}}
+function saveBots(b){localStorage.setItem('dev_bots',JSON.stringify(b));}
+function getBattles(){try{return JSON.parse(localStorage.getItem('dev_battles')||'[]');}catch{return[];}}
+function saveBattles(b){localStorage.setItem('dev_battles',JSON.stringify(b));}
+function getDevKey(){return sessionStorage.getItem('dev_key');}
+
+let arenaState={running:false,aborted:false,slotA:null,slotB:null,selectedChallenge:null};
+let editingBotId=null;
+
+// ══════════ NAVIGATION ══════════
+function showPanel(id){
+  document.querySelectorAll('.view-panel').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.sb-item').forEach(s=>s.classList.remove('active'));
+  document.getElementById('panel-'+id).classList.add('active');
+  document.querySelector('[data-panel="'+id+'"]')?.classList.add('active');
+  if(id==='bots') renderBots();
+  if(id==='leaderboard') renderLeaderboard();
+  if(id==='challenges') renderChallengesFull();
+  if(id==='arena') renderChallengeList();
+}
+
+// ══════════ BOT BUILDER ══════════
+let selectedEmoji='🤖';
+function setEmoji(e){selectedEmoji=e;document.getElementById('b-emoji').value=e;}
+
+function loadSysTemplate(key){
+  document.getElementById('b-sys').value=SYS_TEMPLATES[key]||'';
+}
+
+function updateCostEst(){
+  const costs={'claude-haiku-4-5-20251001':0.00025,'claude-sonnet-4-6':0.003,'claude-opus-4-6':0.015};
+  const tokens=parseInt(document.getElementById('b-tokens').value||512);
+  const model=document.getElementById('b-model').value;
+  const cost=(tokens*((costs[model]||0.00025)/1000)).toFixed(5);
+  document.getElementById('b-cost-est').textContent='~$'+cost;
+}
+
+function saveBot(){
+  const name=document.getElementById('b-name').value.trim();
+  const sys=document.getElementById('b-sys').value.trim();
+  if(!name){toast('Enter a bot name','bad');return;}
+  if(!sys){toast('System prompt is required','bad');return;}
+
+  const bots=getBots();
+  const emoji=document.getElementById('b-emoji').value||selectedEmoji||'🤖';
+  const botData={
+    id:editingBotId||'bot_'+Date.now(),
+    name,emoji,sys,
+    model:document.getElementById('b-model').value,
+    maxTokens:parseInt(document.getElementById('b-tokens').value),
+    temperature:parseFloat(document.getElementById('b-temp').value),
+    tags:document.getElementById('b-tags').value,
+    desc:document.getElementById('b-desc').value,
+    elo:1000,wins:0,losses:0,draws:0,battles:0,totalCost:0,
+    created:new Date().toLocaleDateString(),
+  };
+
+  if(editingBotId){
+    const idx=bots.findIndex(b=>b.id===editingBotId);
+    if(idx>-1){const old=bots[idx];botData.elo=old.elo;botData.wins=old.wins;botData.losses=old.losses;botData.draws=old.draws;botData.battles=old.battles;botData.totalCost=old.totalCost;bots[idx]=botData;}
+    else bots.push(botData);
+  } else {
+    bots.push(botData);
+  }
+  saveBots(bots);
+  clearBuilder();
+  renderSbBots();
+  updateMyElo();
+  toast(editingBotId?'Bot updated':'Bot saved! Enter it in the Arena','ok');
+  editingBotId=null;
+  showPanel('bots');
+}
+
+function clearBuilder(){
+  document.getElementById('b-name').value='';
+  document.getElementById('b-sys').value='';
+  document.getElementById('b-emoji').value='🤖';
+  document.getElementById('b-tags').value='';
+  document.getElementById('b-desc').value='';
+  document.getElementById('b-temp').value=0.7;
+  document.getElementById('b-temp-val').textContent='0.7';
+  document.getElementById('editing-bot-label').textContent='';
+  editingBotId=null;
+}
+
+function editBot(id){
+  const bot=getBots().find(b=>b.id===id);
+  if(!bot) return;
+  editingBotId=id;
+  document.getElementById('b-name').value=bot.name;
+  document.getElementById('b-sys').value=bot.sys;
+  document.getElementById('b-emoji').value=bot.emoji;
+  document.getElementById('b-model').value=bot.model;
+  document.getElementById('b-tokens').value=bot.maxTokens;
+  document.getElementById('b-temp').value=bot.temperature||0.7;
+  document.getElementById('b-temp-val').textContent=bot.temperature||0.7;
+  document.getElementById('b-tags').value=bot.tags||'';
+  document.getElementById('b-desc').value=bot.desc||'';
+  document.getElementById('editing-bot-label').textContent='Editing: '+bot.name;
+  showPanel('builder');
+  updateCostEst();
+}
+
+function deleteBot(id){
+  if(!confirm('Delete this bot? All its battle history will remain on the leaderboard.')) return;
+  saveBots(getBots().filter(b=>b.id!==id));
+  renderBots();
+  renderSbBots();
+  toast('Bot deleted');
+}
+
+function importBot(){
+  const json=window.prompt('Paste bot JSON config:');
+  if(!json||!json.trim()) return;
+  try{
+    const raw=JSON.parse(json.trim());
+    // Strict validation — only allow known safe fields
+    if(typeof raw.name !== 'string' || typeof raw.sys !== 'string') throw new Error('Missing required fields: name and sys');
+    if(raw.name.length > 80) throw new Error('Name too long (max 80)');
+    if(raw.sys.length > 8000) throw new Error('System prompt too long (max 8000 chars)');
+    const ALLOWED_MODELS = ['claude-haiku-4-5-20251001','claude-sonnet-4-6','claude-opus-4-6'];
+    const b = {
+      id: 'bot_'+Date.now(),
+      name: String(raw.name).substring(0,80),
+      emoji: typeof raw.emoji === 'string' ? raw.emoji.substring(0,4) : '🤖',
+      sys: String(raw.sys).substring(0,8000),
+      model: ALLOWED_MODELS.includes(raw.model) ? raw.model : 'claude-haiku-4-5-20251001',
+      maxTokens: Math.min(Math.max(parseInt(raw.maxTokens)||512, 64), 4096),
+      temperature: Math.min(Math.max(parseFloat(raw.temperature)||0.7, 0), 1),
+      tags: typeof raw.tags === 'string' ? raw.tags.substring(0,200) : '',
+      desc: typeof raw.desc === 'string' ? raw.desc.substring(0,200) : '',
+      elo:1000, wins:0, losses:0, draws:0, battles:0, totalCost:0,
+      created: new Date().toLocaleDateString(),
+    };
+    const bots=getBots();bots.push(b);saveBots(bots);
+    renderBots();renderSbBots();toast('Bot imported: '+b.name,'ok');
+  }catch(e){toast('Import failed: '+e.message.substring(0,60),'bad');}
+}
+
+function exportBot(id){
+  const bot=getBots().find(b=>b.id===id);
+  if(!bot) return;
+  navigator.clipboard.writeText(JSON.stringify(bot,null,2)).then(()=>toast('Bot config copied to clipboard','ok'));
+}
+
+// ══════════ RENDER BOTS ══════════
+function renderBots(){
+  const bots=getBots();
+  const grid=document.getElementById('bots-grid');
+  if(!bots.length){
+    grid.innerHTML='<div style="padding:30px;color:var(--ink4);font-size:.78rem;text-align:center"><div style="font-size:2rem;margin-bottom:10px">🤖</div><p>No bots yet. Create your first one!</p><br><button class="btn btn-purple" onclick="showPanel(\'builder\')">Create Bot →</button></div>';
+    return;
+  }
+  grid.innerHTML=bots.map(b=>{
+    const wr=b.battles>0?Math.round(b.wins/b.battles*100):0;
+    return '<div class="bot-card mine">'+
+      '<div class="bot-elo-badge">ELO '+b.elo+'</div>'+
+      '<div class="bot-avatar" style="background:var(--purple-tint)">'+b.emoji+'</div>'+
+      '<div class="bot-name">'+escHtml(b.name)+'</div>'+
+      '<div class="bot-model">'+b.model+'</div>'+
+      '<div class="bot-spec">'+(b.desc||b.tags||'No description')+'</div>'+
+      '<div class="bot-stats"><span><strong>'+b.wins+'</strong> W</span><span><strong>'+b.losses+'</strong> L</span><span><strong>'+wr+'%</strong> WR</span><span><strong>$'+(b.totalCost||0).toFixed(4)+'</strong></span></div>'+
+      '<div class="bot-actions">'+
+        '<button class="btn btn-purple btn-xs" onclick="enterArena(\''+b.id+'\')">⚡ Arena</button>'+
+        '<button class="btn btn-outline btn-xs" onclick="editBot(\''+b.id+'\')">Edit</button>'+
+        '<button class="btn btn-ghost btn-xs" onclick="exportBot(\''+b.id+'\')">Export</button>'+
+        '<button class="btn btn-ghost btn-xs" style="color:var(--red)" onclick="deleteBot(\''+b.id+'\')">Del</button>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+
+function renderSbBots(){
+  const bots=getBots();
+  document.getElementById('sb-bot-list').innerHTML=bots.map(b=>
+    '<div class="sb-bot" onclick="editBot(\''+b.id+'\')">'+
+      '<span>'+b.emoji+'</span>'+
+      '<span style="flex:1;font-size:.72rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+escHtml(b.name)+'</span>'+
+      '<span class="sb-bot-elo">'+b.elo+'</span>'+
+    '</div>'
+  ).join('');
+}
+
+function enterArena(botId){
+  arenaState.slotA=getBots().find(b=>b.id===botId)||null;
+  if(arenaState.slotA){
+    document.getElementById('slot-a-emoji').textContent=arenaState.slotA.emoji;
+    document.getElementById('slot-a-name').textContent=arenaState.slotA.name;
+    document.getElementById('slot-a').classList.add('filled');
+  }
+  showPanel('arena');
+}
+
+function updateMyElo(){
+  const bots=getBots();
+  const maxElo=bots.length?Math.max(...bots.map(b=>b.elo)):1000;
+  document.getElementById('my-elo').textContent='Best ELO: '+maxElo;
+}
+
+// ══════════ ARENA ══════════
+function renderChallengeList(){
+  document.getElementById('challenge-list').innerHTML=CHALLENGES.slice(0,6).map(c=>
+    '<div class="challenge-card'+(arenaState.selectedChallenge===c.id?' selected':'')+'" onclick="selectChallenge(\''+c.id+'\')" id="ch-card-'+c.id+'">'+
+      '<div class="ch-category">'+c.cat+'</div>'+
+      '<div class="ch-title">'+c.title+'</div>'+
+      '<div class="ch-desc">'+c.desc+'</div>'+
+      '<span class="ch-diff diff-'+c.diff+'">'+c.diff+'</span>'+
+    '</div>'
+  ).join('')+'<button class="btn btn-ghost btn-sm btn-w" style="margin-top:6px" onclick="showPanel(\'challenges\')">See all '+CHALLENGES.length+' challenges →</button>';
+}
+
+function renderChallengesFull(){
+  const cats=[...new Set(CHALLENGES.map(c=>c.cat))];
+  document.getElementById('challenges-full-list').innerHTML=cats.map(cat=>{
+    const chs=CHALLENGES.filter(c=>c.cat===cat);
+    return '<div style="margin-bottom:24px">'+
+      '<div style="font-family:var(--mono);font-size:.62rem;font-weight:700;color:var(--ink4);letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px;padding:0 4px">'+cat+'</div>'+
+      '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px">'+
+        chs.map(c=>'<div class="challenge-card" onclick="showPanel(\'arena\');setTimeout(()=>selectChallenge(\''+c.id+'\'),100)">'+
+          '<div class="ch-category">'+c.cat+'</div>'+
+          '<div class="ch-title">'+c.title+'</div>'+
+          '<div class="ch-desc">'+c.desc+'</div>'+
+          '<span class="ch-diff diff-'+c.diff+'">'+c.diff+'</span>'+
+        '</div>').join('')+
+      '</div></div>';
+  }).join('');
+}
+
+function selectChallenge(id){
+  arenaState.selectedChallenge=id;
+  document.querySelectorAll('.challenge-card').forEach(el=>el.classList.remove('selected'));
+  document.querySelectorAll('#ch-card-'+id).forEach(el=>el.classList.add('selected'));
+  const ch=CHALLENGES.find(c=>c.id===id);
+  if(ch&&document.getElementById('custom-challenge').value==='') {
+    // Don't overwrite custom
+  }
+}
+
+function openBotPicker(slot){
+  const bots=getBots();
+  if(!bots.length){toast('Create some bots first!','bad');showPanel('builder');return;}
+  const list=document.getElementById('bot-picker-list');
+  list.innerHTML=bots.map(b=>
+    '<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--rule2);border-radius:7px;cursor:pointer;transition:all .12s" onclick="pickBot(\''+slot+'\',\''+b.id+'\')" onmouseover="this.style.borderColor=\'var(--purple)\'" onmouseout="this.style.borderColor=\'var(--rule2)\'">'+
+      '<span style="font-size:1.2rem">'+b.emoji+'</span>'+
+      '<div style="flex:1"><div style="font-weight:700;font-size:.8rem">'+escHtml(b.name)+'</div><div style="font-family:var(--mono);font-size:.6rem;color:var(--ink4)">'+b.model+' · ELO '+b.elo+'</div></div>'+
+    '</div>'
+  ).join('');
+  showModal('bot-picker-modal');
+}
+
+function pickBot(slot,botId){
+  const bot=getBots().find(b=>b.id===botId);
+  if(!bot) return;
+  arenaState['slot'+slot.toUpperCase()]=bot;
+  document.getElementById('slot-'+slot+'-emoji').textContent=bot.emoji;
+  document.getElementById('slot-'+slot+'-name').textContent=bot.name;
+  document.getElementById('slot-'+slot).classList.add('filled');
+  closeModal('bot-picker-modal');
+}
+
+async function runArena(){
+  const botA=arenaState.slotA;
+  const botB=arenaState.slotB;
+  if(!botA||!botB){toast('Select two bots to compete','bad');return;}
+  if(botA.id===botB.id){toast('Pick two different bots','bad');return;}
+
+  const key=getDevKey();
+  if(!key){toast('Set your API key in the sidebar first','bad');return;}
+
+  let taskPrompt=document.getElementById('custom-challenge').value.trim();
+  let challengeTitle='Custom Challenge';
+  let judgeHint='overall quality';
+
+  if(!taskPrompt&&arenaState.selectedChallenge){
+    const ch=CHALLENGES.find(c=>c.id===arenaState.selectedChallenge);
+    if(ch){taskPrompt=ch.desc;challengeTitle=ch.title;judgeHint=ch.judge;}
+  }
+
+  if(!taskPrompt){toast('Select a challenge or write a custom prompt','bad');return;}
+
+  arenaState.running=true;
+  document.getElementById('arena-btn').disabled=true;
+  document.getElementById('arena-status').textContent='Battle in progress…';
+  document.getElementById('arena-feed').innerHTML='';
+  document.getElementById('arena-result').innerHTML='';
+
+  const addArenaFeed=(who,msg,cls='af-sys')=>{
+    const el=document.getElementById('arena-feed');
+    const d=new Date();
+    const ts=d.getHours().toString().padStart(2,'0')+':'+d.getSeconds().toString().padStart(2,'0');
+    const item=document.createElement('div');
+    item.className='af-item';
+    item.innerHTML='<span class="af-ts">'+ts+'</span><span class="af-who '+cls+'">'+escHtml(who)+'</span><span class="af-msg">'+escHtml(msg)+'</span>';
+    el.appendChild(item);
+    el.scrollTop=el.scrollHeight;
+  };
+
+  try{
+    addArenaFeed('ARENA','Challenge: "'+challengeTitle+'"');
+    addArenaFeed('ARENA','Task: '+taskPrompt.substring(0,80)+'…');
+
+    // Run both bots
+    addArenaFeed(botA.name,'Generating response…','af-a');
+    const t0=Date.now();
+    const [respA,respB]=await Promise.allSettled([
+      runBot(key,botA,taskPrompt),
+      runBot(key,botB,taskPrompt),
+    ]);
+    const msA=Date.now()-t0;
+
+    if(respA.status==='rejected') throw new Error(botA.name+' failed: '+respA.reason?.message);
+    if(respB.status==='rejected') throw new Error(botB.name+' failed: '+respB.reason?.message);
+
+    const rA=respA.value, rB=respB.value;
+    addArenaFeed(botA.name,'Response ready ('+rA.tokens+' tokens, $'+rA.cost.toFixed(5)+')','af-a');
+    addArenaFeed(botB.name,'Response ready ('+rB.tokens+' tokens, $'+rB.cost.toFixed(5)+')','af-b');
+    addArenaFeed('JUDGE','Evaluating responses…');
+
+    // Judge
+    const judgment=await judge(key,taskPrompt,rA.text,rB.text,judgeHint,botA.name,botB.name);
+    addArenaFeed('JUDGE','Verdict: '+judgment.winner+' wins (score: '+judgment.scoreA+' vs '+judgment.scoreB+')');
+
+    // Update ELO
+    const kFactor=32;
+    const eloA=botA.elo,eloB=botB.elo;
+    const expA=1/(1+Math.pow(10,(eloB-eloA)/400));
+    const expB=1-expA;
+    let newEloA=eloA,newEloB=eloB;
+    let result='';
+
+    if(judgment.winner===botA.name){
+      newEloA=Math.round(eloA+kFactor*(1-expA));
+      newEloB=Math.round(eloB+kFactor*(0-expB));
+      result='A';
+    } else if(judgment.winner===botB.name){
+      newEloA=Math.round(eloA+kFactor*(0-expA));
+      newEloB=Math.round(eloB+kFactor*(1-expB));
+      result='B';
+    } else {
+      newEloA=Math.round(eloA+kFactor*(.5-expA));
+      newEloB=Math.round(eloB+kFactor*(.5-expB));
+      result='D';
+    }
+
+    // Save results
+    const bots=getBots();
+    const updateBot=(id,elo,isWin,isLoss,cost)=>{
+      const i=bots.findIndex(b=>b.id===id);
+      if(i>-1){bots[i].elo=elo;bots[i].battles++;if(isWin)bots[i].wins++;else if(isLoss)bots[i].losses++;else bots[i].draws++;bots[i].totalCost=(bots[i].totalCost||0)+cost;}
+    };
+    updateBot(botA.id,newEloA,result==='A',result==='B',rA.cost);
+    updateBot(botB.id,newEloB,result==='B',result==='A',rB.cost);
+    saveBots(bots);
+
+    const battle={id:'b_'+Date.now(),ts:Date.now(),challenge:challengeTitle,task:taskPrompt.substring(0,100),botA:botA.name,botB:botB.name,winner:judgment.winner,scoreA:judgment.scoreA,scoreB:judgment.scoreB,judgeNote:judgment.note,eloChangeA:newEloA-eloA,eloChangeB:newEloB-eloB,totalCost:rA.cost+rB.cost+(judgment.cost||0)};
+    const battles=getBattles();battles.unshift(battle);if(battles.length>100)battles.splice(100);saveBattles(battles);
+
+    addArenaFeed('ARENA','ELO updated: '+botA.name+' '+(newEloA-eloA>=0?'+':'')+(newEloA-eloA)+' | '+botB.name+' '+(newEloB-eloB>=0?'+':'')+(newEloB-eloB));
+
+    // Render result
+    const winnerName=judgment.winner;
+    const isATie=judgment.winner==='Tie'||judgment.winner==='Draw';
+    document.getElementById('arena-result').innerHTML=
+      '<div class="result-card">'+
+        '<div class="rc-head">'+
+          '<span style="font-size:1.2rem">⚡</span>'+
+          '<span class="rc-winner">'+(isATie?'TIE — Both Bots Draw':winnerName+' WINS')+'</span>'+
+          '<span style="margin-left:auto;font-family:var(--mono);font-size:.62rem;color:var(--ink4)">~$'+(rA.cost+rB.cost+(judgment.cost||0)).toFixed(5)+'</span>'+
+        '</div>'+
+        '<div style="padding:10px 14px;font-size:.73rem;color:var(--ink2);border-bottom:1px solid var(--rule);line-height:1.5">'+
+          '<strong>Judge\'s note:</strong> '+escHtml(judgment.note||'See scores below.')+'</div>'+
+        '<div class="rc-body">'+
+          '<div class="rr-panel">'+
+            '<div class="rr-bot">'+botA.emoji+' '+escHtml(botA.name)+(result==='A'?'<span class="win-badge">WINNER</span>':result==='D'?'<span style="font-size:.62rem;margin-left:6px;color:var(--ink4)">DRAW</span>':'')+'</div>'+
+            '<div class="rr-score">'+judgment.scoreA+'<span style="font-size:.8rem;font-weight:400;color:var(--ink4)">/10</span></div>'+
+            '<div class="rr-meta">ELO: '+eloA+' → '+newEloA+' ('+(newEloA-eloA>=0?'+':'')+(newEloA-eloA)+')</div>'+
+            '<div class="rr-text">'+escHtml(rA.text)+'</div>'+
+          '</div>'+
+          '<div class="rr-panel">'+
+            '<div class="rr-bot">'+botB.emoji+' '+escHtml(botB.name)+(result==='B'?'<span class="win-badge">WINNER</span>':result==='D'?'<span style="font-size:.62rem;margin-left:6px;color:var(--ink4)">DRAW</span>':'')+'</div>'+
+            '<div class="rr-score">'+judgment.scoreB+'<span style="font-size:.8rem;font-weight:400;color:var(--ink4)">/10</span></div>'+
+            '<div class="rr-meta">ELO: '+eloB+' → '+newEloB+' ('+(newEloB-eloB>=0?'+':'')+(newEloB-eloB)+')</div>'+
+            '<div class="rr-text">'+escHtml(rB.text)+'</div>'+
+          '</div>'+
+        '</div>'+
+      '</div>';
+
+    document.getElementById('arena-status').textContent='Battle complete';
+    renderSbBots();
+    updateMyElo();
+    toast('Battle complete! '+winnerName+(isATie?'':' wins'),'ok');
+
+  }catch(e){
+    document.getElementById('arena-status').textContent='Error: '+e.message.substring(0,50);
+    addArenaFeed('ERROR',e.message,'af-sys');
+    toast(e.message.substring(0,60),'bad');
+  }
+
+  arenaState.running=false;
+  document.getElementById('arena-btn').disabled=false;
+}
+
+async function runBot(key,bot,task){
+  let resp;
+  try{
+    resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-request-when-unauthenticated':'true'},
+      body:JSON.stringify({
+        model:bot.model,
+        max_tokens:bot.maxTokens||512,
+        system:bot.sys,
+        messages:[{role:'user',content:task}]
+      })
+    });
+  }catch(e){throw new Error('Network: '+e.message);}
+
+  if(resp.status===401) throw new Error('Invalid API key');
+  if(resp.status===429) throw new Error('Rate limited');
+  if(!resp.ok){const d=await resp.json().catch(()=>({}));throw new Error('API '+resp.status+': '+(d?.error?.message||'').substring(0,60));}
+
+  const d=await resp.json();
+  const text=d.content?.[0]?.text||'';
+  const tokens=(d.usage?.input_tokens||0)+(d.usage?.output_tokens||0);
+  const costs={'claude-haiku-4-5-20251001':0.00025,'claude-sonnet-4-6':0.003,'claude-opus-4-6':0.015};
+  const cost=tokens*(costs[bot.model]||0.00025)/1000;
+  return{text,tokens,cost};
+}
+
+async function judge(key,task,textA,textB,hint,nameA,nameB){
+  const prompt=`You are an objective judge evaluating two AI responses to the same task.
+
+TASK: ${task.substring(0,400)}
+
+BOT A (${nameA}):
+${textA.substring(0,600)}
+
+BOT B (${nameB}):
+${textB.substring(0,600)}
+
+Judge based on: ${hint}. Score each /10. Declare a winner or "Draw" if very close.
+
+Respond in JSON only:
+{"winner":"${nameA}" or "${nameB}" or "Draw","scoreA":8,"scoreB":7,"note":"One sentence explaining the decision"}`;
+
+  let resp;
+  try{
+    resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-request-when-unauthenticated':'true'},
+      body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:150,messages:[{role:'user',content:prompt}]})
+    });
+  }catch(e){throw new Error('Judge network error: '+e.message);}
+
+  if(!resp.ok) throw new Error('Judge API error '+resp.status);
+  const d=await resp.json();
+  const tokens=(d.usage?.input_tokens||0)+(d.usage?.output_tokens||0);
+  const cost=tokens*0.00025/1000;
+  try{
+    const j=JSON.parse(d.content[0].text.replace(/```json|```/g,'').trim());
+    return{...j,cost};
+  }catch{
+    return{winner:'Draw',scoreA:5,scoreB:5,note:'Could not parse judge response',cost};
+  }
+}
+
+// ══════════ LEADERBOARD ══════════
+function renderLeaderboard(){
+  const bots=getBots().sort((a,b)=>b.elo-a.elo);
+  const body=document.getElementById('lb-body');
+  if(!bots.length){
+    body.innerHTML='<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--ink4)">No bots yet. Create bots and run Arena battles to see rankings.</td></tr>';
+    return;
+  }
+  body.innerHTML=bots.map((b,i)=>{
+    const wr=b.battles>0?Math.round(b.wins/b.battles*100):0;
+    const avgCost=b.battles>0?(b.totalCost/b.battles).toFixed(5):'—';
+    const eff=b.battles>0?Math.round(b.wins/Math.max(b.totalCost,0.0001)):0;
+    return '<tr class="rank-'+(i+1)+'">'+
+      '<td style="font-family:var(--mono);font-weight:700">'+(i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1))+'</td>'+
+      '<td><div style="display:flex;align-items:center;gap:8px">'+
+        '<span style="font-size:1.1rem">'+b.emoji+'</span>'+
+        '<div><div style="font-weight:700">'+escHtml(b.name)+'</div><div style="font-family:var(--mono);font-size:.6rem;color:var(--ink4)">'+b.model+'</div></div>'+
+      '</div></td>'+
+      '<td><span class="elo-pill">'+b.elo+'</span></td>'+
+      '<td style="font-family:var(--mono)">'+b.wins+'/'+b.losses+'/'+b.draws+'</td>'+
+      '<td style="font-family:var(--mono)">'+(b.battles>0?wr+'%':'—')+'</td>'+
+      '<td style="font-family:var(--mono)">$'+avgCost+'</td>'+
+      '<td><span style="font-family:var(--mono);color:var(--purple)">'+eff+'</span></td>'+
+    '</tr>';
+  }).join('');
+}
+
+function exportLeaderboard(){
+  const bots=getBots().sort((a,b)=>b.elo-a.elo);
+  const csv='Rank,Name,ELO,Wins,Losses,Draws,WinRate,AvgCost,Model\n'+
+    bots.map((b,i)=>[i+1,b.name,b.elo,b.wins,b.losses,b.draws,b.battles>0?Math.round(b.wins/b.battles*100)+'%':'0%',(b.battles>0?b.totalCost/b.battles:0).toFixed(5),b.model].join(',')).join('\n');
+  const blob=new Blob([csv],{type:'text/csv'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='promptmesh-dev-leaderboard.csv';a.click();
+}
+
+// ══════════ API KEY ══════════
+function saveDevKey(){
+  const k=document.getElementById('dev-key-input').value.trim();
+  if(!k){toast('Enter a key','bad');return;}
+  sessionStorage.setItem('dev_key',k);
+  document.getElementById('dev-key-input').value='';
+  document.getElementById('dev-key-status').textContent='Key set: '+k.substring(0,10)+'…';
+  document.getElementById('dev-key-status').style.color='var(--green)';
+  toast('API key saved','ok');
+}
+
+function clearArena(){
+  document.getElementById('arena-feed').innerHTML='';
+  document.getElementById('arena-result').innerHTML='';
+  document.getElementById('arena-status').textContent='Ready';
+}
+
+// ══════════ UTILS ══════════
+function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function showModal(id){document.getElementById(id).style.display='flex';}
+function closeModal(id){document.getElementById(id).style.display='none';}
+let toastT;
+function toast(msg,type=''){const el=document.getElementById('toast');el.textContent=msg;el.className='show'+(type?' '+type:'');clearTimeout(toastT);toastT=setTimeout(()=>el.className='',3200);}
+function toggleDark(){document.body.classList.toggle('light');localStorage.setItem('pm_dark_dev',document.body.classList.contains('light')?'0':'1');}
+
+// ══════════ INIT ══════════
+document.addEventListener('DOMContentLoaded',()=>{
+  if(localStorage.getItem('pm_dark_dev')==='0') document.body.classList.add('light');
+  renderBots();renderSbBots();renderChallengeList();renderLeaderboard();updateMyElo();updateCostEst();
+  const k=getDevKey();
+  if(k){document.getElementById('dev-key-status').textContent='Key: '+k.substring(0,10)+'…';document.getElementById('dev-key-status').style.color='var(--green)';}
+  document.addEventListener('keydown',e=>{
+    if(e.key==='Escape') document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none');
+    if((e.ctrlKey||e.metaKey)&&e.key==='Enter') runArena();
+  });
+},{once:true});
+</script>
+</body>
+</html>

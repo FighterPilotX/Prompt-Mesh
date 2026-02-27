@@ -1,0 +1,1230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://api.anthropic.com;">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PromptMesh Enterprise — Intelligent Agent Routing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f4f3ef;--paper:#fff;--ink:#16140f;--ink2:#3d3a32;--ink3:#7a7668;--ink4:#b0ac9f;
+  --rule:#e4e0d8;--rule2:#cec9be;--green:#1a7a4a;--green2:#155f3a;--green-tint:rgba(26,122,74,.08);
+  --red:#c0392b;--red-tint:rgba(192,57,43,.07);--amber:#d4860a;--amber-tint:rgba(212,134,10,.08);
+  --blue:#1e5fa3;--blue-tint:rgba(30,95,163,.07);--surface:#fff;
+  --body:'IBM Plex Sans',system-ui,sans-serif;--mono:'IBM Plex Mono',monospace;
+}
+body.dark{--bg:#0e0d0b;--paper:#131210;--ink:#f0ece2;--ink2:#c8c4b8;--ink3:#8a8678;--ink4:#5a5750;--rule:#222018;--rule2:#2d2b24;--surface:#161410;}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:var(--body);background:var(--bg);color:var(--ink);font-size:13.5px;line-height:1.5;min-height:100vh;overflow-x:hidden;}
+
+/* LAYOUT */
+#app{display:grid;grid-template-columns:240px 1fr;grid-template-rows:52px 1fr;height:100vh;overflow:hidden;}
+#topbar{grid-column:1/-1;grid-row:1;background:var(--paper);border-bottom:1px solid var(--rule);display:flex;align-items:center;padding:0 20px;gap:12px;z-index:50;}
+body.dark #topbar{background:var(--paper);}
+#sidebar{grid-column:1;grid-row:2;background:var(--paper);border-right:1px solid var(--rule);display:flex;flex-direction:column;overflow:hidden;}
+body.dark #sidebar{background:var(--surface);}
+#main{grid-column:2;grid-row:2;overflow:hidden;display:flex;flex-direction:column;}
+
+/* TOPBAR */
+.tb-logo{font-family:var(--mono);font-size:.88rem;font-weight:700;color:var(--ink);display:flex;align-items:center;gap:8px;text-decoration:none;}
+.tb-logo .box{width:22px;height:22px;background:var(--green);border-radius:4px;display:grid;grid-template-columns:1fr 1fr;gap:1.5px;padding:4px;}
+.tb-logo .box span{background:#fff;border-radius:1px;}
+.tb-logo .box span:nth-child(2){opacity:.5;}
+.tb-divider{width:1px;height:20px;background:var(--rule2);margin:0 4px;}
+.tb-title{font-size:.8rem;color:var(--ink3);font-weight:500;}
+.tb-space{flex:1;}
+.tb-saved{font-family:var(--mono);font-size:.68rem;color:var(--green);font-weight:700;background:var(--green-tint);padding:4px 12px;border-radius:4px;border:1px solid rgba(26,122,74,.2);}
+.tb-key{font-size:.72rem;color:var(--ink3);display:flex;align-items:center;gap:6px;}
+.btn{display:inline-flex;align-items:center;gap:5px;font-family:var(--body);font-size:.75rem;font-weight:600;padding:6px 14px;border-radius:5px;cursor:pointer;transition:all .13s;border:none;white-space:nowrap;}
+.btn-green{background:var(--green);color:#fff;}
+.btn-green:hover{background:var(--green2);}
+.btn-outline{background:transparent;color:var(--ink);border:1px solid var(--rule2);}
+.btn-outline:hover{border-color:var(--ink3);}
+.btn-ghost{background:transparent;color:var(--ink3);border:1px solid transparent;}
+.btn-ghost:hover{background:var(--rule);color:var(--ink);}
+.btn-sm{padding:4px 10px;font-size:.68rem;}
+.btn-xs{padding:3px 7px;font-size:.62rem;}
+.btn-w{width:100%;justify-content:center;}
+.btn:disabled{opacity:.35;cursor:not-allowed;}
+.dark-btn{width:26px;height:15px;background:var(--rule2);border:none;border-radius:8px;cursor:pointer;position:relative;transition:background .2s;flex-shrink:0;}
+.dark-btn::after{content:'';position:absolute;top:2px;left:2px;width:11px;height:11px;background:var(--ink4);border-radius:50%;transition:all .2s;}
+body.dark .dark-btn{background:var(--green);}
+body.dark .dark-btn::after{left:13px;background:#fff;}
+
+/* SIDEBAR */
+.sb-section{padding:14px 14px 6px;font-family:var(--mono);font-size:.58rem;font-weight:700;color:var(--ink4);letter-spacing:.1em;text-transform:uppercase;}
+.sb-item{display:flex;align-items:center;gap:9px;padding:9px 14px;cursor:pointer;border-radius:0;transition:all .1s;font-size:.78rem;font-weight:500;border-left:2px solid transparent;margin:1px 0;}
+.sb-item:hover{background:var(--rule);color:var(--ink);}
+.sb-item.active{background:var(--green-tint);border-left-color:var(--green);color:var(--green);font-weight:600;}
+.sb-icon{width:16px;text-align:center;font-size:.85rem;flex-shrink:0;}
+.sb-space{flex:1;}
+.sb-bottom{margin-top:auto;padding:14px;border-top:1px solid var(--rule);}
+
+/* AGENT ROSTER in sidebar */
+.agent-roster{flex:1;overflow-y:auto;padding:6px 10px;}
+.agent-row{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:5px;cursor:pointer;transition:background .1s;}
+.agent-row:hover{background:var(--rule);}
+.agent-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.agent-dot.on{background:var(--green);}
+.agent-dot.off{background:var(--rule2);}
+.agent-name{font-size:.74rem;font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.agent-model{font-family:var(--mono);font-size:.58rem;color:var(--ink4);}
+.agent-runs{font-family:var(--mono);font-size:.58rem;color:var(--ink3);}
+
+/* VIEWS */
+.view-panel{display:none;flex:1;overflow:hidden;flex-direction:column;}
+.view-panel.active{display:flex;}
+
+/* VIEW HEADER */
+.view-header{padding:18px 24px 14px;border-bottom:1px solid var(--rule);flex-shrink:0;}
+.view-header h2{font-size:1.15rem;font-weight:700;font-family:var(--mono);}
+.view-header p{font-size:.74rem;color:var(--ink3);margin-top:3px;}
+.view-header-actions{display:flex;align-items:center;gap:8px;margin-top:12px;flex-wrap:wrap;}
+
+/* RUN TASK */
+.run-layout{display:grid;grid-template-columns:380px 1fr;flex:1;overflow:hidden;}
+.run-left{border-right:1px solid var(--rule);display:flex;flex-direction:column;overflow:hidden;}
+.run-left-scroll{flex:1;overflow-y:auto;padding:16px;}
+.field{display:flex;flex-direction:column;gap:5px;margin-bottom:14px;}
+.field label{font-family:var(--mono);font-size:.6rem;font-weight:700;color:var(--ink3);letter-spacing:.08em;text-transform:uppercase;}
+.textarea,.input,.select{width:100%;background:var(--bg);border:1.5px solid var(--rule2);color:var(--ink);font-family:var(--body);font-size:.8rem;padding:9px 11px;border-radius:5px;outline:none;transition:border-color .18s;}
+.textarea:focus,.input:focus,.select:focus{border-color:var(--green);}
+.textarea{resize:none;line-height:1.55;}
+.select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%237a7668' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;}
+
+.route-estimate{background:var(--green-tint);border:1px solid rgba(26,122,74,.15);border-radius:6px;padding:10px 12px;font-size:.72rem;color:var(--ink2);line-height:1.6;margin-bottom:14px;}
+.route-estimate strong{color:var(--green);}
+
+.run-right{display:flex;flex-direction:column;overflow:hidden;}
+.run-tabs{display:flex;border-bottom:1px solid var(--rule);background:var(--paper);flex-shrink:0;}
+.rt{padding:10px 18px;font-family:var(--mono);font-size:.68rem;font-weight:700;cursor:pointer;color:var(--ink4);border-bottom:2px solid transparent;margin-bottom:-1px;letter-spacing:.04em;transition:all .12s;}
+.rt.on{color:var(--green);border-bottom-color:var(--green);}
+.rt:hover:not(.on){color:var(--ink);}
+.rt-body{display:none;flex:1;overflow:hidden;flex-direction:column;}
+.rt-body.on{display:flex;}
+
+#run-feed{flex:1;overflow-y:auto;padding:14px 18px;display:flex;flex-direction:column;gap:2px;}
+.fi{display:flex;gap:10px;padding:4px 8px;border-radius:4px;font-size:.69rem;animation:fuUp .15s ease;}
+@keyframes fuUp{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+.fi:hover{background:var(--rule);}
+.fi-ts{font-family:var(--mono);font-size:.6rem;color:var(--ink4);flex-shrink:0;width:42px;}
+.fi-from{font-weight:700;flex-shrink:0;width:72px;font-size:.65rem;color:var(--ink3);}
+.fi-msg{color:var(--ink2);flex:1;line-height:1.45;}
+.fi-router .fi-from{color:var(--blue);}
+.fi-agent .fi-from{color:var(--green);}
+.fi-sys .fi-from{color:var(--ink4);}
+.fi-err .fi-from{color:var(--red);}
+
+#run-output-scroll{flex:1;overflow-y:auto;padding:18px 20px;}
+.output-card{background:var(--bg);border:1px solid var(--rule2);border-radius:8px;margin-bottom:14px;}
+.oc-head{padding:10px 14px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--rule);}
+.oc-icon{font-size:1rem;}
+.oc-title{font-weight:700;font-size:.78rem;flex:1;}
+.oc-meta{font-family:var(--mono);font-size:.6rem;color:var(--ink3);}
+.oc-body{padding:12px 14px;font-size:.74rem;line-height:1.7;color:var(--ink2);white-space:pre-wrap;}
+.oc-body code{font-family:var(--mono);background:var(--paper);padding:1px 5px;border-radius:3px;font-size:.68rem;color:var(--green2);}
+.oc-body pre{background:var(--ink);color:#e8e4dc;padding:12px;border-radius:6px;overflow-x:auto;font-family:var(--mono);font-size:.67rem;line-height:1.55;margin:6px 0;}
+
+.routing-trace{background:var(--paper);border:1px solid var(--rule);border-radius:8px;padding:14px;margin-bottom:14px;}
+.rt-trace-title{font-family:var(--mono);font-size:.62rem;font-weight:700;color:var(--ink3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;}
+.rt-decision{display:flex;align-items:flex-start;gap:10px;padding:7px 0;border-bottom:1px solid var(--rule);}
+.rt-decision:last-child{border-bottom:none;}
+.rtd-label{font-family:var(--mono);font-size:.6rem;color:var(--ink4);width:80px;flex-shrink:0;}
+.rtd-val{font-size:.72rem;color:var(--ink2);flex:1;}
+.rtd-val strong{color:var(--green);font-weight:700;}
+
+/* AGENTS CONFIG */
+.agents-scroll{flex:1;overflow-y:auto;padding:20px 24px;}
+.agents-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;}
+.agent-card{background:var(--paper);border:1.5px solid var(--rule2);border-radius:10px;padding:18px;transition:all .15s;}
+.agent-card:hover{box-shadow:0 4px 20px rgba(0,0,0,.08);transform:translateY(-1px);}
+.agent-card.inactive{opacity:.55;}
+.ac-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;}
+.ac-icon{font-size:1.6rem;}
+.ac-badge{font-family:var(--mono);font-size:.58rem;font-weight:700;padding:2px 7px;border-radius:3px;text-transform:uppercase;letter-spacing:.06em;}
+.badge-claude{background:var(--amber-tint);color:var(--amber);}
+.badge-openai{background:var(--green-tint);color:var(--green);}
+.badge-gemini{background:var(--blue-tint);color:var(--blue);}
+.badge-custom{background:var(--rule);color:var(--ink3);}
+.ac-name{font-weight:700;font-size:.88rem;margin-bottom:3px;}
+.ac-spec{font-size:.72rem;color:var(--ink3);margin-bottom:10px;line-height:1.4;}
+.ac-stats{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px;}
+.acs-item{background:var(--bg);border-radius:4px;padding:7px 9px;text-align:center;}
+.acs-val{font-family:var(--mono);font-size:.78rem;font-weight:700;color:var(--ink);}
+.acs-lab{font-size:.58rem;color:var(--ink4);margin-top:1px;}
+.ac-bar{height:3px;background:var(--rule);border-radius:2px;overflow:hidden;margin-bottom:10px;}
+.ac-fill{height:100%;background:var(--green);border-radius:2px;transition:width .5s ease;}
+.ac-actions{display:flex;gap:6px;flex-wrap:wrap;}
+
+/* ROUTING MAP */
+.map-canvas-wrap{flex:1;position:relative;overflow:hidden;background:var(--bg);}
+.map-canvas-wrap canvas{position:absolute;inset:0;}
+.map-overlay{position:absolute;top:16px;right:16px;display:flex;flex-direction:column;gap:8px;}
+
+/* ANALYTICS */
+.analytics-scroll{flex:1;overflow-y:auto;padding:20px 24px;}
+.metrics-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:24px;}
+.metric-card{background:var(--paper);border:1px solid var(--rule);border-radius:8px;padding:16px;}
+.mc-val{font-family:var(--mono);font-size:1.5rem;font-weight:700;color:var(--ink);line-height:1;}
+.mc-val.green{color:var(--green);}
+.mc-val.red{color:var(--red);}
+.mc-label{font-size:.65rem;color:var(--ink4);margin-top:5px;text-transform:uppercase;letter-spacing:.07em;}
+.chart-block{background:var(--paper);border:1px solid var(--rule);border-radius:8px;padding:18px;margin-bottom:16px;}
+.cb-title{font-family:var(--mono);font-size:.68rem;font-weight:700;color:var(--ink3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:16px;}
+.bar-chart{display:flex;flex-direction:column;gap:8px;}
+.bc-row{display:flex;align-items:center;gap:10px;}
+.bc-label{font-size:.72rem;color:var(--ink2);width:110px;flex-shrink:0;text-align:right;}
+.bc-bar-wrap{flex:1;height:18px;background:var(--rule);border-radius:3px;overflow:hidden;}
+.bc-bar{height:100%;border-radius:3px;transition:width .6s ease;}
+.bc-val{font-family:var(--mono);font-size:.62rem;color:var(--ink3);width:60px;flex-shrink:0;}
+.savings-table{width:100%;border-collapse:collapse;font-size:.75rem;}
+.savings-table th{font-family:var(--mono);font-size:.6rem;letter-spacing:.06em;text-transform:uppercase;color:var(--ink4);padding:8px 12px;border-bottom:2px solid var(--rule);text-align:left;}
+.savings-table td{padding:8px 12px;border-bottom:1px solid var(--rule);}
+.savings-table tr:hover td{background:var(--bg);}
+
+/* RULES */
+.rules-scroll{flex:1;overflow-y:auto;padding:20px 24px;}
+.rules-table-wrap{background:var(--paper);border:1px solid var(--rule);border-radius:8px;overflow:hidden;margin-bottom:16px;}
+.rule-row{display:grid;grid-template-columns:2fr 1.5fr 1.2fr auto;gap:0;border-bottom:1px solid var(--rule);}
+.rule-row:last-child{border-bottom:none;}
+.rule-row.header{background:var(--bg);}
+.rc{padding:10px 14px;font-size:.74rem;}
+.rc.head{font-family:var(--mono);font-size:.6rem;color:var(--ink4);font-weight:700;letter-spacing:.06em;text-transform:uppercase;}
+.rc.cond{font-family:var(--mono);font-size:.7rem;color:var(--ink2);}
+.rc.agent-val{font-weight:700;color:var(--green);font-size:.74rem;}
+.rc.reason{color:var(--ink3);font-size:.7rem;}
+.rc.actions{display:flex;align-items:center;justify-content:flex-end;gap:5px;}
+.rule-add{background:var(--paper);border:1.5px dashed var(--rule2);border-radius:8px;padding:18px;text-align:center;cursor:pointer;color:var(--ink3);font-size:.78rem;transition:all .15s;}
+.rule-add:hover{border-color:var(--green);color:var(--green);}
+
+/* MODALS */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(6px);z-index:200;display:flex;align-items:center;justify-content:center;animation:mFade .15s ease;}
+@keyframes mFade{from{opacity:0}to{opacity:1}}
+.modal{background:var(--paper);border-radius:12px;padding:28px;max-width:460px;width:90%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2);animation:mUp .22s cubic-bezier(.34,1.56,.64,1);}
+@keyframes mUp{from{transform:scale(.92);opacity:0}to{transform:none;opacity:1}}
+.modal h3{font-size:1.1rem;font-weight:700;font-family:var(--mono);margin-bottom:6px;}
+.modal p{font-size:.76rem;color:var(--ink3);margin-bottom:18px;line-height:1.55;}
+.modal-close{float:right;width:26px;height:26px;background:var(--rule);border:none;border-radius:50%;cursor:pointer;font-size:.82rem;color:var(--ink3);display:flex;align-items:center;justify-content:center;float:none;position:absolute;top:16px;right:16px;}
+.modal-close:hover{background:var(--rule2);}
+
+/* STATUS PILLS */
+.pill{font-family:var(--mono);font-size:.58rem;font-weight:700;padding:3px 10px;border-radius:12px;letter-spacing:.05em;text-transform:uppercase;}
+.pill-idle{background:var(--rule);color:var(--ink4);}
+.pill-running{background:var(--amber-tint);color:var(--amber);border:1px solid rgba(212,134,10,.2);animation:blink 1.8s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.6}}
+.pill-done{background:var(--green-tint);color:var(--green);border:1px solid rgba(26,122,74,.2);}
+.pill-err{background:var(--red-tint);color:var(--red);}
+
+/* TOAST */
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(12px);background:var(--ink);color:#f0ece2;font-family:var(--mono);font-size:.7rem;padding:8px 18px;border-radius:6px;z-index:999;opacity:0;transition:all .25s cubic-bezier(.34,1.56,.64,1);pointer-events:none;white-space:nowrap;}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+#toast.ok{background:var(--green);}
+#toast.bad{background:var(--red);}
+
+/* MOBILE */
+@media(max-width:720px){
+  #app{grid-template-columns:1fr;grid-template-rows:52px auto 1fr;}
+  #sidebar{grid-row:2;grid-column:1;height:auto;flex-direction:row;border-right:none;border-bottom:1px solid var(--rule);overflow-x:auto;}
+  .agent-roster{display:none;}
+  .sb-bottom{display:none;}
+  .sb-section{display:none;}
+  #main{grid-row:3;}
+  .run-layout{grid-template-columns:1fr;grid-template-rows:auto 1fr;}
+  .run-left{border-right:none;border-bottom:1px solid var(--rule);max-height:280px;}
+  .map-canvas-wrap canvas{position:relative;}
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- TOPBAR -->
+<div id="topbar">
+  <a href="promptmesh-hub.html" class="tb-logo">
+    <div class="box"><span></span><span></span><span></span><span></span></div>
+    PromptMesh <span style="color:var(--green);margin-left:4px">Enterprise</span>
+  </a>
+  <div class="tb-divider"></div>
+  <span class="tb-title">Agent Routing Platform</span>
+  <div class="tb-space"></div>
+  <div class="tb-saved" id="total-saved-display">saved $0.0000</div>
+  <div class="tb-key" id="key-status">
+    <span id="key-dot" style="width:7px;height:7px;border-radius:50%;background:var(--ink4)"></span>
+    <span id="key-label">No API key</span>
+    <button class="btn btn-outline btn-sm" onclick="promptKey()">Set Key</button>
+  </div>
+  <button class="dark-btn" onclick="toggleDark()"></button>
+</div>
+
+<!-- SIDEBAR -->
+<div id="sidebar">
+  <div class="sb-section">Navigation</div>
+  <div class="sb-item active" onclick="showPanel('run')" data-panel="run">
+    <span class="sb-icon">▶</span> Run Task
+  </div>
+  <div class="sb-item" onclick="showPanel('agents')" data-panel="agents">
+    <span class="sb-icon">⬡</span> Agents
+  </div>
+  <div class="sb-item" onclick="showPanel('rules')" data-panel="rules">
+    <span class="sb-icon">⊞</span> Routing Rules
+  </div>
+  <div class="sb-item" onclick="showPanel('map')" data-panel="map">
+    <span class="sb-icon">◎</span> Routing Map
+  </div>
+  <div class="sb-item" onclick="showPanel('analytics')" data-panel="analytics">
+    <span class="sb-icon">↗</span> Analytics
+  </div>
+
+  <div class="sb-section" style="margin-top:12px">Agents</div>
+  <div class="agent-roster" id="agent-roster"></div>
+
+  <div class="sb-bottom">
+    <button class="btn btn-green btn-w" onclick="showPanel('run');document.getElementById('task-input').focus()">+ New Task</button>
+    <div style="margin-top:8px;font-family:var(--mono);font-size:.58rem;color:var(--ink4);text-align:center">
+      Total runs: <span id="sb-total-runs">0</span>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+
+  <!-- RUN TASK -->
+  <div class="view-panel active" id="panel-run">
+    <div class="view-header">
+      <h2>Run Task</h2>
+      <p>Describe a task — PromptMesh routes it to the best agent automatically.</p>
+    </div>
+    <div class="run-layout">
+
+      <div class="run-left">
+        <div class="run-left-scroll">
+          <div class="field">
+            <label>Task</label>
+            <textarea class="textarea" id="task-input" rows="5" placeholder="Describe the task…&#10;e.g. Write a Python function to parse JSON with error handling&#10;e.g. Summarize this support ticket and suggest a response&#10;e.g. Generate 5 product names for a SaaS analytics tool"></textarea>
+          </div>
+
+          <div class="field">
+            <label>Routing Mode</label>
+            <select class="select" id="routing-mode">
+              <option value="auto">Auto (recommended) — Haiku analyzes & routes</option>
+              <option value="cheapest">Cheapest first — always cheapest active agent</option>
+              <option value="sequential">Sequential fallback — try each in cost order</option>
+              <option value="parallel">Parallel + best — run on 2 agents, keep better</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>Force Agent (optional)</label>
+            <select class="select" id="force-agent">
+              <option value="">Auto-select</option>
+            </select>
+          </div>
+
+          <div class="route-estimate" id="route-estimate">
+            <strong>Estimated route:</strong> analyzing…<br>
+            <strong>Estimated cost:</strong> ~$0.0003–0.002<br>
+            <strong>Savings vs GPT-4:</strong> ~92%
+          </div>
+
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-green" style="flex:1;justify-content:center;padding:10px" onclick="dispatch()" id="dispatch-btn">
+              Route & Run →
+            </button>
+            <button class="btn btn-outline" onclick="clearRun()">Clear</button>
+          </div>
+
+          <!-- Quick tasks -->
+          <div style="margin-top:18px">
+            <div style="font-family:var(--mono);font-size:.58rem;color:var(--ink4);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px">Quick Tasks</div>
+            <div id="quick-tasks" style="display:flex;flex-direction:column;gap:5px"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="run-right">
+        <div style="padding:10px 18px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--rule);background:var(--paper);flex-shrink:0">
+          <span class="pill pill-idle" id="run-status-pill">IDLE</span>
+          <span style="font-family:var(--mono);font-size:.65rem;color:var(--ink3)" id="run-elapsed-ent">—</span>
+          <div style="flex:1"></div>
+          <button class="btn btn-ghost btn-xs" onclick="exportRunOutput()">↓ Export</button>
+          <button class="btn btn-ghost btn-xs" onclick="copyRunOutput()">Copy</button>
+          <button class="btn btn-ghost btn-xs" id="stop-btn" onclick="abortDispatch()">■ Stop</button>
+        </div>
+
+        <div class="run-tabs">
+          <div class="rt on" onclick="switchRT(this,'feed')">Feed</div>
+          <div class="rt" onclick="switchRT(this,'output')">Output</div>
+          <div class="rt" onclick="switchRT(this,'trace')">Routing Trace</div>
+          <div class="rt" onclick="switchRT(this,'cost')">Cost</div>
+        </div>
+
+        <div class="rt-body on" id="rtb-feed">
+          <div id="run-feed"></div>
+        </div>
+        <div class="rt-body" id="rtb-output">
+          <div id="run-output-scroll"></div>
+        </div>
+        <div class="rt-body" id="rtb-trace">
+          <div style="padding:18px 20px" id="routing-trace-content">
+            <div style="font-size:.78rem;color:var(--ink4);text-align:center;padding:30px">Run a task to see the routing decision trace here.</div>
+          </div>
+        </div>
+        <div class="rt-body" id="rtb-cost">
+          <div style="padding:18px 20px" id="cost-breakdown-ent"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AGENTS -->
+  <div class="view-panel" id="panel-agents">
+    <div class="view-header">
+      <h2>Agents</h2>
+      <p>Configure your AI agents. Each agent has a model, cost, and specialization.</p>
+      <div class="view-header-actions">
+        <button class="btn btn-green" onclick="openAddAgent()">+ Add Agent</button>
+        <button class="btn btn-outline btn-sm" onclick="renderAgents()">↻ Refresh</button>
+      </div>
+    </div>
+    <div class="agents-scroll">
+      <div class="agents-grid" id="agents-grid"></div>
+    </div>
+  </div>
+
+  <!-- ROUTING RULES -->
+  <div class="view-panel" id="panel-rules">
+    <div class="view-header">
+      <h2>Routing Rules</h2>
+      <p>First-match-wins. Add rules to override auto-routing for specific patterns.</p>
+      <div class="view-header-actions">
+        <button class="btn btn-green" onclick="openAddRule()">+ Add Rule</button>
+        <button class="btn btn-outline btn-sm" onclick="exportRules()">↓ Export Rules</button>
+      </div>
+    </div>
+    <div class="rules-scroll">
+      <div class="rules-table-wrap">
+        <div class="rule-row header">
+          <div class="rc head">Condition</div>
+          <div class="rc head">Route to</div>
+          <div class="rc head">Reason</div>
+          <div class="rc head"></div>
+        </div>
+        <div id="rules-list"></div>
+      </div>
+      <div class="rule-add" onclick="openAddRule()">+ Add routing rule</div>
+
+      <div style="margin-top:24px">
+        <div style="font-family:var(--mono);font-size:.65rem;font-weight:700;color:var(--ink3);letter-spacing:.07em;text-transform:uppercase;margin-bottom:12px">Cost Savings Reference</div>
+        <table class="savings-table">
+          <thead><tr><th>Task Type</th><th>Default (GPT-4)</th><th>Routed (PromptMesh)</th><th>Savings</th></tr></thead>
+          <tbody>
+            <tr><td>Simple Q&A</td><td>$0.008</td><td>$0.0001 (Haiku)</td><td style="color:var(--green);font-weight:700">98.7%</td></tr>
+            <tr><td>Code generation</td><td>$0.024</td><td>$0.004 (Sonnet)</td><td style="color:var(--green);font-weight:700">83%</td></tr>
+            <tr><td>Long doc analysis</td><td>$0.060</td><td>$0.008 (Haiku batch)</td><td style="color:var(--green);font-weight:700">86%</td></tr>
+            <tr><td>Creative writing</td><td>$0.020</td><td>$0.003 (Haiku)</td><td style="color:var(--green);font-weight:700">85%</td></tr>
+            <tr><td>Reasoning/logic</td><td>$0.040</td><td>$0.012 (Sonnet)</td><td style="color:var(--green);font-weight:700">70%</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROUTING MAP -->
+  <div class="view-panel" id="panel-map">
+    <div class="view-header">
+      <h2>Routing Map</h2>
+      <p>Visual graph of task flow between the router and your agents.</p>
+    </div>
+    <div class="map-canvas-wrap">
+      <canvas id="map-canvas"></canvas>
+      <div class="map-overlay">
+        <button class="btn btn-outline btn-sm" onclick="renderMap()">↻ Redraw</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ANALYTICS -->
+  <div class="view-panel" id="panel-analytics">
+    <div class="view-header">
+      <h2>Analytics</h2>
+      <p>Cost, efficiency, and agent performance across all runs.</p>
+      <div class="view-header-actions">
+        <button class="btn btn-outline btn-sm" onclick="exportAnalytics()">↓ Export CSV</button>
+        <button class="btn btn-ghost btn-sm" onclick="resetAnalytics()">Reset</button>
+      </div>
+    </div>
+    <div class="analytics-scroll">
+      <div class="metrics-row" id="metrics-row"></div>
+      <div class="chart-block">
+        <div class="cb-title">Cost per agent (total)</div>
+        <div class="bar-chart" id="agent-cost-chart"></div>
+      </div>
+      <div class="chart-block">
+        <div class="cb-title">Runs per agent</div>
+        <div class="bar-chart" id="agent-runs-chart"></div>
+      </div>
+    </div>
+  </div>
+</div><!-- /main -->
+</div><!-- /app -->
+
+<!-- ADD AGENT MODAL -->
+<div id="add-agent-modal" style="display:none" class="modal-bg" onclick="if(event.target===this)closeModal('add-agent-modal')">
+  <div class="modal" style="position:relative">
+    <button class="modal-close" onclick="closeModal('add-agent-modal')">✕</button>
+    <h3>Add Agent</h3>
+    <p>Connect an AI model as an agent in your routing pool.</p>
+    <div class="field"><label>Agent Name</label><input class="input" id="aa-name" placeholder="e.g. Fast Haiku, GPT Mini Router…"></div>
+    <div class="field"><label>Type</label>
+      <select class="select" id="aa-type" onchange="updateAgentModelOptions()">
+        <option value="claude">Claude (Anthropic)</option>
+        <option value="openai">OpenAI</option>
+        <option value="gemini">Google Gemini</option>
+        <option value="custom">Custom (any OpenAI-compatible)</option>
+      </select>
+    </div>
+    <div class="field"><label>Model</label>
+      <select class="select" id="aa-model">
+        <option value="claude-haiku-4-5-20251001">claude-haiku-4-5-20251001 (fast, cheap)</option>
+        <option value="claude-sonnet-4-6">claude-sonnet-4-6 (balanced)</option>
+        <option value="claude-opus-4-6">claude-opus-4-6 (most capable)</option>
+      </select>
+    </div>
+    <div class="field"><label>Specialization</label><input class="input" id="aa-spec" placeholder="e.g. code, writing, analysis, simple-qa, reasoning…"></div>
+    <div class="field"><label>Cost per 1k tokens ($)</label><input class="input" id="aa-cost" type="number" step="0.0001" value="0.00025" placeholder="0.00025"></div>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="btn btn-green" style="flex:1;justify-content:center" onclick="saveAgent()">Add Agent</button>
+      <button class="btn btn-outline" onclick="closeModal('add-agent-modal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD RULE MODAL -->
+<div id="add-rule-modal" style="display:none" class="modal-bg" onclick="if(event.target===this)closeModal('add-rule-modal')">
+  <div class="modal" style="position:relative">
+    <button class="modal-close" onclick="closeModal('add-rule-modal')">✕</button>
+    <h3>Add Routing Rule</h3>
+    <p>Rules are matched in order. First match wins.</p>
+    <div class="field"><label>Condition (text match or "type:code", "len:short")</label>
+      <input class="input" id="ar-cond" placeholder='e.g. "debug" OR "error" OR type:code OR len:short'></div>
+    <div class="field"><label>Route to Agent</label>
+      <select class="select" id="ar-agent"></select>
+    </div>
+    <div class="field"><label>Reason (for audit log)</label>
+      <input class="input" id="ar-reason" placeholder="e.g. Code tasks → specialized code agent"></div>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="btn btn-green" style="flex:1;justify-content:center" onclick="saveRule()">Add Rule</button>
+      <button class="btn btn-outline" onclick="closeModal('add-rule-modal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+'use strict';
+
+// ══════════ STATE ══════════
+const DEFAULT_AGENTS = [
+  {id:'agt_haiku',name:'Haiku Router',type:'claude',emoji:'⚡',model:'claude-haiku-4-5-20251001',costPer1k:0.00025,spec:'general,simple,fast',active:true,runs:0,totalTokens:0,totalCost:0,color:'#c47a2a'},
+  {id:'agt_sonnet',name:'Sonnet Pro',type:'claude',emoji:'🔮',model:'claude-sonnet-4-6',costPer1k:0.003,spec:'code,reasoning,complex',active:true,runs:0,totalTokens:0,totalCost:0,color:'#c8442a'},
+  {id:'agt_haiku2',name:'Haiku Analyst',type:'claude',emoji:'📊',model:'claude-haiku-4-5-20251001',costPer1k:0.00025,spec:'analysis,summarize,classification',active:true,runs:0,totalTokens:0,totalCost:0,color:'#1a7a4a'},
+];
+
+const DEFAULT_RULES = [
+  {id:'r1',condition:'type:code OR "function" OR "debug" OR "script"',agentId:'agt_sonnet',reason:'Code tasks → Sonnet for quality'},
+  {id:'r2',condition:'len:short OR "what is" OR "define"',agentId:'agt_haiku',reason:'Simple queries → Haiku for speed/cost'},
+  {id:'r3',condition:'type:analysis OR "summarize" OR "analyze"',agentId:'agt_haiku2',reason:'Analysis tasks → dedicated analyst'},
+];
+
+const QUICK_TASKS = [
+  'Write a Python function to validate email addresses with regex',
+  'Summarize this in 3 bullet points: "The transformer architecture..."',
+  'What is the difference between TCP and UDP?',
+  'Debug this code: for i in range(10) print(i)',
+  'Generate 5 creative names for a B2B SaaS company',
+  'Write a SQL query to find duplicate emails in a users table',
+];
+
+function getAgents(){try{return JSON.parse(localStorage.getItem('ent_agents')||'null')||DEFAULT_AGENTS;}catch{return DEFAULT_AGENTS;}}
+function saveAgentsData(a){localStorage.setItem('ent_agents',JSON.stringify(a));}
+function getRules(){try{return JSON.parse(localStorage.getItem('ent_rules')||'null')||DEFAULT_RULES;}catch{return DEFAULT_RULES;}  }
+function saveRulesData(r){localStorage.setItem('ent_rules',JSON.stringify(r));}
+function getAnalytics(){try{return JSON.parse(localStorage.getItem('ent_analytics')||'null')||{totalRuns:0,totalCost:0,totalSaved:0,totalTokens:0,runLog:[]};}catch{return{totalRuns:0,totalCost:0,totalSaved:0,totalTokens:0,runLog:[]};}}
+function saveAnalytics(a){localStorage.setItem('ent_analytics',JSON.stringify(a));}
+
+let dispatchState={running:false,aborted:false,startTime:0,elapsedTimer:null};
+let lastResult='';
+let lastTrace=null;
+
+// ══════════ NAVIGATION ══════════
+function showPanel(id){
+  document.querySelectorAll('.view-panel').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.sb-item').forEach(s=>s.classList.remove('active'));
+  document.getElementById('panel-'+id).classList.add('active');
+  document.querySelector('[data-panel="'+id+'"]').classList.add('active');
+  if(id==='agents') renderAgents();
+  if(id==='analytics') renderAnalytics();
+  if(id==='rules') renderRules();
+  if(id==='map') setTimeout(renderMap,100);
+}
+
+// ══════════ API KEY ══════════
+function promptKey(){
+  const k=window.prompt('Anthropic API key (sk-ant-…)\nStored in sessionStorage only:');
+  if(!k||!k.trim()) return;
+  sessionStorage.setItem('ent_key',k.trim());
+  updateKeyStatus();
+  toast('Key saved','ok');
+}
+
+function getKey(){return sessionStorage.getItem('ent_key');}
+
+function updateKeyStatus(){
+  const k=getKey();
+  document.getElementById('key-dot').style.background=k?'var(--green)':'var(--ink4)';
+  document.getElementById('key-label').textContent=k?'Key set ('+k.substring(0,10)+'…)':'No API key';
+}
+
+// ══════════ DISPATCH ══════════
+async function dispatch(){
+  const task=document.getElementById('task-input').value.trim();
+  if(!task){toast('Enter a task first','bad');return;}
+  const key=getKey()||promptKey()||getKey();
+  if(!key){toast('API key required','bad');return;}
+  if(dispatchState.running){toast('Already running','bad');return;}
+
+  dispatchState={running:true,aborted:false,startTime:Date.now(),elapsedTimer:null};
+  document.getElementById('dispatch-btn').disabled=true;
+  setPill('running','ROUTING');
+  clearFeed();
+  document.getElementById('run-output-scroll').innerHTML='';
+  document.getElementById('routing-trace-content').innerHTML='<div style="padding:20px;color:var(--ink4);font-size:.76rem">Routing in progress…</div>';
+
+  let elapsed=0;
+  dispatchState.elapsedTimer=setInterval(()=>{
+    elapsed++;
+    document.getElementById('run-elapsed-ent').textContent=elapsed+'s';
+  },1000);
+
+  addFeed('fi-sys','SYSTEM','Task received: "'+task.substring(0,60)+(task.length>60?'…':'')+'"');
+
+  const mode=document.getElementById('routing-mode').value;
+  const forceAgent=document.getElementById('force-agent').value;
+
+  try{
+    // Step 1: Route
+    addFeed('fi-router','ROUTER','Analyzing task with Haiku…');
+    const agents=getAgents().filter(a=>a.active);
+    const rules=getRules();
+
+    let selectedAgent=null;
+    let routeReason='Auto-routed';
+    let analysis=null;
+
+    if(forceAgent){
+      selectedAgent=getAgents().find(a=>a.id===forceAgent);
+      routeReason='Forced by user';
+    } else if(mode==='cheapest'){
+      selectedAgent=agents.sort((a,b)=>a.costPer1k-b.costPer1k)[0];
+      routeReason='Cheapest active agent';
+    } else if(mode==='auto'||mode==='sequential'||mode==='parallel'){
+      // Call Haiku to analyze
+      analysis=await analyzeTask(key,task);
+      addFeed('fi-router','ROUTER','Analysis: type='+analysis.type+', complexity='+analysis.complexity);
+
+      // Check custom rules first
+      const matchedRule=checkRules(task,rules);
+      if(matchedRule){
+        selectedAgent=agents.find(a=>a.id===matchedRule.agentId);
+        routeReason='Rule match: '+matchedRule.reason;
+        addFeed('fi-router','ROUTER','Rule matched → '+routeReason);
+      } else {
+        selectedAgent=selectBestAgent(analysis,agents);
+        routeReason='Auto-routed based on: '+analysis.type+'/'+analysis.complexity;
+      }
+    }
+
+    if(!selectedAgent&&agents.length>0) selectedAgent=agents[0];
+    if(!selectedAgent) throw new Error('No active agents available. Add and activate agents first.');
+
+    addFeed('fi-router','ROUTER','→ Routing to: '+selectedAgent.name+' ('+selectedAgent.model+')');
+    setPill('running','RUNNING');
+
+    // Step 2: Execute
+    addFeed('fi-agent',selectedAgent.name,'Calling '+selectedAgent.model+'…');
+    const t0=Date.now();
+    const result=await callAgent(key,selectedAgent,task);
+    const ms=Date.now()-t0;
+    const cost=result.tokens*selectedAgent.costPer1k/1000;
+    const gpt4Cost=result.tokens*0.02/1000;
+    const saved=gpt4Cost-cost;
+
+    // Update agent stats
+    const agents2=getAgents();
+    const aidx=agents2.findIndex(a=>a.id===selectedAgent.id);
+    if(aidx>-1){
+      agents2[aidx].runs++;
+      agents2[aidx].totalTokens+=result.tokens;
+      agents2[aidx].totalCost+=cost;
+    }
+    saveAgentsData(agents2);
+
+    // Update analytics
+    const analytics=getAnalytics();
+    analytics.totalRuns++;
+    analytics.totalCost+=cost;
+    analytics.totalSaved+=saved;
+    analytics.totalTokens+=result.tokens;
+    analytics.runLog.unshift({ts:Date.now(),task:task.substring(0,60),agent:selectedAgent.name,tokens:result.tokens,cost,saved,ms});
+    if(analytics.runLog.length>50) analytics.runLog=analytics.runLog.slice(0,50);
+    saveAnalytics(analytics);
+
+    lastResult=result.text;
+    lastTrace={task,mode,agent:selectedAgent.name,model:selectedAgent.model,reason:routeReason,analysis,tokens:result.tokens,cost,saved,ms,truncated:result.truncated};
+
+    addFeed('fi-agent',selectedAgent.name,'✓ Done · '+(ms/1000).toFixed(1)+'s · '+result.tokens+' tokens · ~$'+cost.toFixed(5));
+    if(result.truncated) addFeed('fi-sys','SYSTEM','Output may be truncated (hit token limit)');
+
+    renderOutput(result.text,selectedAgent);
+    renderTrace(lastTrace);
+    renderCostPanel(lastTrace);
+    setPill('done','DONE');
+    updateTotalSaved();
+    renderRoster();
+    toast('Done · ~$'+cost.toFixed(5),'ok');
+
+  } catch(e){
+    if(e.message==='ABORTED'){addFeed('fi-sys','SYSTEM','Aborted');setPill('idle','IDLE');}
+    else{addFeed('fi-err','ERROR',e.message);setPill('err','ERROR');toast(e.message.substring(0,60),'bad');}
+  }
+
+  clearInterval(dispatchState.elapsedTimer);
+  dispatchState.running=false;
+  document.getElementById('dispatch-btn').disabled=false;
+}
+
+async function analyzeTask(key,task){
+  if(dispatchState.aborted) throw new Error('ABORTED');
+  const resp=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-request-when-unauthenticated':'true'},
+    body:JSON.stringify({
+      model:'claude-haiku-4-5-20251001',max_tokens:120,
+      messages:[{role:'user',content:'Classify this task in JSON only, no explanation:\n"'+task.substring(0,300)+'"\n\nReturn: {"type":"code|writing|analysis|qa|creative|reasoning","complexity":"low|medium|high","estimatedTokens":300,"summary":"10 words max"}'}]
+    })
+  });
+  if(!resp.ok) throw new Error('Router HTTP '+resp.status);
+  const d=await resp.json();
+  try{return JSON.parse(d.content[0].text.replace(/```json|```/g,'').trim());}
+  catch{return{type:'general',complexity:'medium',estimatedTokens:300,summary:task.substring(0,40)};}
+}
+
+function checkRules(task,rules){
+  const tl=task.toLowerCase();
+  for(const rule of rules){
+    const cond=rule.condition.toLowerCase();
+    // Parse condition parts
+    const parts=cond.split(' or ');
+    for(const part of parts){
+      const p=part.trim().replace(/"/g,'');
+      if(p.startsWith('type:')){/* handled by analysis */}
+      else if(p.startsWith('len:short')&&task.length<150){return rule;}
+      else if(p.startsWith('len:long')&&task.length>800){return rule;}
+      else if(tl.includes(p)){return rule;}
+    }
+  }
+  return null;
+}
+
+function selectBestAgent(analysis,agents){
+  const {type,complexity}=analysis;
+  // Code tasks: prefer high-end model
+  if(type==='code'||complexity==='high'){
+    const code=agents.find(a=>a.spec&&(a.spec.includes('code')||a.spec.includes('complex')));
+    if(code) return code;
+    return agents.sort((a,b)=>b.costPer1k-a.costPer1k)[0];
+  }
+  // Simple/qa: cheapest
+  if(type==='qa'||complexity==='low'){
+    return agents.sort((a,b)=>a.costPer1k-b.costPer1k)[0];
+  }
+  // Analysis: analysis specialist
+  if(type==='analysis'){
+    const an=agents.find(a=>a.spec&&a.spec.includes('analysis'));
+    if(an) return an;
+  }
+  // Default: cheapest capable
+  return agents.sort((a,b)=>a.costPer1k-b.costPer1k)[0];
+}
+
+async function callAgent(key,agent,task){
+  if(dispatchState.aborted) throw new Error('ABORTED');
+  let resp;
+  try{
+    resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-request-when-unauthenticated':'true'},
+      body:JSON.stringify({
+        model:agent.model,max_tokens:1200,
+        system:'You are '+agent.name+', a specialized AI assistant. Specialization: '+agent.spec+'. Be concise and directly useful. No unnecessary preamble.',
+        messages:[{role:'user',content:task}]
+      })
+    });
+  }catch(e){throw new Error('Network error: '+e.message);}
+  if(!resp.ok){
+    const d=await resp.json().catch(()=>({}));
+    const msg=d?.error?.message||'HTTP '+resp.status;
+    if(resp.status===401) throw new Error('Invalid API key — check it in the toolbar');
+    if(resp.status===429) throw new Error('Rate limited — wait a moment and retry');
+    throw new Error('API error: '+msg.substring(0,100));
+  }
+  const d=await resp.json();
+  return{text:d.content?.[0]?.text||'',tokens:(d.usage?.input_tokens||0)+(d.usage?.output_tokens||0),truncated:d.stop_reason==='max_tokens'};
+}
+
+function abortDispatch(){
+  dispatchState.aborted=true;
+  dispatchState.running=false;
+  clearInterval(dispatchState.elapsedTimer);
+  setPill('idle','IDLE');
+  toast('Stopped');
+}
+
+// ══════════ RENDER ══════════
+function renderOutput(text,agent){
+  const el=document.getElementById('run-output-scroll');
+  const formatted=text
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/```(\w*)\n?([\s\S]*?)```/g,'<pre><code>$2</code></pre>')
+    .replace(/`([^`]+)`/g,'<code>$1</code>')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\n/g,'<br>');
+  el.innerHTML='<div class="output-card"><div class="oc-head"><span class="oc-icon">'+agent.emoji+'</span><span class="oc-title">'+escHtml(agent.name)+'</span><span class="oc-meta">'+agent.model+'</span></div><div class="oc-body">'+formatted+'</div></div>';
+}
+
+function renderTrace(t){
+  if(!t){return;}
+  const el=document.getElementById('routing-trace-content');
+  const rows=[
+    ['Task (excerpt)',t.task.substring(0,80)+'…'],
+    ['Routing mode',t.mode],
+    ['Decision reason','<strong>'+escHtml(t.reason)+'</strong>'],
+    ['Selected agent','<strong>'+escHtml(t.agent)+'</strong>'],
+    ['Model',t.model],
+    t.analysis?['Task type detected',t.analysis.type+' / '+t.analysis.complexity]:null,
+    t.analysis?['Router summary',t.analysis.summary||'—']:null,
+    ['Tokens used',t.tokens.toLocaleString()],
+    ['Actual cost','$'+t.cost.toFixed(6)],
+    ['vs GPT-4 Turbo','<strong style="color:var(--green)">saved $'+t.saved.toFixed(5)+' ('+(Math.round(t.saved/((t.tokens*0.02/1000)||1)*100))+'%)</strong>'],
+    ['Latency',t.ms+'ms'],
+    t.truncated?['Warning','<span style="color:var(--amber)">Output may be truncated</span>']:null,
+  ].filter(Boolean);
+
+  el.innerHTML='<div class="routing-trace"><div class="rt-trace-title">Routing Decision</div>'+
+    rows.map(([l,v])=>'<div class="rt-decision"><div class="rtd-label">'+l+'</div><div class="rtd-val">'+v+'</div></div>').join('')+'</div>';
+}
+
+function renderCostPanel(t){
+  if(!t) return;
+  const gpt4=t.tokens*0.02/1000;
+  const pct=Math.round(t.saved/(gpt4||1)*100);
+  document.getElementById('cost-breakdown-ent').innerHTML=
+    '<div style="padding:4px"><div style="background:var(--green-tint);border:1px solid rgba(26,122,74,.15);border-radius:8px;padding:16px;margin-bottom:14px">'+
+    '<div style="font-family:var(--mono);font-size:.6rem;color:var(--green2);letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px">Cost this run</div>'+
+    '<div style="font-family:var(--mono);font-size:1.6rem;font-weight:700;color:var(--green)">$'+t.cost.toFixed(6)+'</div>'+
+    '<div style="font-size:.7rem;color:var(--ink3);margin-top:4px">Saved ~$'+t.saved.toFixed(5)+' ('+pct+'%) vs GPT-4 Turbo</div></div>'+
+    '<table style="width:100%;border-collapse:collapse;font-size:.74rem">'+
+    '<tr><td style="padding:6px 0;color:var(--ink3)">Tokens used</td><td style="text-align:right;font-family:var(--mono)">'+t.tokens.toLocaleString()+'</td></tr>'+
+    '<tr><td style="padding:6px 0;color:var(--ink3)">Agent</td><td style="text-align:right;font-weight:700">'+escHtml(t.agent)+'</td></tr>'+
+    '<tr><td style="padding:6px 0;color:var(--ink3)">Model cost/1k</td><td style="text-align:right;font-family:var(--mono)">$'+((t.cost/t.tokens*1000)||0).toFixed(5)+'</td></tr>'+
+    '<tr><td style="padding:6px 0;color:var(--ink3)">GPT-4 Turbo equivalent</td><td style="text-align:right;font-family:var(--mono)">$'+gpt4.toFixed(5)+'</td></tr>'+
+    '</table></div>';
+}
+
+function renderAgents(){
+  const agents=getAgents();
+  const grid=document.getElementById('agents-grid');
+  if(!agents.length){grid.innerHTML='<div style="padding:30px;color:var(--ink3);font-size:.78rem">No agents. Add one above.</div>';return;}
+  const maxRuns=Math.max(...agents.map(a=>a.runs||0),1);
+  grid.innerHTML=agents.map(function(a){
+    const utilPct=Math.round(((a.runs||0)/maxRuns)*100);
+    const badges={claude:'badge-claude',openai:'badge-openai',gemini:'badge-gemini',custom:'badge-custom'};
+    const badge=badges[a.type]||'badge-custom';
+    const toggleLabel=a.active?'Pause':'Enable';
+    const rows=[
+      '<div class="agent-card'+(a.active?'':' inactive')+'">',
+        '<div class="ac-top"><div class="ac-icon">'+a.emoji+'</div><div class="ac-badge '+badge+'">'+a.type.toUpperCase()+'</div></div>',
+        '<div class="ac-name">'+escHtml(a.name)+'</div>',
+        '<div class="ac-spec">'+escHtml(a.spec)+'</div>',
+        '<div class="ac-stats">',
+          '<div class="acs-item"><div class="acs-val">'+a.runs+'</div><div class="acs-lab">Runs</div></div>',
+          '<div class="acs-item"><div class="acs-val">$'+(a.totalCost||0).toFixed(4)+'</div><div class="acs-lab">Cost</div></div>',
+          '<div class="acs-item"><div class="acs-val">'+(a.totalTokens||0).toLocaleString()+'</div><div class="acs-lab">Tokens</div></div>',
+          '<div class="acs-item"><div class="acs-val">$'+a.costPer1k+'</div><div class="acs-lab">$/1k tok</div></div>',
+        '</div>',
+        '<div class="ac-bar"><div class="ac-fill" style="width:'+utilPct+'%"></div></div>',
+        '<div class="ac-actions">',
+          '<button class="btn btn-outline btn-xs" onclick="toggleAgent(\'' + a.id + '\')">'+toggleLabel+'</button>',
+          '<button class="btn btn-ghost btn-xs" style="color:var(--red)" onclick="deleteAgent(\'' + a.id + '\')">Remove</button>',
+        '</div>',
+      '</div>',
+    ];
+    return rows.join('');
+  }).join('');
+  renderRoster();
+}
+
+function renderRoster(){
+  const agents=getAgents();
+  const roster=document.getElementById('agent-roster');
+  roster.innerHTML=agents.map(a=>
+    '<div class="agent-row" onclick="showPanel(\'agents\')">'+
+      '<div class="agent-dot '+(a.active?'on':'off')+'"></div>'+
+      '<div class="agent-name">'+escHtml(a.name)+'</div>'+
+      '<div class="agent-model" title="'+a.model+'">'+a.model.split('-').slice(1,3).join('-')+'</div>'+
+      '<div class="agent-runs">'+a.runs+'</div>'+
+    '</div>'
+  ).join('');
+  // Update force-agent select
+  const fs=document.getElementById('force-agent');
+  const cur=fs.value;
+  fs.innerHTML='<option value="">Auto-select</option>'+agents.filter(a=>a.active).map(a=>'<option value="'+a.id+'"'+(cur===a.id?' selected':'')+'>'+escHtml(a.name)+'</option>').join('');
+}
+
+function renderRules(){
+  const rules=getRules();
+  const list=document.getElementById('rules-list');
+  if(!rules.length){list.innerHTML='<div style="padding:14px;color:var(--ink4);font-size:.74rem">No rules yet.</div>';return;}
+  list.innerHTML=rules.map((r,i)=>
+    '<div class="rule-row">'+
+      '<div class="rc cond">'+escHtml(r.condition)+'</div>'+
+      '<div class="rc agent-val">'+(getAgents().find(a=>a.id===r.agentId)||{name:r.agentId}).name+'</div>'+
+      '<div class="rc reason">'+escHtml(r.reason)+'</div>'+
+      '<div class="rc actions">'+
+        '<button class="btn btn-ghost btn-xs" style="color:var(--red)" onclick="deleteRule(\''+r.id+'\')">✕</button>'+
+      '</div>'+
+    '</div>'
+  ).join('');
+}
+
+function renderMap(){
+  const canvas=document.getElementById('map-canvas');
+  const wrap=canvas.parentElement;
+  canvas.width=wrap.offsetWidth||800;
+  canvas.height=wrap.offsetHeight||500;
+  const ctx=canvas.getContext('2d');
+  const agents=getAgents();
+  const W=canvas.width,H=canvas.height;
+  const isDark=document.body.classList.contains('dark');
+  const bg=isDark?'#0e0d0b':'#f4f3ef';
+  const lineCol=isDark?'rgba(255,255,255,.06)':'rgba(0,0,0,.06)';
+  const textCol=isDark?'#c8c4b8':'#3d3a32';
+  const routerCol=isDark?'#1a1917':'#fff';
+
+  ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+  // Grid
+  ctx.strokeStyle=lineCol;ctx.lineWidth=1;
+  for(let x=0;x<W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for(let y=0;y<H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+
+  // Router node
+  const rx=W/2,ry=H/2;
+  ctx.shadowColor='rgba(26,122,74,.3)';ctx.shadowBlur=20;
+  ctx.fillStyle='#1a7a4a';ctx.beginPath();ctx.arc(rx,ry,36,0,Math.PI*2);ctx.fill();
+  ctx.shadowBlur=0;
+  ctx.fillStyle='#fff';ctx.font='bold 11px IBM Plex Mono, monospace';ctx.textAlign='center';
+  ctx.fillText('ROUTER',rx,ry+4);
+
+  // Agent nodes
+  const n=agents.length;
+  agents.forEach((a,i)=>{
+    const angle=(i/n)*Math.PI*2-Math.PI/2;
+    const r=Math.min(W,H)*0.34;
+    const ax=rx+Math.cos(angle)*r,ay=ry+Math.sin(angle)*r;
+    // Line
+    ctx.strokeStyle=a.active?'rgba(26,122,74,.5)':'rgba(160,156,149,.3)';
+    ctx.lineWidth=a.active?1.5:1;
+    ctx.setLineDash([6,4]);ctx.beginPath();ctx.moveTo(rx,ry);ctx.lineTo(ax,ay);ctx.stroke();
+    ctx.setLineDash([]);
+    // Node
+    ctx.shadowColor=a.active?'rgba(26,122,74,.2)':'transparent';ctx.shadowBlur=12;
+    ctx.fillStyle=a.active?routerCol:'rgba(200,196,190,.5)';
+    ctx.strokeStyle=a.active?a.color:'var(--rule2)';ctx.lineWidth=2;
+    ctx.beginPath();ctx.arc(ax,ay,28,0,Math.PI*2);ctx.fill();ctx.stroke();
+    ctx.shadowBlur=0;
+    // Text
+    ctx.fillStyle=textCol;ctx.font='bold 10px IBM Plex Sans, sans-serif';ctx.textAlign='center';
+    ctx.fillText(a.emoji,ax,ay-4);
+    ctx.font='10px IBM Plex Sans, sans-serif';
+    const shortName=a.name.length>12?a.name.substring(0,12)+'…':a.name;
+    ctx.fillText(shortName,ax,ay+12);
+    // Runs badge
+    if(a.runs>0){
+      ctx.fillStyle='#1a7a4a';ctx.beginPath();ctx.arc(ax+20,ay-20,9,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#fff';ctx.font='bold 8px IBM Plex Mono';ctx.fillText(a.runs,ax+20,ay-17);
+    }
+  });
+  ctx.textAlign='left';
+}
+
+function renderAnalytics(){
+  const a=getAnalytics();
+  const agents=getAgents();
+  const gpt4Equiv=a.totalTokens*0.02/1000;
+  const savePct=gpt4Equiv>0?Math.round(a.totalSaved/gpt4Equiv*100):0;
+  const mr=document.getElementById('metrics-row');
+  mr.innerHTML=[
+    ['Total Runs',a.totalRuns,''],
+    ['Total Cost','$'+(a.totalCost||0).toFixed(4),''],
+    ['Total Saved','$'+(a.totalSaved||0).toFixed(4),'green'],
+    ['Savings %',savePct+'%','green'],
+    ['Total Tokens',(a.totalTokens||0).toLocaleString(),''],
+    ['Avg Cost/Run','$'+(a.totalRuns>0?(a.totalCost/a.totalRuns).toFixed(5):'0'),''],
+  ].map(([l,v,cls])=>'<div class="metric-card"><div class="mc-val'+( cls?' '+cls:'')+'">'+v+'</div><div class="mc-label">'+l+'</div></div>').join('');
+
+  // Per-agent cost bars
+  const maxCost=Math.max(...agents.map(a=>a.totalCost||0),0.001);
+  document.getElementById('agent-cost-chart').innerHTML=agents.map(a=>{
+    const pct=Math.round(((a.totalCost||0)/maxCost)*100);
+    return '<div class="bc-row"><div class="bc-label">'+escHtml(a.name)+'</div><div class="bc-bar-wrap"><div class="bc-bar" style="width:'+pct+'%;background:'+a.color+'"></div></div><div class="bc-val">$'+(a.totalCost||0).toFixed(4)+'</div></div>';
+  }).join('')||'<div style="color:var(--ink4);font-size:.74rem">No runs yet.</div>';
+
+  const maxRuns=Math.max(...agents.map(a=>a.runs||0),1);
+  document.getElementById('agent-runs-chart').innerHTML=agents.map(a=>{
+    const pct=Math.round((a.runs/maxRuns)*100);
+    return '<div class="bc-row"><div class="bc-label">'+escHtml(a.name)+'</div><div class="bc-bar-wrap"><div class="bc-bar" style="width:'+pct+'%;background:'+a.color+'"></div></div><div class="bc-val">'+a.runs+'</div></div>';
+  }).join('')||'<div style="color:var(--ink4);font-size:.74rem">No runs yet.</div>';
+}
+
+function updateTotalSaved(){
+  const a=getAnalytics();
+  document.getElementById('total-saved-display').textContent='saved $'+(a.totalSaved||0).toFixed(4);
+  document.getElementById('sb-total-runs').textContent=a.totalRuns;
+}
+
+// ══════════ AGENT CRUD ══════════
+function openAddAgent(){
+  updateAgentModelOptions();
+  populateRuleAgentDropdown();
+  document.getElementById('aa-name').value='';
+  document.getElementById('aa-spec').value='';
+  showModal('add-agent-modal');
+}
+
+function updateAgentModelOptions(){
+  const type=document.getElementById('aa-type').value;
+  const sel=document.getElementById('aa-model');
+  const models={
+    claude:['claude-haiku-4-5-20251001','claude-sonnet-4-6','claude-opus-4-6'],
+    openai:['gpt-4o-mini','gpt-4o','gpt-4-turbo','gpt-3.5-turbo'],
+    gemini:['gemini-2.0-flash','gemini-1.5-pro','gemini-1.5-flash'],
+    custom:['custom-model']
+  };
+  sel.innerHTML=(models[type]||models.custom).map(m=>'<option value="'+m+'">'+m+'</option>').join('');
+}
+
+function saveAgent(){
+  const name=document.getElementById('aa-name').value.trim();
+  if(!name){toast('Enter a name','bad');return;}
+  const type=document.getElementById('aa-type').value;
+  const emojis={claude:'🤖',openai:'✦',gemini:'💎',custom:'⚙'};
+  const agents=getAgents();
+  agents.push({
+    id:'agt_'+Date.now(),name,type,emoji:emojis[type]||'⚡',
+    model:document.getElementById('aa-model').value,
+    costPer1k:parseFloat(document.getElementById('aa-cost').value)||0.00025,
+    spec:document.getElementById('aa-spec').value||'general',
+    active:true,runs:0,totalTokens:0,totalCost:0,
+    color:['#c8442a','#1a7a4a','#c47a2a','#1e5fa3','#7c3aed'][agents.length%5]
+  });
+  saveAgentsData(agents);
+  closeModal('add-agent-modal');
+  renderAgents();
+  toast('Agent added','ok');
+}
+
+function toggleAgent(id){
+  const a=getAgents();
+  const i=a.findIndex(x=>x.id===id);
+  if(i>-1){a[i].active=!a[i].active;saveAgentsData(a);renderAgents();}
+}
+
+function deleteAgent(id){
+  if(!confirm('Remove this agent?')) return;
+  saveAgentsData(getAgents().filter(a=>a.id!==id));
+  renderAgents();
+  toast('Agent removed');
+}
+
+// ══════════ RULE CRUD ══════════
+function populateRuleAgentDropdown(){
+  const sel=document.getElementById('ar-agent');
+  if(sel) sel.innerHTML=getAgents().filter(a=>a.active).map(a=>'<option value="'+a.id+'">'+escHtml(a.name)+'</option>').join('');
+}
+
+function openAddRule(){
+  populateRuleAgentDropdown();
+  document.getElementById('ar-cond').value='';
+  document.getElementById('ar-reason').value='';
+  showModal('add-rule-modal');
+}
+
+function saveRule(){
+  const cond=document.getElementById('ar-cond').value.trim();
+  if(!cond){toast('Enter a condition','bad');return;}
+  const rules=getRules();
+  rules.push({id:'r_'+Date.now(),condition:cond,agentId:document.getElementById('ar-agent').value,reason:document.getElementById('ar-reason').value||'Custom rule'});
+  saveRulesData(rules);
+  closeModal('add-rule-modal');
+  renderRules();
+  toast('Rule added','ok');
+}
+
+function deleteRule(id){
+  saveRulesData(getRules().filter(r=>r.id!==id));
+  renderRules();
+}
+
+function exportRules(){
+  const blob=new Blob([JSON.stringify(getRules(),null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='promptmesh-rules.json';a.click();
+}
+
+// ══════════ ANALYTICS EXPORT ══════════
+function exportAnalytics(){
+  const a=getAnalytics();
+  const rows=[['Timestamp','Task','Agent','Tokens','Cost','Saved','Latency(ms)']].concat(
+    a.runLog.map(r=>[new Date(r.ts).toISOString(),'"'+r.task+'"',r.agent,r.tokens,r.cost.toFixed(6),r.saved.toFixed(6),r.ms])
+  );
+  const csv=rows.map(r=>r.join(',')).join('\n');
+  const blob=new Blob([csv],{type:'text/csv'});
+  const el=document.createElement('a');el.href=URL.createObjectURL(blob);el.download='promptmesh-analytics.csv';el.click();
+  toast('Analytics exported','ok');
+}
+
+function resetAnalytics(){
+  if(!confirm('Reset all analytics data?')) return;
+  saveAnalytics({totalRuns:0,totalCost:0,totalSaved:0,totalTokens:0,runLog:[]});
+  const a=getAgents().map(ag=>({...ag,runs:0,totalTokens:0,totalCost:0}));
+  saveAgentsData(a);
+  renderAnalytics();
+  renderAgents();
+  toast('Analytics reset','ok');
+}
+
+// ══════════ FEED ══════════
+function clearFeed(){document.getElementById('run-feed').innerHTML='';}
+function addFeed(cls,from,msg){
+  const el=document.getElementById('run-feed');
+  const d=new Date();
+  const ts=d.getHours().toString().padStart(2,'0')+':'+d.getSeconds().toString().padStart(2,'0');
+  const item=document.createElement('div');
+  item.className='fi '+cls;
+  item.innerHTML='<span class="fi-ts">'+ts+'</span><span class="fi-from">'+escHtml(from)+'</span><span class="fi-msg">'+escHtml(msg)+'</span>';
+  el.appendChild(item);
+  el.scrollTop=el.scrollHeight;
+}
+
+// ══════════ MISC ══════════
+function copyRunOutput(){
+  if(!lastResult){toast('Nothing to copy','bad');return;}
+  navigator.clipboard.writeText(lastResult).then(()=>toast('Copied','ok'));
+}
+
+function exportRunOutput(){
+  if(!lastResult){toast('Nothing to export','bad');return;}
+  const blob=new Blob([lastResult],{type:'text/plain'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='promptmesh-output.txt';a.click();
+}
+
+function clearRun(){
+  document.getElementById('task-input').value='';
+  document.getElementById('run-feed').innerHTML='';
+  document.getElementById('run-output-scroll').innerHTML='';
+  document.getElementById('routing-trace-content').innerHTML='<div style="padding:20px;color:var(--ink4);font-size:.76rem">Run a task to see routing trace.</div>';
+  document.getElementById('cost-breakdown-ent').innerHTML='';
+  setPill('idle','IDLE');
+  document.getElementById('run-elapsed-ent').textContent='—';
+  lastResult='';lastTrace=null;
+}
+
+function setPill(type,text){
+  const el=document.getElementById('run-status-pill');
+  el.className='pill pill-'+type;
+  el.textContent=text;
+}
+
+function switchRT(el,tab){
+  document.querySelectorAll('.rt').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('.rt-body').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');
+  document.getElementById('rtb-'+tab).classList.add('on');
+}
+
+function showModal(id){document.getElementById(id).style.display='flex';}
+function closeModal(id){document.getElementById(id).style.display='none';}
+
+let toastT;
+function toast(msg,type=''){
+  const el=document.getElementById('toast');
+  el.textContent=msg;el.className='show'+(type?' '+type:'');
+  clearTimeout(toastT);toastT=setTimeout(()=>el.className='',3200);
+}
+
+function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function toggleDark(){document.body.classList.toggle('dark');localStorage.setItem('pm_dark_ent',document.body.classList.contains('dark')?'1':'0');renderMap();}
+
+function updateRouteEstimate(){
+  const task=document.getElementById('task-input').value;
+  const agents=getAgents().filter(a=>a.active);
+  if(!agents.length||!task){return;}
+  const cheapest=agents.sort((a,b)=>a.costPer1k-b.costPer1k)[0];
+  const estTokens=Math.max(Math.ceil(task.length/3.5)+300,100);
+  const estCost=estTokens*cheapest.costPer1k/1000;
+  const gpt4Cost=estTokens*0.02/1000;
+  const savePct=Math.round((1-estCost/gpt4Cost)*100);
+  document.getElementById('route-estimate').innerHTML=
+    '<strong>Likely agent:</strong> '+escHtml(cheapest.name)+'<br>'+
+    '<strong>Estimated cost:</strong> ~$'+estCost.toFixed(5)+'<br>'+
+    '<strong>Savings vs GPT-4:</strong> ~'+savePct+'%';
+}
+
+function renderQuickTasks(){
+  const container=document.getElementById('quick-tasks');
+  container.innerHTML='';
+  QUICK_TASKS.forEach(function(t,i){
+    const div=document.createElement('div');
+    div.style.cssText='padding:7px 10px;border:1px solid var(--rule2);border-radius:5px;cursor:pointer;font-size:.72rem;color:var(--ink2);transition:all .12s';
+    div.textContent=t.substring(0,72)+(t.length>72?'…':'');
+    div.addEventListener('mouseover',function(){this.style.borderColor='var(--green)';this.style.color='var(--green)';});
+    div.addEventListener('mouseout',function(){this.style.borderColor='var(--rule2)';this.style.color='var(--ink2)';});
+    div.addEventListener('click',function(){
+      document.getElementById('task-input').value=QUICK_TASKS[i];
+      updateRouteEstimate();
+    });
+    container.appendChild(div);
+  });
+}
+
+// ══════════ INIT ══════════
+document.addEventListener('DOMContentLoaded',()=>{
+  if(localStorage.getItem('pm_dark_ent')==='1') document.body.classList.add('dark');
+  updateKeyStatus();
+  renderAgents();
+  renderRules();
+  renderQuickTasks();
+  updateTotalSaved();
+  document.getElementById('task-input').addEventListener('input',updateRouteEstimate);
+  // Keyboard
+  document.addEventListener('keydown',e=>{
+    if(e.key==='Escape'){document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none');}
+    if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){dispatch();}
+  });
+},{once:true});
+</script>
+</body>
+</html>
