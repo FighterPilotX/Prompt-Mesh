@@ -464,27 +464,6 @@ const SYS_TEMPLATES = {
   creative:`You are a wildly creative AI with an unexpected, surprising take on every prompt. You find unusual angles, make unexpected connections, and delight in originality. You never give the boring answer. But you remain helpful — creative doesn't mean confusing.`,
 };
 
-// ══════════ CLAWD BOT ══════════
-const CLAWD_BOT = {
-  id: 'clawd_bot',
-  name: 'Clawd',
-  emoji: '🐾',
-  sys: `You are Clawd — sharp, direct, and surprisingly witty. You give accurate, well-reasoned answers with just enough personality to keep things interesting. You don't over-explain; you trust the reader. You excel at code, logic, writing, and analysis. When in doubt, be concise.`,
-  model: 'claude-haiku-4-5-20251001',
-  maxTokens: 512,
-  temperature: 0.7,
-  tags: 'general,code,writing,reasoning',
-  desc: 'The house bot. Sharp, direct, and deceptively capable.',
-  elo: 1200,
-  wins: 47,
-  losses: 31,
-  draws: 8,
-  battles: 86,
-  totalCost: 0.0823,
-  created: 'Jan 2025',
-  seeded: true,
-};
-
 function getBots(){try{return JSON.parse(localStorage.getItem('dev_bots')||'[]');}catch{return[];}}
 function saveBots(b){localStorage.setItem('dev_bots',JSON.stringify(b));}
 function getBattles(){try{return JSON.parse(localStorage.getItem('dev_battles')||'[]');}catch{return[];}}
@@ -1015,12 +994,6 @@ function toggleDark(){document.body.classList.toggle('light');localStorage.setIt
 // ══════════ INIT ══════════
 document.addEventListener('DOMContentLoaded',()=>{
   if(localStorage.getItem('pm_dark')==='0') document.body.classList.add('light');
-  // Seed Clawd bot on first visit
-  if(!localStorage.getItem('dev_clawd_seeded')){
-    const bots=getBots();
-    if(!bots.find(b=>b.id==='clawd_bot')){bots.unshift(CLAWD_BOT);saveBots(bots);}
-    localStorage.setItem('dev_clawd_seeded','1');
-  }
   renderBots();renderSbBots();renderChallengeList();renderLeaderboard();updateMyElo();updateCostEst();
   const k=getDevKey();
   if(k){document.getElementById('dev-key-status').textContent='Key: '+k.substring(0,10)+'…';document.getElementById('dev-key-status').style.color='var(--green)';}
