@@ -1397,25 +1397,34 @@ async function executePipeline(apiKey, prompt, stageIds, mode) {
 async function callAPI(apiKey, stage, prompt) {
   if (runState.aborted) throw new Error('ABORTED');
 
+  const MAX_NET_RETRIES = 3;
   let resp;
-  try {
-    resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-request-when-unauthenticated': 'true'
-      },
-      body: JSON.stringify({
-        model: stage.model,
-        max_tokens: stage.tokenBudget,
-        system: `You are the ${stage.name} stage of PromptMesh, an AI pipeline tool. Your role: produce the best possible ${stage.name.toLowerCase()} output. Be concise, specific, and output exactly what's requested with no preamble.`,
-        messages: [{ role: 'user', content: prompt }]
-      })
-    });
-  } catch (networkErr) {
-    throw new Error(`Network error — check your internet connection. (${networkErr.message})`);
+  for (let attempt = 0; attempt < MAX_NET_RETRIES; attempt++) {
+    if (runState.aborted) throw new Error('ABORTED');
+    if (attempt > 0) await sleep(attempt * 1500); // 1.5s, 3s backoff
+    try {
+      resp = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-request-when-unauthenticated': 'true'
+        },
+        body: JSON.stringify({
+          model: stage.model,
+          max_tokens: stage.tokenBudget,
+          system: `You are the ${stage.name} stage of PromptMesh, an AI pipeline tool. Your role: produce the best possible ${stage.name.toLowerCase()} output. Be concise, specific, and output exactly what's requested with no preamble.`,
+          messages: [{ role: 'user', content: prompt }]
+        })
+      });
+      break; // success — exit retry loop
+    } catch (networkErr) {
+      if (attempt === MAX_NET_RETRIES - 1) {
+        throw new Error(`Network error — check your internet connection. (${networkErr.message})`);
+      }
+      addFeed('fi-system', stage.name.toUpperCase(), `Network hiccup — retrying (${attempt + 1}/${MAX_NET_RETRIES - 1})…`);
+    }
   }
 
   if (!resp.ok) {
