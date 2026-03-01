@@ -1,6 +1,6 @@
 # PromptMesh
 
-> The AI pipeline platform — three products, one codebase.
+> The AI pipeline platform — four products, one codebase.
 
 ## Products
 
@@ -14,7 +14,13 @@
 
 ## Running locally
 
-Download all four `.html` files into the same folder, then open `promptmesh-hub.html` in your browser.
+Download all five `.html` files into the same folder, then open `promptmesh-hub.html` in your browser.
+
+For real-time PC monitoring (temps, drivers, disk health), also run the local agent:
+```
+pip install psutil wmi requests flask flask-cors
+python agent/promptmesh_agent.py
+```
 
 ## Deploy to Netlify
 
