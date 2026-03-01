@@ -910,8 +910,9 @@ const STAGES_CONFIG = {
     model: 'claude-haiku-4-5-20251001', tokenBudget: 450,
     costPer1k: 0.00025, feedType: 'fi-plan',
     badge: 'PLAN', badgeColor: '#4a5568',
+    systemPrompt: 'You are a senior software architect. Output only the requested specification format — no preamble, no commentary, no markdown outside the template. Every word must add value.',
     buildPrompt(userPrompt, prev, customSys) {
-      return `${customSys ? 'CONTEXT: ' + customSys + '\n\n' : ''}You are a senior architect. Produce a tight project specification for building this:
+      return `${customSys ? 'CONTEXT: ' + customSys + '\n\n' : ''}Produce a tight project specification for building this:
 
 "${userPrompt}"
 
@@ -947,11 +948,12 @@ Under 280 words total.`;
     model: 'claude-haiku-4-5-20251001', tokenBudget: 400,
     costPer1k: 0.00025, feedType: 'fi-design',
     badge: 'DESIGN', badgeColor: '#7c5cbf',
+    systemPrompt: 'You are a senior UI/UX designer. Output only the design system in the exact format requested — no preamble, no extra explanation. Specific hex values and font names only.',
     buildPrompt(userPrompt, prev, customSys) {
-      return `${customSys ? 'CONTEXT: ' + customSys + '\n\n' : ''}You are a senior UI/UX designer. Define the complete design system.
+      return `${customSys ? 'CONTEXT: ' + customSys + '\n\n' : ''}Define the complete design system for this project.
 
 PROJECT: "${userPrompt}"
-SPEC: ${(prev.planning||'').substring(0,300)}
+SPEC: ${(prev.planning||'').substring(0,350)}
 
 Output EXACTLY this format — be very specific:
 ## Colors
@@ -984,53 +986,54 @@ Under 200 words.`;
   frontend: {
     id: 'frontend', name: 'Frontend', icon: '💻',
     color: '#2563ab', bg: 'rgba(37,99,171,0.1)',
-    model: 'claude-haiku-4-5-20251001', tokenBudget: 700,
+    model: 'claude-haiku-4-5-20251001', tokenBudget: 1000,
     costPer1k: 0.00025, feedType: 'fi-frontend',
     badge: 'UI CODE', badgeColor: '#2563ab',
+    systemPrompt: 'You are a frontend engineer. Output only a single complete HTML file in a ```html block — no explanation before or after. Working code, not pseudocode.',
     buildPrompt(userPrompt, prev, customSys) {
-      return `${customSys ? 'CONTEXT: ' + customSys + '\n\n' : ''}You are a frontend engineer. Write real, working code for the main screen.
+      return `${customSys ? 'CONTEXT: ' + customSys + '\n\n' : ''}Write the main UI screen as a single complete HTML file.
 
 PROJECT: "${userPrompt}"
-DESIGN SYSTEM: ${(prev.design||'').substring(0,280)}
-SPEC: ${(prev.planning||'').substring(0,200)}
+DESIGN SYSTEM: ${(prev.design||'Generate a clean, modern design system appropriate to the project.').substring(0,400)}
+SPEC: ${(prev.planning||'').substring(0,300)}
 
-Write a single COMPLETE HTML file with:
+Requirements:
 1. Google Fonts import matching the design system
-2. CSS with variables from the design system (implement ALL colors/fonts defined above)
-3. The most important UI screen — fully styled, interactive
+2. CSS custom properties for all colors/fonts from the design system
+3. The primary UI screen — fully styled and interactive
 4. Smooth transitions and hover states
-5. Responsive (works on mobile)
+5. Responsive layout (mobile-first)
 
 Rules:
-- Use semantic HTML5
+- Semantic HTML5
 - CSS variables for theming
 - Vanilla JS only
-- Working code — not pseudocode
-- Include at least one animation/transition
+- Working code, not pseudocode
+- At least one CSS transition/animation
 
-Output just the code in a single \`\`\`html block.`;
+Output: one \`\`\`html block only.`;
     }
   },
   backend: {
     id: 'backend', name: 'Backend / Logic', icon: '⚙️',
     color: '#c47a2a', bg: 'rgba(196,122,42,0.1)',
-    model: 'claude-haiku-4-5-20251001', tokenBudget: 700,
+    model: 'claude-haiku-4-5-20251001', tokenBudget: 900,
     costPer1k: 0.00025, feedType: 'fi-backend',
     badge: 'LOGIC', badgeColor: '#c47a2a',
+    systemPrompt: 'You are a backend/logic engineer. Output only a single ```javascript block — no explanation before or after. Write working browser-compatible vanilla JS, not pseudocode.',
     buildPrompt(userPrompt, prev, customSys) {
-      return `${customSys ? 'CONTEXT: ' + customSys + '\n\n' : ''}You are a backend/logic engineer. Write the core JavaScript logic.
+      return `${customSys ? 'CONTEXT: ' + customSys + '\n\n' : ''}Write the core JavaScript logic module.
 
 PROJECT: "${userPrompt}"
-SPEC: ${(prev.planning||'').substring(0,280)}
+SPEC: ${(prev.planning||'').substring(0,400)}
 
-Write in a \`\`\`javascript block:
+Write in a single \`\`\`javascript block:
 
-1. STATE — the complete initial state object with all fields and example values
-2. CORE FUNCTIONS — implement the 4-5 most important functions FULLY (not stubs)
-   - Each function should actually work, handle edge cases
-   - Include localStorage save/load if data needs to persist
-3. GAME LOOP or STATE MACHINE (if applicable) — the main tick/update function
-4. EVENT HANDLERS — the 2-3 key user interactions
+1. STATE — complete initial state object with all fields and example values
+2. CORE FUNCTIONS — the 4-5 most important functions, FULLY implemented (not stubs)
+   - Handle edge cases; include localStorage save/load where data must persist
+3. GAME LOOP or STATE MACHINE (if applicable) — the main tick/update cycle
+4. EVENT HANDLERS — the 2-3 key user interactions wired to DOM events
 
 Format:
 \`\`\`javascript
@@ -1044,7 +1047,7 @@ function [name]([args]) { ... }
 function init() { ... }
 \`\`\`
 
-Write working code. Not pseudocode. Assume vanilla JS in a browser.`;
+Working code only. Vanilla JS, browser environment.`;
     }
   },
   polish: {
@@ -1053,12 +1056,13 @@ Write working code. Not pseudocode. Assume vanilla JS in a browser.`;
     model: 'claude-haiku-4-5-20251001', tokenBudget: 450,
     costPer1k: 0.00025, feedType: 'fi-polish',
     badge: 'REVIEW', badgeColor: '#4a7c59',
+    systemPrompt: 'You are a senior engineer doing a final code review. Be direct and concrete — no filler phrases. Output only the requested sections.',
     buildPrompt(userPrompt, prev, customSys) {
-      return `${customSys ? 'CONTEXT: ' + customSys + '\n\n' : ''}You are a senior engineer doing a final review. Be direct and useful.
+      return `${customSys ? 'CONTEXT: ' + customSys + '\n\n' : ''}Final review for this project.
 
 PROJECT: "${userPrompt}"
-FRONTEND (excerpt): ${(prev.frontend||'').substring(0,250)}
-LOGIC (excerpt): ${(prev.backend||'').substring(0,250)}
+FRONTEND (excerpt): ${(prev.frontend||'').substring(0,320)}
+LOGIC (excerpt): ${(prev.backend||'').substring(0,320)}
 
 Write:
 
@@ -1071,7 +1075,7 @@ Write:
 **Setup:** [3 steps max]
 
 ## Integration Notes
-The specific changes needed to wire frontend to backend logic (be concrete with line numbers or function names if possible).
+Specific changes to wire frontend to backend logic (concrete function/variable names).
 
 ## Quick Wins (Next 3 improvements)
 1. [specific improvement with rough effort — e.g. "Add localStorage (30 min)"]
@@ -1410,7 +1414,7 @@ async function callAPI(apiKey, stage, prompt) {
       body: JSON.stringify({
         model: stage.model,
         max_tokens: stage.tokenBudget,
-        system: `You are the ${stage.name} stage of PromptMesh, an AI pipeline tool. Your role: produce the best possible ${stage.name.toLowerCase()} output. Be concise, specific, and output exactly what's requested with no preamble.`,
+        system: stage.systemPrompt || `You are the ${stage.name} stage of PromptMesh. Produce the best possible output. Be concise, specific, and output exactly what's requested with no preamble.`,
         messages: [{ role: 'user', content: prompt }]
       })
     });
@@ -1439,11 +1443,13 @@ async function callAPI(apiKey, stage, prompt) {
   }
 
   const text = data.content?.[0]?.text || '';
-  const tokens = (data.usage?.input_tokens || 0) + (data.usage?.output_tokens || 0);
+  const inputTokens = data.usage?.input_tokens || 0;
+  const outputTokens = data.usage?.output_tokens || 0;
+  const tokens = inputTokens + outputTokens;
   const stopReason = data.stop_reason || '';
   if (!text) throw new Error('Empty response from API — model returned no content');
   // Return truncation flag so pipeline can retry with more tokens
-  return { text, tokens, truncated: stopReason === 'max_tokens' };
+  return { text, tokens, inputTokens, outputTokens, truncated: stopReason === 'max_tokens' };
 }
 
 // ══════════════════════════════════════════
