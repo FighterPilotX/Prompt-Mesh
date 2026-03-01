@@ -11,7 +11,7 @@
 :root{
   --cream:#f7f4ee;--paper:#faf8f4;--ink:#1c1917;--ink2:#44403c;--ink3:#78716c;--ink4:#a8a29e;
   --rule:#e7e2d8;--rule2:#d6cfc4;--coral:#c8442a;--coral2:#b03b23;--coral-glow:rgba(200,68,42,.15);
-  --sage:#4a7c59;--amber:#c47a2a;--purple:#7c3aed;--surface:#fff;
+  --sage:#4a7c59;--amber:#c47a2a;--purple:#7c3aed;--blue:#1a6ef0;--surface:#fff;
   --body:'DM Sans',system-ui,sans-serif;--display:'Playfair Display',Georgia,serif;--mono:'DM Mono',monospace;
 }
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
@@ -73,6 +73,12 @@ h1 em{font-style:italic;color:var(--coral);}
 .cta-enterprise:hover{background:#3d6648;}
 .cta-dev{background:var(--purple);color:#fff;}
 .cta-dev:hover{background:#6d28d9;}
+.badge-sysai{background:rgba(26,110,240,.1);color:var(--blue);}
+.product-card.sysai:hover{border-color:var(--blue);}
+.product-card.sysai::before{background:radial-gradient(circle at top left,rgba(26,110,240,.06) 0%,transparent 60%);}
+.product-card.sysai:hover::before{opacity:1;}
+.cta-sysai{background:var(--blue);color:#fff;}
+.cta-sysai:hover{background:#1455c4;}
 .cta-btn{display:flex;align-items:center;justify-content:center;width:100%;padding:12px;border-radius:8px;font-family:var(--body);font-size:.88rem;font-weight:700;cursor:pointer;border:none;transition:all .15s;margin-top:auto;}
 .cta-btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(0,0,0,.15);}
 
@@ -136,9 +142,9 @@ footer p{font-size:.72rem;color:rgba(240,236,228,.3);font-family:var(--mono);}
 </nav>
 
 <section class="hero">
-  <div class="eyebrow">Three products. One platform.</div>
+  <div class="eyebrow">Four products. One platform.</div>
   <h1>The right AI<br>for every <em>workflow</em></h1>
-  <p class="hero-p">PromptMesh routes each task to the cheapest capable model. Consumer builds, enterprise routing, developer competitions — pick your product.</p>
+  <p class="hero-p">PromptMesh routes each task to the cheapest capable model. Consumer builds, enterprise routing, developer competitions, and PC optimization — pick your product.</p>
 </section>
 
 <div class="products">
@@ -190,6 +196,22 @@ footer p{font-size:.72rem;color:rgba(240,236,228,.3);font-family:var(--mono);}
     </ul>
     <button class="cta-btn cta-dev" onclick="go('dev')">Open Dev Arena →</button>
   </div>
+
+  <div class="product-card sysai">
+    <div class="product-badge badge-sysai">SysAI</div>
+    <div class="product-icon">🖥️</div>
+    <div class="product-name">PromptMesh SysAI</div>
+    <p class="product-desc">AI-powered PC system optimizer. Diagnose temps, find driver issues, generate PowerShell fix commands, and chat with an AI technician — all from your browser.</p>
+    <ul class="product-features">
+      <li><span class="fi">✓</span> Quick hardware scan (CPU, RAM, GPU, network)</li>
+      <li><span class="fi">✓</span> AI chat assistant for any PC problem</li>
+      <li><span class="fi">✓</span> Temperature analysis from HWinfo paste</li>
+      <li><span class="fi">✓</span> Driver update guides and diagnosis</li>
+      <li><span class="fi">✓</span> PowerShell command library (cleanup, network, security)</li>
+      <li><span class="fi">✓</span> Issue Fixer — describe problem, get step-by-step fix</li>
+    </ul>
+    <button class="cta-btn cta-sysai" onclick="go('sysai')">Open SysAI →</button>
+  </div>
 </div>
 
 <section class="compare-section" id="compare">
@@ -199,20 +221,20 @@ footer p{font-size:.72rem;color:rgba(240,236,228,.3);font-family:var(--mono);}
     <div style="overflow-x:auto">
     <table class="compare-table">
       <thead>
-        <tr><th>Feature</th><th>Studio</th><th>Enterprise</th><th>Dev</th></tr>
+        <tr><th>Feature</th><th>Studio</th><th>Enterprise</th><th>Dev</th><th>SysAI</th></tr>
       </thead>
       <tbody>
-        <tr><td class="feature">Target user</td><td>Builders &amp; makers</td><td>Companies with AI agents</td><td>AI developers</td></tr>
-        <tr><td class="feature">Core concept</td><td>Prompt to full product</td><td>Route tasks to best agent</td><td>Build &amp; compete bots</td></tr>
-        <tr><td class="feature">BYOK support</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td></tr>
-        <tr><td class="feature">Cost tracking</td><td class="check">✓</td><td class="check">✓ (advanced)</td><td class="check">✓ (per competition)</td></tr>
-        <tr><td class="feature">Multi-agent routing</td><td class="dash">—</td><td class="check">✓ (core feature)</td><td class="check">✓ (arena)</td></tr>
-        <tr><td class="feature">Custom bots</td><td class="dash">—</td><td class="check">✓</td><td class="check">✓ (competitive)</td></tr>
-        <tr><td class="feature">Competition arena</td><td class="dash">—</td><td class="dash">—</td><td class="check">✓</td></tr>
-        <tr><td class="feature">Team features</td><td class="dash">—</td><td class="check">✓</td><td class="dash">—</td></tr>
-        <tr><td class="feature">Templates</td><td class="check">✓ (12)</td><td class="dash">—</td><td class="check">✓ (challenges)</td></tr>
-        <tr><td class="feature">HTML preview</td><td class="check">✓</td><td class="dash">—</td><td class="check">✓ (output review)</td></tr>
-        <tr><td class="feature">Export / download</td><td class="check">✓</td><td class="check">✓ (CSV/JSON)</td><td class="check">✓ (bot configs)</td></tr>
+        <tr><td class="feature">Target user</td><td>Builders &amp; makers</td><td>Companies with AI agents</td><td>AI developers</td><td>PC owners</td></tr>
+        <tr><td class="feature">Core concept</td><td>Prompt to full product</td><td>Route tasks to best agent</td><td>Build &amp; compete bots</td><td>AI PC optimizer</td></tr>
+        <tr><td class="feature">BYOK support</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td></tr>
+        <tr><td class="feature">AI chat</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="check">✓ (PC assistant)</td></tr>
+        <tr><td class="feature">Multi-agent routing</td><td class="dash">—</td><td class="check">✓ (core feature)</td><td class="check">✓ (arena)</td><td class="dash">—</td></tr>
+        <tr><td class="feature">System diagnostics</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="check">✓</td></tr>
+        <tr><td class="feature">Command library</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="check">✓ (PowerShell)</td></tr>
+        <tr><td class="feature">Competition arena</td><td class="dash">—</td><td class="dash">—</td><td class="check">✓</td><td class="dash">—</td></tr>
+        <tr><td class="feature">Team features</td><td class="dash">—</td><td class="check">✓</td><td class="dash">—</td><td class="dash">—</td></tr>
+        <tr><td class="feature">Templates</td><td class="check">✓ (12)</td><td class="dash">—</td><td class="check">✓ (challenges)</td><td class="check">✓ (fix guides)</td></tr>
+        <tr><td class="feature">Export / download</td><td class="check">✓</td><td class="check">✓ (CSV/JSON)</td><td class="check">✓ (bot configs)</td><td class="check">✓ (scan JSON)</td></tr>
       </tbody>
     </table>
     </div>
@@ -252,11 +274,12 @@ footer p{font-size:.72rem;color:rgba(240,236,228,.3);font-family:var(--mono);}
 
 <div class="bottom-cta">
   <h2>Start building today</h2>
-  <p>All three products are free to try with your own Anthropic API key. No credit card needed.</p>
+  <p>All four products are free to try with your own Anthropic API key. No credit card needed.</p>
   <div class="bottom-cta-btns">
     <button class="btn" style="background:var(--coral);color:#fff;padding:12px 24px;font-size:.9rem" onclick="go('studio')">Studio →</button>
     <button class="btn" style="background:var(--sage);color:#fff;padding:12px 24px;font-size:.9rem" onclick="go('enterprise')">Enterprise →</button>
     <button class="btn" style="background:var(--purple);color:#fff;padding:12px 24px;font-size:.9rem" onclick="go('dev')">Dev Arena →</button>
+    <button class="btn" style="background:var(--blue);color:#fff;padding:12px 24px;font-size:.9rem" onclick="go('sysai')">SysAI →</button>
   </div>
 </div>
 
@@ -268,7 +291,8 @@ footer p{font-size:.72rem;color:rgba(240,236,228,.3);font-family:var(--mono);}
 var FILES = {
   studio: 'promptmesh-studio.html',
   enterprise: 'promptmesh-enterprise.html',
-  dev: 'promptmesh-dev.html'
+  dev: 'promptmesh-dev.html',
+  sysai: 'promptmesh-sysai.html'
 };
 
 function go(product) {

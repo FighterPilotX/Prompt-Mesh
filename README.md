@@ -6,10 +6,11 @@
 
 | File | Product | Description |
 |------|---------|-------------|
-| `promptmesh-hub.html` | **Hub** | Landing page — links all three products |
+| `promptmesh-hub.html` | **Hub** | Landing page — links all four products |
 | `promptmesh-studio.html` | **Studio** | One prompt → full product via 5-stage AI pipeline |
 | `promptmesh-enterprise.html` | **Enterprise** | Intelligent agent routing for companies |
 | `promptmesh-dev.html` | **Dev Arena** | Build bots, compete head-to-head, ELO leaderboard |
+| `promptmesh-sysai.html` | **SysAI** | AI-powered PC optimizer — temps, drivers, PowerShell fixes |
 
 ## Running locally
 

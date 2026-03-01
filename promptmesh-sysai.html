@@ -1,0 +1,1447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://api.anthropic.com;">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PromptMesh SysAI — PC System Optimizer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0b0e14;--paper:#111520;--card:#161d2e;--card2:#1c2540;
+  --ink:#e8eaf0;--ink2:#b0b8cc;--ink3:#707898;--ink4:#404868;
+  --rule:#1e2535;--rule2:#283050;
+  --blue:#1a6ef0;--blue2:#1455c4;--blue-tint:rgba(26,110,240,.12);--blue-glow:rgba(26,110,240,.28);
+  --cyan:#00c8f0;--cyan-tint:rgba(0,200,240,.10);
+  --green:#22c55e;--green-tint:rgba(34,197,94,.1);
+  --amber:#f59e0b;--amber-tint:rgba(245,158,11,.1);
+  --red:#ef4444;--red-tint:rgba(239,68,68,.1);
+  --purple:#a855f7;--purple-tint:rgba(168,85,247,.1);
+  --body:'Inter',system-ui,sans-serif;--mono:'JetBrains Mono',monospace;
+}
+body.light{
+  --bg:#f0f2f7;--paper:#fff;--card:#fff;--card2:#f4f6fb;
+  --ink:#0f1220;--ink2:#2a3050;--ink3:#5a6280;--ink4:#a0a8c0;
+  --rule:#e0e4f0;--rule2:#c8d0e8;
+  --blue-tint:rgba(26,110,240,.07);--blue-glow:rgba(26,110,240,.18);
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{font-family:var(--body);background:var(--bg);color:var(--ink);font-size:13.5px;line-height:1.5;min-height:100vh;overflow-x:hidden;}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--rule2);border-radius:2px;}
+
+/* LAYOUT */
+#app{display:grid;grid-template-columns:220px 1fr;grid-template-rows:52px 1fr;height:100vh;overflow:hidden;}
+#topbar{grid-column:1/-1;grid-row:1;background:var(--paper);border-bottom:1px solid var(--rule);display:flex;align-items:center;padding:0 18px;gap:10px;z-index:50;}
+#sidebar{grid-column:1;grid-row:2;background:var(--paper);border-right:1px solid var(--rule);display:flex;flex-direction:column;overflow:hidden;}
+#main{grid-column:2;grid-row:2;overflow:hidden;display:flex;flex-direction:column;}
+
+/* TOPBAR */
+.tb-back{font-size:.72rem;color:var(--ink3);padding:5px 10px;border:1px solid var(--rule2);border-radius:5px;background:transparent;cursor:pointer;font-family:var(--body);transition:all .12s;text-decoration:none;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;}
+.tb-back:hover{color:var(--ink);border-color:var(--ink3);}
+.tb-logo{font-family:var(--mono);font-size:.88rem;font-weight:700;color:var(--ink);display:flex;align-items:center;gap:8px;}
+.logo-sq{width:22px;height:22px;background:var(--blue);border-radius:4px;display:grid;grid-template-columns:1fr 1fr;gap:1.5px;padding:4px;flex-shrink:0;}
+.logo-sq span{background:#fff;border-radius:1px;}
+.logo-sq span:nth-child(2){opacity:.45;}
+.logo-sq span:nth-child(3){opacity:.45;}
+.tb-divider{width:1px;height:18px;background:var(--rule2);margin:0 2px;}
+.tb-product{font-size:.75rem;font-weight:600;color:var(--blue);font-family:var(--mono);}
+.tb-space{flex:1;}
+.tb-key-wrap{display:flex;align-items:center;gap:6px;}
+.tb-key-label{font-size:.66rem;color:var(--ink4);font-family:var(--mono);}
+#topbar-key{background:var(--card);border:1px solid var(--rule2);color:var(--ink);font-family:var(--mono);font-size:.68rem;padding:4px 9px;border-radius:4px;outline:none;width:190px;transition:border-color .18s;}
+#topbar-key:focus{border-color:var(--blue);}
+#topbar-key::placeholder{color:var(--ink4);}
+.btn{display:inline-flex;align-items:center;gap:5px;font-family:var(--body);font-size:.74rem;font-weight:600;padding:6px 14px;border-radius:5px;cursor:pointer;transition:all .13s;border:none;white-space:nowrap;}
+.btn-blue{background:var(--blue);color:#fff;}
+.btn-blue:hover{background:var(--blue2);transform:translateY(-1px);box-shadow:0 4px 14px var(--blue-glow);}
+.btn-outline{background:transparent;color:var(--ink);border:1px solid var(--rule2);}
+.btn-outline:hover{border-color:var(--ink3);}
+.btn-ghost{background:transparent;color:var(--ink3);border:1px solid transparent;}
+.btn-ghost:hover{background:var(--rule);color:var(--ink);}
+.btn-sm{padding:4px 10px;font-size:.68rem;}
+.btn-xs{padding:3px 7px;font-size:.62rem;}
+.btn-w{width:100%;justify-content:center;}
+.btn:disabled{opacity:.38;cursor:not-allowed;transform:none!important;box-shadow:none!important;}
+.dark-btn{width:26px;height:15px;background:var(--rule2);border:none;border-radius:8px;cursor:pointer;position:relative;transition:background .2s;flex-shrink:0;}
+.dark-btn::after{content:'';position:absolute;top:2px;left:2px;width:11px;height:11px;background:var(--ink4);border-radius:50%;transition:all .2s;}
+body.light .dark-btn{background:var(--blue);}
+body.light .dark-btn::after{left:13px;background:#fff;}
+
+/* SIDEBAR */
+.sb-section{padding:14px 14px 5px;font-family:var(--mono);font-size:.57rem;font-weight:700;color:var(--ink4);letter-spacing:.1em;text-transform:uppercase;}
+.sb-item{display:flex;align-items:center;gap:9px;padding:8px 14px;cursor:pointer;font-size:.77rem;font-weight:500;border-left:2px solid transparent;color:var(--ink3);transition:all .1s;}
+.sb-item:hover{background:var(--rule);color:var(--ink);}
+.sb-item.active{background:var(--blue-tint);border-left-color:var(--blue);color:var(--blue);font-weight:600;}
+.sb-icon{width:16px;text-align:center;flex-shrink:0;font-size:.9rem;}
+.sb-bottom{margin-top:auto;padding:12px 14px;border-top:1px solid var(--rule);}
+.sb-stat{display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:.68rem;color:var(--ink3);}
+.sb-stat-val{font-family:var(--mono);font-weight:700;color:var(--ink);}
+.sb-stat-val.green{color:var(--green);}
+.sb-stat-val.amber{color:var(--amber);}
+.sb-stat-val.red{color:var(--red);}
+
+/* VIEWS */
+.view-panel{display:none;flex:1;overflow:hidden;flex-direction:column;}
+.view-panel.active{display:flex;}
+.view-header{padding:16px 22px 12px;border-bottom:1px solid var(--rule);flex-shrink:0;}
+.view-header h2{font-size:1.05rem;font-weight:700;font-family:var(--mono);color:var(--ink);}
+.view-header p{font-size:.72rem;color:var(--ink3);margin-top:3px;line-height:1.5;}
+.vh-actions{display:flex;align-items:center;gap:7px;margin-top:10px;flex-wrap:wrap;}
+.view-scroll{flex:1;overflow-y:auto;padding:18px 22px;}
+
+/* CARDS */
+.info-card{background:var(--card);border:1px solid var(--rule2);border-radius:9px;padding:16px 18px;margin-bottom:12px;}
+.info-card h3{font-size:.82rem;font-weight:700;margin-bottom:3px;display:flex;align-items:center;gap:7px;}
+.info-card p{font-size:.74rem;color:var(--ink3);line-height:1.5;}
+.ic-icon{font-size:1rem;}
+
+/* STATUS CHIPS */
+.chip{display:inline-flex;align-items:center;gap:4px;font-family:var(--mono);font-size:.6rem;font-weight:700;padding:3px 9px;border-radius:3px;letter-spacing:.04em;text-transform:uppercase;}
+.chip-good{background:var(--green-tint);color:var(--green);border:1px solid rgba(34,197,94,.2);}
+.chip-warn{background:var(--amber-tint);color:var(--amber);border:1px solid rgba(245,158,11,.2);}
+.chip-bad{background:var(--red-tint);color:var(--red);border:1px solid rgba(239,68,68,.2);}
+.chip-info{background:var(--blue-tint);color:var(--blue);border:1px solid rgba(26,110,240,.2);}
+.chip-idle{background:var(--rule);color:var(--ink4);}
+
+/* SCAN GRID */
+.scan-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin:14px 0;}
+.scan-item{background:var(--card);border:1px solid var(--rule2);border-radius:7px;padding:12px 14px;}
+.si-label{font-family:var(--mono);font-size:.58rem;color:var(--ink4);letter-spacing:.07em;text-transform:uppercase;margin-bottom:4px;}
+.si-val{font-size:.84rem;font-weight:600;color:var(--ink);}
+.si-val.mono{font-family:var(--mono);font-size:.78rem;}
+.si-sub{font-size:.64rem;color:var(--ink3);margin-top:2px;}
+
+/* PROGRESS BAR */
+.pbar-wrap{margin-top:6px;}
+.pbar{height:5px;background:var(--rule2);border-radius:3px;overflow:hidden;}
+.pbar-fill{height:100%;border-radius:3px;transition:width .6s ease;}
+.pbar-fill.good{background:var(--green);}
+.pbar-fill.warn{background:var(--amber);}
+.pbar-fill.bad{background:var(--red);}
+
+/* CHAT */
+.chat-wrap{display:flex;flex-direction:column;flex:1;overflow:hidden;}
+.chat-messages{flex:1;overflow-y:auto;padding:16px 18px;display:flex;flex-direction:column;gap:10px;}
+.msg{max-width:85%;padding:10px 14px;border-radius:9px;font-size:.78rem;line-height:1.65;animation:msgIn .18s ease;}
+@keyframes msgIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+.msg.user{background:var(--blue);color:#fff;align-self:flex-end;border-bottom-right-radius:3px;}
+.msg.ai{background:var(--card);border:1px solid var(--rule2);align-self:flex-start;border-bottom-left-radius:3px;color:var(--ink2);}
+.msg.system{background:transparent;border:1px dashed var(--rule2);color:var(--ink4);font-size:.7rem;align-self:center;font-family:var(--mono);text-align:center;}
+.msg.ai code{background:rgba(255,255,255,.06);padding:1px 5px;border-radius:3px;font-family:var(--mono);font-size:.74rem;color:var(--cyan);}
+.msg.ai pre{background:#0a0d16;border:1px solid var(--rule2);padding:10px 12px;border-radius:6px;overflow-x:auto;font-family:var(--mono);font-size:.7rem;line-height:1.6;margin:8px 0;color:var(--cyan);}
+body.light .msg.ai pre{background:#f0f4ff;}
+body.light .msg.ai code{background:rgba(26,110,240,.08);color:var(--blue);}
+.msg.ai strong{color:var(--ink);font-weight:600;}
+.msg-time{font-size:.56rem;color:var(--ink4);margin-top:4px;font-family:var(--mono);}
+.typing-dots{display:flex;gap:3px;padding:4px 0;}
+.typing-dots span{width:5px;height:5px;background:var(--ink4);border-radius:50%;animation:dot 1.2s infinite;}
+.typing-dots span:nth-child(2){animation-delay:.2s;}
+.typing-dots span:nth-child(3){animation-delay:.4s;}
+@keyframes dot{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-4px)}}
+
+/* CHAT INPUT */
+.chat-input-bar{padding:10px 14px;border-top:1px solid var(--rule);background:var(--paper);display:flex;gap:8px;align-items:flex-end;flex-shrink:0;}
+#chat-input{flex:1;background:var(--card);border:1.5px solid var(--rule2);color:var(--ink);font-family:var(--body);font-size:.8rem;padding:8px 12px;border-radius:7px;outline:none;resize:none;min-height:38px;max-height:100px;line-height:1.5;transition:border-color .18s;}
+#chat-input:focus{border-color:var(--blue);}
+#chat-input::placeholder{color:var(--ink4);}
+.quick-prompts{display:flex;gap:6px;flex-wrap:wrap;padding:8px 14px 0;flex-shrink:0;}
+.qp{font-size:.68rem;padding:4px 10px;border:1px solid var(--rule2);border-radius:14px;cursor:pointer;color:var(--ink3);background:transparent;transition:all .1s;font-family:var(--body);white-space:nowrap;}
+.qp:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-tint);}
+
+/* COMMAND LIBRARY */
+.cmd-category{margin-bottom:18px;}
+.cmd-cat-title{font-family:var(--mono);font-size:.65rem;font-weight:700;color:var(--ink4);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;gap:7px;}
+.cmd-cat-title::after{content:'';flex:1;height:1px;background:var(--rule);}
+.cmd-item{background:var(--card);border:1px solid var(--rule2);border-radius:8px;margin-bottom:6px;overflow:hidden;transition:border-color .15s;}
+.cmd-item:hover{border-color:var(--blue);}
+.cmd-head{padding:10px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;}
+.cmd-icon{font-size:.9rem;width:18px;text-align:center;flex-shrink:0;}
+.cmd-name{font-weight:600;font-size:.79rem;flex:1;}
+.cmd-risk{font-family:var(--mono);font-size:.58rem;padding:2px 7px;border-radius:3px;font-weight:700;}
+.cmd-risk.safe{background:var(--green-tint);color:var(--green);}
+.cmd-risk.moderate{background:var(--amber-tint);color:var(--amber);}
+.cmd-risk.advanced{background:var(--red-tint);color:var(--red);}
+.cmd-body{display:none;padding:0 14px 12px;border-top:1px solid var(--rule);}
+.cmd-body.open{display:block;}
+.cmd-desc{font-size:.72rem;color:var(--ink3);margin:8px 0 6px;line-height:1.5;}
+.cmd-code{background:#0a0d16;border:1px solid var(--rule2);border-radius:6px;padding:10px 12px;font-family:var(--mono);font-size:.68rem;color:var(--cyan);line-height:1.6;overflow-x:auto;position:relative;}
+body.light .cmd-code{background:#f0f4ff;color:var(--blue2);}
+.copy-btn{position:absolute;top:6px;right:8px;padding:3px 9px;background:var(--rule);border:1px solid var(--rule2);border-radius:4px;font-size:.62rem;font-weight:600;color:var(--ink3);cursor:pointer;transition:all .12s;font-family:var(--body);}
+.copy-btn:hover{border-color:var(--blue);color:var(--blue);}
+.copy-btn.copied{background:var(--green-tint);border-color:var(--green);color:var(--green);}
+
+/* DIAGNOSTICS */
+.diag-item{display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--card);border:1px solid var(--rule2);border-radius:8px;margin-bottom:7px;}
+.diag-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.diag-dot.ok{background:var(--green);}
+.diag-dot.warn{background:var(--amber);}
+.diag-dot.bad{background:var(--red);}
+.diag-dot.idle{background:var(--ink4);}
+.diag-info{flex:1;}
+.diag-name{font-weight:600;font-size:.79rem;}
+.diag-detail{font-size:.68rem;color:var(--ink3);margin-top:1px;}
+.diag-action{font-size:.68rem;font-weight:600;color:var(--blue);cursor:pointer;white-space:nowrap;}
+.diag-action:hover{text-decoration:underline;}
+
+/* FIELDS */
+.field{display:flex;flex-direction:column;gap:4px;margin-bottom:12px;}
+.field label{font-family:var(--mono);font-size:.58rem;font-weight:700;color:var(--ink4);letter-spacing:.08em;text-transform:uppercase;}
+.textarea,.input,.select{width:100%;background:var(--card);border:1.5px solid var(--rule2);color:var(--ink);font-family:var(--body);font-size:.8rem;padding:9px 11px;border-radius:6px;outline:none;transition:border-color .18s;}
+.textarea:focus,.input:focus,.select:focus{border-color:var(--blue);}
+.textarea{resize:vertical;line-height:1.55;font-family:var(--mono);font-size:.74rem;}
+.select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23707898' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;}
+
+/* TOAST */
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--card);color:var(--ink);font-family:var(--mono);font-size:.7rem;font-weight:500;padding:8px 18px;border-radius:6px;z-index:9999;opacity:0;transition:all .25s cubic-bezier(.34,1.56,.64,1);pointer-events:none;white-space:nowrap;box-shadow:0 6px 24px rgba(0,0,0,.3);border:1px solid var(--rule2);}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+#toast.ok{background:var(--green);color:#fff;border-color:transparent;}
+#toast.bad{background:var(--red);color:#fff;border-color:transparent;}
+#toast.info{background:var(--blue);color:#fff;border-color:transparent;}
+
+/* SCAN STATUS */
+.scan-status{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--blue-tint);border:1px solid rgba(26,110,240,.2);border-radius:7px;margin-bottom:14px;font-size:.74rem;color:var(--blue);}
+.scan-pulse{width:8px;height:8px;border-radius:50%;background:var(--blue);animation:pulse 1.5s infinite;flex-shrink:0;}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
+
+/* RESPONSIVE */
+@media(max-width:700px){
+  #app{grid-template-columns:1fr;}
+  #sidebar{display:none;}
+  #main{grid-column:1;}
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- TOPBAR -->
+<div id="topbar">
+  <a href="promptmesh-hub.html" class="tb-back">← Hub</a>
+  <div class="tb-divider"></div>
+  <div class="tb-logo">
+    <div class="logo-sq"><span></span><span></span><span></span><span></span></div>
+    PromptMesh
+  </div>
+  <span class="tb-product">/ SysAI</span>
+  <div class="tb-space"></div>
+  <div class="tb-key-wrap">
+    <span class="tb-key-label">API KEY</span>
+    <input id="topbar-key" type="password" placeholder="sk-ant-..." oninput="saveKey()" autocomplete="off">
+  </div>
+  <button class="btn btn-blue btn-sm" onclick="runQuickScan()">⚡ Quick Scan</button>
+  <button class="dark-btn" onclick="toggleDark()" title="Toggle light/dark"></button>
+</div>
+
+<!-- SIDEBAR -->
+<div id="sidebar">
+  <div class="sb-section">Analysis</div>
+  <div class="sb-item active" onclick="showPanel('overview')" id="nav-overview">
+    <span class="sb-icon">🖥️</span> System Overview
+  </div>
+  <div class="sb-item" onclick="showPanel('chat')" id="nav-chat">
+    <span class="sb-icon">🤖</span> AI Assistant
+  </div>
+  <div class="sb-item" onclick="showPanel('diag')" id="nav-diag">
+    <span class="sb-icon">🔍</span> Diagnostics
+  </div>
+
+  <div class="sb-section">Optimize</div>
+  <div class="sb-item" onclick="showPanel('temps')" id="nav-temps">
+    <span class="sb-icon">🌡️</span> Temps & Cooling
+  </div>
+  <div class="sb-item" onclick="showPanel('drivers')" id="nav-drivers">
+    <span class="sb-icon">🔧</span> Drivers
+  </div>
+  <div class="sb-item" onclick="showPanel('perf')" id="nav-perf">
+    <span class="sb-icon">🚀</span> Performance
+  </div>
+  <div class="sb-item" onclick="showPanel('cleanup')" id="nav-cleanup">
+    <span class="sb-icon">🧹</span> Cleanup
+  </div>
+  <div class="sb-item" onclick="showPanel('network')" id="nav-network">
+    <span class="sb-icon">🌐</span> Network
+  </div>
+  <div class="sb-item" onclick="showPanel('security')" id="nav-security">
+    <span class="sb-icon">🛡️</span> Security
+  </div>
+
+  <div class="sb-section">Tools</div>
+  <div class="sb-item" onclick="showPanel('commands')" id="nav-commands">
+    <span class="sb-icon">💻</span> Command Library
+  </div>
+  <div class="sb-item" onclick="showPanel('fixer')" id="nav-fixer">
+    <span class="sb-icon">🔩</span> Issue Fixer
+  </div>
+
+  <div class="sb-bottom">
+    <div class="sb-stat"><span>Scans run</span><span class="sb-stat-val" id="sb-scans">0</span></div>
+    <div class="sb-stat"><span>Issues found</span><span class="sb-stat-val amber" id="sb-issues">—</span></div>
+    <div class="sb-stat"><span>Model</span><span class="sb-stat-val" style="font-family:var(--mono);font-size:.62rem">Haiku</span></div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+
+<!-- ═══════════ PANEL: OVERVIEW ═══════════ -->
+<div class="view-panel active" id="panel-overview">
+  <div class="view-header">
+    <h2>🖥️ System Overview</h2>
+    <p>Live hardware snapshot collected from your browser. Click <strong>Quick Scan</strong> to refresh.</p>
+    <div class="vh-actions">
+      <button class="btn btn-blue btn-sm" onclick="runQuickScan()">⚡ Quick Scan</button>
+      <button class="btn btn-outline btn-sm" onclick="exportScanJSON()">↓ Export JSON</button>
+      <button class="btn btn-outline btn-sm" onclick="copySystemReport()">Copy Report</button>
+    </div>
+  </div>
+  <div class="view-scroll" id="overview-body">
+    <div id="scan-idle" class="info-card" style="text-align:center;padding:32px 20px;">
+      <div style="font-size:2.4rem;margin-bottom:10px">🖥️</div>
+      <div style="font-weight:700;font-size:.9rem;margin-bottom:6px">No scan yet</div>
+      <div style="font-size:.76rem;color:var(--ink3);margin-bottom:16px">Click Quick Scan to read hardware info from your browser</div>
+      <button class="btn btn-blue" onclick="runQuickScan()">⚡ Run Quick Scan</button>
+    </div>
+    <div id="scan-result" style="display:none">
+      <div id="scan-status-bar" class="scan-status" style="display:none">
+        <div class="scan-pulse"></div>
+        <span id="scan-status-msg">Scanning…</span>
+      </div>
+      <div class="scan-grid" id="scan-grid"></div>
+      <div id="gpu-info-card" class="info-card" style="display:none">
+        <h3><span class="ic-icon">🎮</span> GPU Information</h3>
+        <div id="gpu-info-body"></div>
+      </div>
+      <div id="battery-card" class="info-card" style="display:none">
+        <h3><span class="ic-icon">🔋</span> Battery</h3>
+        <div id="battery-body"></div>
+      </div>
+      <div id="network-info-card" class="info-card" style="display:none">
+        <h3><span class="ic-icon">📡</span> Network Connection</h3>
+        <div id="network-info-body"></div>
+      </div>
+      <div class="info-card">
+        <h3><span class="ic-icon">💡</span> AI Analysis</h3>
+        <p style="font-size:.74rem;color:var(--ink3);margin-bottom:10px">Get an AI-powered assessment of your system with optimization tips.</p>
+        <button class="btn btn-blue btn-sm" onclick="analyzeSystemAI()" id="analyze-ai-btn">🤖 Analyze with AI</button>
+        <div id="ai-analysis-result" style="margin-top:10px;display:none"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ PANEL: AI CHAT ═══════════ -->
+<div class="view-panel" id="panel-chat">
+  <div class="view-header">
+    <h2>🤖 AI Assistant</h2>
+    <p>Ask anything about your PC — performance issues, error codes, driver problems, or optimization tips.</p>
+  </div>
+  <div class="quick-prompts" id="quick-prompts-bar">
+    <button class="qp" onclick="sendQuickPrompt('How do I check CPU temperatures on Windows?')">CPU temps</button>
+    <button class="qp" onclick="sendQuickPrompt('How do I update all drivers on Windows 11?')">Update drivers</button>
+    <button class="qp" onclick="sendQuickPrompt('My PC is running slow. What should I check first?')">Slow PC</button>
+    <button class="qp" onclick="sendQuickPrompt('How do I free up disk space on Windows?')">Free disk space</button>
+    <button class="qp" onclick="sendQuickPrompt('How do I disable startup programs to speed up boot?')">Startup programs</button>
+    <button class="qp" onclick="sendQuickPrompt('What are the best Windows performance settings?')">Performance settings</button>
+    <button class="qp" onclick="pasteAndAnalyze()">📋 Paste &amp; Analyze</button>
+  </div>
+  <div class="chat-wrap">
+    <div class="chat-messages" id="chat-messages">
+      <div class="msg system">Session started — SysAI is ready</div>
+      <div class="msg ai">
+        <strong>Hello!</strong> I'm your PC System AI assistant. I can help you:<br><br>
+        • 🌡️ Diagnose high temperatures and cooling issues<br>
+        • 🔧 Find and update outdated drivers<br>
+        • 🚀 Optimize Windows performance settings<br>
+        • 🧹 Clean up junk files and free space<br>
+        • 🌐 Fix network issues and tune TCP settings<br>
+        • 🛡️ Check security and Windows health<br><br>
+        You can also <strong>paste system info</strong> (from HWinfo, Task Manager, Event Viewer, etc.) and I'll analyze it. What would you like to do?
+        <div class="msg-time" id="welcome-time"></div>
+      </div>
+    </div>
+    <div class="chat-input-bar">
+      <textarea id="chat-input" rows="1" placeholder="Ask about your PC… (Enter to send, Shift+Enter for new line)"></textarea>
+      <button class="btn btn-blue" id="chat-send-btn" onclick="sendChat()">Send</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ PANEL: DIAGNOSTICS ═══════════ -->
+<div class="view-panel" id="panel-diag">
+  <div class="view-header">
+    <h2>🔍 System Diagnostics</h2>
+    <p>Automated checks for common Windows issues. Run a scan to see your system health.</p>
+    <div class="vh-actions">
+      <button class="btn btn-blue btn-sm" onclick="runDiagnostics()">Run Diagnostics</button>
+      <button class="btn btn-outline btn-sm" onclick="diagAIReport()">🤖 AI Full Report</button>
+    </div>
+  </div>
+  <div class="view-scroll" id="diag-body">
+    <div id="diag-idle" class="info-card" style="text-align:center;padding:28px 20px;">
+      <div style="font-size:2rem;margin-bottom:8px">🔍</div>
+      <div style="font-weight:700;font-size:.88rem;margin-bottom:5px">Run diagnostics</div>
+      <div style="font-size:.74rem;color:var(--ink3);">Checks browser-accessible system info, then uses AI to identify likely issues.</div>
+    </div>
+    <div id="diag-items" style="display:none"></div>
+  </div>
+</div>
+
+<!-- ═══════════ PANEL: TEMPS ═══════════ -->
+<div class="view-panel" id="panel-temps">
+  <div class="view-header">
+    <h2>🌡️ Temperature & Cooling</h2>
+    <p>Paste temperature readings from HWinfo64, HWMonitor, or MSI Afterburner below for AI analysis.</p>
+  </div>
+  <div class="view-scroll">
+    <div class="info-card">
+      <h3><span class="ic-icon">📋</span> Paste Temperature Data</h3>
+      <p style="margin-bottom:10px">Copy temp readings from HWinfo64, HWMonitor, CPU-Z, or just describe your symptoms.</p>
+      <div class="field">
+        <textarea class="textarea" id="temp-input" rows="7" placeholder="Example:
+CPU Package: 92°C
+CPU Core 0: 88°C
+CPU Core 1: 90°C
+GPU Junction: 78°C
+GPU Memory: 70°C
+...or just type: 'My CPU hits 95C under gaming load'"></textarea>
+      </div>
+      <button class="btn btn-blue btn-sm" onclick="analyzeTemps()">🌡️ Analyze Temperatures</button>
+    </div>
+    <div id="temp-result" style="display:none"></div>
+    <div class="info-card">
+      <h3><span class="ic-icon">💡</span> Quick Temperature Fixes</h3>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;margin-top:10px;">
+        <div class="diag-item" style="cursor:pointer" onclick="sendQuickPrompt('How do I safely clean my PC fans and heatsink to reduce temperatures?')">
+          <span style="font-size:1.2rem">🌀</span>
+          <div class="diag-info"><div class="diag-name">Clean dust buildup</div><div class="diag-detail">Fan and heatsink cleaning guide</div></div>
+        </div>
+        <div class="diag-item" style="cursor:pointer" onclick="sendQuickPrompt('How do I repaste my CPU and what thermal paste should I use?')">
+          <span style="font-size:1.2rem">🧴</span>
+          <div class="diag-info"><div class="diag-name">Repaste CPU</div><div class="diag-detail">Thermal paste replacement guide</div></div>
+        </div>
+        <div class="diag-item" style="cursor:pointer" onclick="sendQuickPrompt('How do I undervolt my CPU to reduce temperatures without losing performance?')">
+          <span style="font-size:1.2rem">⚡</span>
+          <div class="diag-info"><div class="diag-name">Undervolt CPU</div><div class="diag-detail">Reduce heat with undervolting</div></div>
+        </div>
+        <div class="diag-item" style="cursor:pointer" onclick="sendQuickPrompt('How do I improve airflow in my PC case to lower temperatures?')">
+          <span style="font-size:1.2rem">💨</span>
+          <div class="diag-info"><div class="diag-name">Improve case airflow</div><div class="diag-detail">Fan placement and cable management</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ PANEL: DRIVERS ═══════════ -->
+<div class="view-panel" id="panel-drivers">
+  <div class="view-header">
+    <h2>🔧 Driver Management</h2>
+    <p>AI-guided driver updates, troubleshooting, and rollbacks for Windows.</p>
+    <div class="vh-actions">
+      <button class="btn btn-blue btn-sm" onclick="getDriverGuide()">🤖 Driver Update Guide</button>
+    </div>
+  </div>
+  <div class="view-scroll">
+    <div class="info-card">
+      <h3><span class="ic-icon">📋</span> Paste Device Manager Info</h3>
+      <p style="margin-bottom:10px">Open Device Manager → right-click a device → Properties → paste the info here, or describe your driver issue.</p>
+      <div class="field">
+        <textarea class="textarea" id="driver-input" rows="5" placeholder="Example:
+Device: NVIDIA GeForce RTX 4080
+Current driver: 551.23 (Jan 2024)
+Issue: Game crashes after 30 minutes
+
+...or: 'I have a yellow exclamation mark on my USB controller'"></textarea>
+      </div>
+      <button class="btn btn-blue btn-sm" onclick="analyzeDrivers()">🔧 Get Driver Fix</button>
+    </div>
+    <div id="driver-result" style="display:none"></div>
+    <div class="info-card">
+      <h3><span class="ic-icon">🔧</span> Common Driver Tasks</h3>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;margin-top:10px;">
+        <div class="diag-item" style="cursor:pointer" onclick="sendQuickPromptAndShow('How do I update GPU drivers on Windows 11? Give me step by step instructions for both NVIDIA and AMD.')">
+          <span style="font-size:1.2rem">🎮</span>
+          <div class="diag-info"><div class="diag-name">Update GPU Driver</div><div class="diag-detail">NVIDIA / AMD / Intel Arc</div></div>
+        </div>
+        <div class="diag-item" style="cursor:pointer" onclick="sendQuickPromptAndShow('How do I use DDU (Display Driver Uninstaller) to cleanly remove and reinstall GPU drivers?')">
+          <span style="font-size:1.2rem">🗑️</span>
+          <div class="diag-info"><div class="diag-name">Clean GPU Driver Install</div><div class="diag-detail">DDU wipe + fresh install</div></div>
+        </div>
+        <div class="diag-item" style="cursor:pointer" onclick="sendQuickPromptAndShow('How do I update chipset, audio, and network drivers on Windows?')">
+          <span style="font-size:1.2rem">🔌</span>
+          <div class="diag-info"><div class="diag-name">Chipset & System Drivers</div><div class="diag-detail">Motherboard, audio, LAN, WiFi</div></div>
+        </div>
+        <div class="diag-item" style="cursor:pointer" onclick="sendQuickPromptAndShow('How do I roll back a driver update in Windows if it caused problems?')">
+          <span style="font-size:1.2rem">↩️</span>
+          <div class="diag-info"><div class="diag-name">Roll Back Driver</div><div class="diag-detail">Revert to previous version</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ PANEL: PERFORMANCE ═══════════ -->
+<div class="view-panel" id="panel-perf">
+  <div class="view-header">
+    <h2>🚀 Performance Optimization</h2>
+    <p>Windows settings, startup tuning, and power plan optimization for maximum speed.</p>
+    <div class="vh-actions">
+      <button class="btn btn-blue btn-sm" onclick="getPerfGuide()">🤖 Full Optimization Guide</button>
+    </div>
+  </div>
+  <div class="view-scroll">
+    <div class="info-card">
+      <h3><span class="ic-icon">⚙️</span> Describe Your System / Issue</h3>
+      <p style="margin-bottom:10px">Tell me about your hardware and what you want to optimize (gaming, productivity, video editing, etc.)</p>
+      <div class="field">
+        <textarea class="textarea" id="perf-input" rows="4" placeholder="Example:
+Intel i7-13700K, RTX 4070, 32GB RAM, Win 11
+Use case: Gaming + streaming
+Issue: Frame drops when streaming"></textarea>
+      </div>
+      <button class="btn btn-blue btn-sm" onclick="analyzePerfAI()">🚀 Get Optimization Plan</button>
+    </div>
+    <div id="perf-result" style="display:none"></div>
+    <div class="info-card">
+      <h3><span class="ic-icon">🚀</span> Quick Wins</h3>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;margin-top:10px;">
+        <div class="diag-item" style="cursor:pointer" onclick="sendQuickPromptAndShow('How do I enable High Performance or Ultimate Performance power plan in Windows 11?')">
+          <span style="font-size:1.2rem">⚡</span>
+          <div class="diag-info"><div class="diag-name">Power Plan</div><div class="diag-detail">Enable High Performance mode</div></div>
+        </div>
+        <div class="diag-item" style="cursor:pointer" onclick="sendQuickPromptAndShow('How do I disable startup programs in Windows 11 to speed up boot time?')">
+          <span style="font-size:1.2rem">🚀</span>
+          <div class="diag-info"><div class="diag-name">Startup Programs</div><div class="diag-detail">Disable slow-boot apps</div></div>
+        </div>
+        <div class="diag-item" style="cursor:pointer" onclick="sendQuickPromptAndShow('How do I enable Game Mode and disable Xbox Game Bar in Windows 11 for better gaming performance?')">
+          <span style="font-size:1.2rem">🎮</span>
+          <div class="diag-info"><div class="diag-name">Gaming Tweaks</div><div class="diag-detail">Game Mode, XBox bar, HAGS</div></div>
+        </div>
+        <div class="diag-item" style="cursor:pointer" onclick="sendQuickPromptAndShow('How do I adjust Windows visual effects for maximum performance?')">
+          <span style="font-size:1.2rem">🖼️</span>
+          <div class="diag-info"><div class="diag-name">Visual Effects</div><div class="diag-detail">Disable animations</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ PANEL: CLEANUP ═══════════ -->
+<div class="view-panel" id="panel-cleanup">
+  <div class="view-header">
+    <h2>🧹 Disk Cleanup & Maintenance</h2>
+    <p>Free up storage, remove junk files, and maintain your drives.</p>
+  </div>
+  <div class="view-scroll">
+    <div class="info-card">
+      <h3><span class="ic-icon">💾</span> Disk Info</h3>
+      <p style="margin-bottom:10px">Paste your disk usage info or let AI generate cleanup commands.</p>
+      <div class="field">
+        <textarea class="textarea" id="disk-input" rows="3" placeholder="Example: C: drive 95% full (450GB/500GB SSD)
+Or just click a task below"></textarea>
+      </div>
+      <button class="btn btn-blue btn-sm" onclick="analyzeDiskAI()">💾 Get Cleanup Plan</button>
+    </div>
+    <div id="disk-result" style="display:none"></div>
+    <div class="info-card">
+      <h3><span class="ic-icon">🧹</span> Cleanup Tasks</h3>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;margin-top:10px;">
+        <div class="diag-item" style="cursor:pointer" onclick="sendQuickPromptAndShow('Give me PowerShell commands to clear Windows temp files, prefetch, and recycle bin safely.')">
+          <span style="font-size:1.2rem">🗑️</span>
+          <div class="diag-info"><div class="diag-name">Clear Temp Files</div><div class="diag-detail">%temp%, prefetch, recycle bin</div></div>
+        </div>
+        <div class="diag-item" style="cursor:pointer" onclick="sendQuickPromptAndShow('How do I use Windows Disk Cleanup including system files to free up space?')">
+          <span style="font-size:1.2rem">🧹</span>
+          <div class="diag-info"><div class="diag-name">Disk Cleanup</div><div class="diag-detail">Windows built-in tool</div></div>
+        </div>
+        <div class="diag-item" style="cursor:pointer" onclick="sendQuickPromptAndShow('How do I check and repair disk errors in Windows using CHKDSK?')">
+          <span style="font-size:1.2rem">🔍</span>
+          <div class="diag-info"><div class="diag-name">Disk Health Check</div><div class="diag-detail">CHKDSK / SMART status</div></div>
+        </div>
+        <div class="diag-item" style="cursor:pointer" onclick="sendQuickPromptAndShow('How do I find and delete large files on Windows to free up space?')">
+          <span style="font-size:1.2rem">📦</span>
+          <div class="diag-info"><div class="diag-name">Find Large Files</div><div class="diag-detail">TreeSize, WinDirStat, PowerShell</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ PANEL: NETWORK ═══════════ -->
+<div class="view-panel" id="panel-network">
+  <div class="view-header">
+    <h2>🌐 Network Optimization</h2>
+    <p>Diagnose and fix network issues, tune TCP settings, and optimize DNS.</p>
+    <div class="vh-actions">
+      <button class="btn btn-blue btn-sm" onclick="getNetworkGuide()">🤖 Network Diagnosis</button>
+    </div>
+  </div>
+  <div class="view-scroll">
+    <div class="info-card">
+      <h3><span class="ic-icon">📡</span> Network Issue</h3>
+      <p style="margin-bottom:10px">Describe your network issue or paste speedtest/ping results.</p>
+      <div class="field">
+        <textarea class="textarea" id="net-input" rows="4" placeholder="Example:
+Download: 850 Mbps, Upload: 120 Mbps
+Ping: 12ms stable but gets spikes to 200ms in games
+Connection: Ethernet, ISP: Comcast 1Gbps plan"></textarea>
+      </div>
+      <button class="btn btn-blue btn-sm" onclick="analyzeNetworkAI()">🌐 Get Network Fix</button>
+    </div>
+    <div id="net-result" style="display:none"></div>
+    <div class="info-card">
+      <h3><span class="ic-icon">🌐</span> Common Network Fixes</h3>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;margin-top:10px;">
+        <div class="diag-item" style="cursor:pointer" onclick="sendQuickPromptAndShow('What are the best DNS servers for speed and privacy in 2025? How do I change DNS on Windows?')">
+          <span style="font-size:1.2rem">🔍</span>
+          <div class="diag-info"><div class="diag-name">Optimize DNS</div><div class="diag-detail">Cloudflare, Google, NextDNS</div></div>
+        </div>
+        <div class="diag-item" style="cursor:pointer" onclick="sendQuickPromptAndShow('Give me PowerShell commands to flush DNS cache, reset Winsock, and reset TCP/IP stack on Windows.')">
+          <span style="font-size:1.2rem">🔄</span>
+          <div class="diag-info"><div class="diag-name">Reset Network Stack</div><div class="diag-detail">Flush DNS, reset Winsock</div></div>
+        </div>
+        <div class="diag-item" style="cursor:pointer" onclick="sendQuickPromptAndShow('How do I reduce ping and fix packet loss for gaming on Windows?')">
+          <span style="font-size:1.2rem">🎮</span>
+          <div class="diag-info"><div class="diag-name">Reduce Gaming Ping</div><div class="diag-detail">QoS, buffer bloat, TCP tweaks</div></div>
+        </div>
+        <div class="diag-item" style="cursor:pointer" onclick="sendQuickPromptAndShow('How do I fix slow WiFi on Windows 11? What are the common causes and fixes?')">
+          <span style="font-size:1.2rem">📶</span>
+          <div class="diag-info"><div class="diag-name">Fix Slow WiFi</div><div class="diag-detail">Driver, power saving, channel</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ PANEL: SECURITY ═══════════ -->
+<div class="view-panel" id="panel-security">
+  <div class="view-header">
+    <h2>🛡️ Security Check</h2>
+    <p>Verify Windows security settings, check for updates, and harden your system.</p>
+    <div class="vh-actions">
+      <button class="btn btn-blue btn-sm" onclick="getSecurityGuide()">🤖 Security Audit</button>
+    </div>
+  </div>
+  <div class="view-scroll">
+    <div class="info-card">
+      <h3><span class="ic-icon">🛡️</span> Security Checklist</h3>
+      <p style="margin-bottom:12px">Describe any security concerns or paste Windows Security Center output.</p>
+      <div class="field">
+        <textarea class="textarea" id="sec-input" rows="4" placeholder="Example:
+- Windows Defender showing 'Some settings are managed by org'
+- Windows Update stuck at 98%
+- Getting random pop-ups
+- BitLocker status unknown"></textarea>
+      </div>
+      <button class="btn btn-blue btn-sm" onclick="analyzeSecurityAI()">🛡️ Get Security Report</button>
+    </div>
+    <div id="sec-result" style="display:none"></div>
+    <div class="info-card">
+      <h3><span class="ic-icon">🛡️</span> Security Tasks</h3>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;margin-top:10px;">
+        <div class="diag-item" style="cursor:pointer" onclick="sendQuickPromptAndShow('How do I check if Windows Defender is working properly and run a full scan via PowerShell?')">
+          <span style="font-size:1.2rem">🦠</span>
+          <div class="diag-info"><div class="diag-name">Check Antivirus</div><div class="diag-detail">Windows Defender scan</div></div>
+        </div>
+        <div class="diag-item" style="cursor:pointer" onclick="sendQuickPromptAndShow('How do I check for and install all pending Windows Updates including optional updates via PowerShell?')">
+          <span style="font-size:1.2rem">🔄</span>
+          <div class="diag-info"><div class="diag-name">Windows Updates</div><div class="diag-detail">Check & install patches</div></div>
+        </div>
+        <div class="diag-item" style="cursor:pointer" onclick="sendQuickPromptAndShow('How do I check if my Windows firewall is properly configured and list open ports?')">
+          <span style="font-size:1.2rem">🔥</span>
+          <div class="diag-info"><div class="diag-name">Firewall Check</div><div class="diag-detail">Open ports, firewall rules</div></div>
+        </div>
+        <div class="diag-item" style="cursor:pointer" onclick="sendQuickPromptAndShow('How do I use SFC /scannow and DISM to repair corrupted Windows system files?')">
+          <span style="font-size:1.2rem">🔩</span>
+          <div class="diag-info"><div class="diag-name">Repair System Files</div><div class="diag-detail">SFC, DISM, Windows repair</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ PANEL: COMMANDS ═══════════ -->
+<div class="view-panel" id="panel-commands">
+  <div class="view-header">
+    <h2>💻 Command Library</h2>
+    <p>Ready-to-run PowerShell commands for common optimization tasks. Copy and run in an <strong>Administrator</strong> terminal.</p>
+  </div>
+  <div class="view-scroll" id="commands-body">
+    <!-- Populated by JS -->
+  </div>
+</div>
+
+<!-- ═══════════ PANEL: ISSUE FIXER ═══════════ -->
+<div class="view-panel" id="panel-fixer">
+  <div class="view-header">
+    <h2>🔩 Issue Fixer</h2>
+    <p>Describe any problem with your PC and get a step-by-step AI fix with commands.</p>
+  </div>
+  <div class="view-scroll">
+    <div class="info-card">
+      <h3><span class="ic-icon">🔩</span> Describe Your Problem</h3>
+      <p style="margin-bottom:10px">Be specific — include error messages, when it started, what you've already tried.</p>
+      <div class="field">
+        <label>Problem Description</label>
+        <textarea class="textarea" id="fixer-input" rows="6" placeholder="Example:
+My PC randomly restarts during gaming. Event Viewer shows:
+Event ID 41 - Kernel-Power - The system has rebooted without cleanly shutting down first.
+Started after updating GPU driver last week.
+I've already tried: reinstalling GPU driver, checking temps (all normal)"></textarea>
+      </div>
+      <div class="field">
+        <label>PC Specs (optional)</label>
+        <input class="input" id="fixer-specs" type="text" placeholder="e.g. i9-13900K, RTX 4090, 64GB DDR5, Win 11 22H2">
+      </div>
+      <button class="btn btn-blue" onclick="runIssueFixer()">🔩 Generate Fix Plan</button>
+    </div>
+    <div id="fixer-result" style="display:none"></div>
+    <div class="info-card">
+      <h3><span class="ic-icon">💡</span> Common Issues</h3>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px;">
+        <div class="diag-item" style="cursor:pointer" onclick="fillFixer('PC randomly restarts or crashes with no error (BSODs or instant shutdown during gaming)')">
+          <span style="font-size:1.1rem">💥</span>
+          <div class="diag-info"><div class="diag-name">Random crashes / BSODs</div><div class="diag-detail">Instability, restarts, blue screen</div></div>
+        </div>
+        <div class="diag-item" style="cursor:pointer" onclick="fillFixer('PC is very slow, high CPU or disk usage even when idle. Task Manager shows 100% disk usage.')">
+          <span style="font-size:1.1rem">🐌</span>
+          <div class="diag-info"><div class="diag-name">Slow PC / 100% disk usage</div><div class="diag-detail">High CPU, disk, or memory usage</div></div>
+        </div>
+        <div class="diag-item" style="cursor:pointer" onclick="fillFixer('No sound coming from speakers or headphones. Audio device shows as working in Device Manager but no sound output.')">
+          <span style="font-size:1.1rem">🔇</span>
+          <div class="diag-info"><div class="diag-name">No audio / sound issues</div><div class="diag-detail">Missing sound, crackling, no output</div></div>
+        </div>
+        <div class="diag-item" style="cursor:pointer" onclick="fillFixer('Windows Update fails with error code. Updates stuck downloading or installing.')">
+          <span style="font-size:1.1rem">🔄</span>
+          <div class="diag-info"><div class="diag-name">Windows Update failures</div><div class="diag-detail">Update errors, stuck updates</div></div>
+        </div>
+        <div class="diag-item" style="cursor:pointer" onclick="fillFixer('USB devices not being recognized. Devices show unknown in Device Manager or disconnect randomly.')">
+          <span style="font-size:1.1rem">🔌</span>
+          <div class="diag-info"><div class="diag-name">USB device problems</div><div class="diag-detail">Not recognized, disconnecting</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /#main -->
+</div><!-- /#app -->
+
+<div id="toast"></div>
+
+<script>
+// ══════════ STATE ══════════
+var scanData = {};
+var chatHistory = [];
+var scanCount = 0;
+var issueCount = 0;
+
+// ══════════ INIT ══════════
+(function init(){
+  var key = sessionStorage.getItem('sysai_key') || '';
+  if(key) document.getElementById('topbar-key').value = key;
+  document.getElementById('welcome-time').textContent = fmtTime(new Date());
+  renderCommands();
+  if(localStorage.getItem('pm_dark') === '0') document.body.classList.add('light');
+  // restore counts
+  scanCount = parseInt(localStorage.getItem('sysai_scans') || '0');
+  document.getElementById('sb-scans').textContent = scanCount;
+  // keyboard shortcut for chat
+  document.getElementById('chat-input').addEventListener('keydown', function(e){
+    if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); sendChat(); }
+  });
+  // auto-resize textarea
+  document.getElementById('chat-input').addEventListener('input', function(){
+    this.style.height = 'auto';
+    this.style.height = Math.min(this.scrollHeight, 100) + 'px';
+  });
+})();
+
+function saveKey(){
+  var k = document.getElementById('topbar-key').value.trim();
+  if(k) sessionStorage.setItem('sysai_key', k);
+}
+
+function getKey(){
+  return document.getElementById('topbar-key').value.trim() ||
+         sessionStorage.getItem('sysai_key') || '';
+}
+
+// ══════════ NAVIGATION ══════════
+function showPanel(name){
+  document.querySelectorAll('.view-panel').forEach(function(p){ p.classList.remove('active'); });
+  document.querySelectorAll('.sb-item').forEach(function(i){ i.classList.remove('active'); });
+  var panel = document.getElementById('panel-' + name);
+  var nav = document.getElementById('nav-' + name);
+  if(panel) panel.classList.add('active');
+  if(nav) nav.classList.add('active');
+}
+
+// ══════════ DARK MODE ══════════
+function toggleDark(){
+  document.body.classList.toggle('light');
+  localStorage.setItem('pm_dark', document.body.classList.contains('light') ? '0' : '1');
+}
+
+// ══════════ TOAST ══════════
+var toastTimer;
+function toast(msg, type){
+  var el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'show ' + (type || '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function(){ el.className = ''; }, 3000);
+}
+
+// ══════════ HELPERS ══════════
+function fmtTime(d){
+  return d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+}
+
+function escHtml(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function formatAIText(text){
+  return escHtml(text)
+    .replace(/```(\w*)\n?([\s\S]*?)```/g, function(m, lang, code){
+      return '<pre><div class="copy-btn" onclick="copyText(this)" data-text="'+escHtml(code.trim())+'">Copy</div>'+escHtml(code.trim())+'</pre>';
+    })
+    .replace(/`([^`\n]+)`/g, '<code>$1</code>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\n/g, '<br>');
+}
+
+function copyText(btn){
+  var text = btn.getAttribute('data-text');
+  navigator.clipboard.writeText(text).then(function(){
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(function(){ btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+// ══════════ QUICK SCAN ══════════
+function runQuickScan(){
+  document.getElementById('scan-idle').style.display = 'none';
+  document.getElementById('scan-result').style.display = 'block';
+  var statusBar = document.getElementById('scan-status-bar');
+  statusBar.style.display = 'flex';
+  document.getElementById('scan-status-msg').textContent = 'Collecting system info…';
+
+  scanData = {};
+
+  // Basic navigator info
+  scanData.platform = navigator.platform || 'Unknown';
+  scanData.userAgent = navigator.userAgent;
+  scanData.language = navigator.language;
+  scanData.cores = navigator.hardwareConcurrency || 'Unknown';
+  scanData.memory = navigator.deviceMemory ? navigator.deviceMemory + ' GB' : 'Not exposed';
+  scanData.onlineStatus = navigator.onLine ? 'Online' : 'Offline';
+  scanData.cookiesEnabled = navigator.cookieEnabled;
+  scanData.screenW = screen.width;
+  scanData.screenH = screen.height;
+  scanData.colorDepth = screen.colorDepth + ' bit';
+  scanData.pixelRatio = window.devicePixelRatio || 1;
+  scanData.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  scanData.scanTime = new Date().toLocaleString();
+
+  // Detect OS from userAgent
+  var ua = navigator.userAgent;
+  if(/Windows NT 11|Windows NT 10/.test(ua)){
+    var winMatch = ua.match(/Windows NT (\d+\.\d+)/);
+    scanData.os = winMatch ? 'Windows (NT ' + winMatch[1] + ')' : 'Windows';
+  } else if(/Mac/.test(ua)){
+    scanData.os = 'macOS';
+  } else if(/Linux/.test(ua)){
+    scanData.os = 'Linux';
+  } else {
+    scanData.os = 'Unknown';
+  }
+
+  // Browser detection
+  if(/Edg\//.test(ua)) scanData.browser = 'Microsoft Edge';
+  else if(/Chrome\//.test(ua)) scanData.browser = 'Google Chrome';
+  else if(/Firefox\//.test(ua)) scanData.browser = 'Mozilla Firefox';
+  else if(/Safari\//.test(ua)) scanData.browser = 'Safari';
+  else scanData.browser = 'Unknown';
+
+  var browserVer = ua.match(/(Chrome|Edg|Firefox|Safari)\/(\d+)/);
+  if(browserVer) scanData.browser += ' ' + browserVer[2];
+
+  // GPU via WebGL
+  try{
+    var canvas = document.createElement('canvas');
+    var gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+    if(gl){
+      var dbgInfo = gl.getExtension('WEBGL_debug_renderer_info');
+      if(dbgInfo){
+        scanData.gpuVendor = gl.getParameter(dbgInfo.UNMASKED_VENDOR_WEBGL);
+        scanData.gpuRenderer = gl.getParameter(dbgInfo.UNMASKED_RENDERER_WEBGL);
+      }
+      scanData.webglVersion = 'WebGL ' + (canvas.getContext('webgl2') ? '2.0' : '1.0');
+      var maxTex = gl.getParameter(gl.MAX_TEXTURE_SIZE);
+      scanData.gpuMaxTexture = maxTex + 'px';
+    }
+  }catch(e){ scanData.gpuRenderer = 'Not accessible'; }
+
+  // Performance memory (Chrome only)
+  if(performance && performance.memory){
+    scanData.jsHeapUsed = Math.round(performance.memory.usedJSHeapSize / 1024 / 1024) + ' MB';
+    scanData.jsHeapLimit = Math.round(performance.memory.jsHeapSizeLimit / 1024 / 1024) + ' MB';
+  }
+
+  // Network info
+  var conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+  if(conn){
+    scanData.netType = conn.effectiveType || conn.type || 'Unknown';
+    if(conn.downlink) scanData.netDownlink = conn.downlink + ' Mbps';
+    if(conn.rtt) scanData.netRtt = conn.rtt + ' ms';
+    scanData.netSaveData = conn.saveData ? 'Yes' : 'No';
+  }
+
+  // Render scan grid
+  renderScanGrid();
+
+  // GPU card
+  if(scanData.gpuRenderer){
+    document.getElementById('gpu-info-card').style.display = 'block';
+    document.getElementById('gpu-info-body').innerHTML =
+      '<div class="scan-grid" style="margin:8px 0">' +
+      mkScanItem('Vendor', scanData.gpuVendor || 'Unknown') +
+      mkScanItem('Renderer', scanData.gpuRenderer) +
+      mkScanItem('WebGL', scanData.webglVersion || 'Unknown') +
+      mkScanItem('Max Texture', scanData.gpuMaxTexture || '—') +
+      '</div>';
+  }
+
+  // Network info card
+  if(scanData.netType){
+    document.getElementById('network-info-card').style.display = 'block';
+    document.getElementById('network-info-body').innerHTML =
+      '<div class="scan-grid" style="margin:8px 0">' +
+      mkScanItem('Connection', scanData.netType) +
+      (scanData.netDownlink ? mkScanItem('Downlink', scanData.netDownlink) : '') +
+      (scanData.netRtt ? mkScanItem('Est. RTT', scanData.netRtt) : '') +
+      '</div>';
+  }
+
+  // Battery
+  if(navigator.getBattery){
+    navigator.getBattery().then(function(bat){
+      scanData.batteryLevel = Math.round(bat.level * 100) + '%';
+      scanData.batteryCharging = bat.charging ? 'Charging' : 'On battery';
+      document.getElementById('battery-card').style.display = 'block';
+      var pct = Math.round(bat.level * 100);
+      var cls = pct > 60 ? 'good' : pct > 20 ? 'warn' : 'bad';
+      document.getElementById('battery-body').innerHTML =
+        '<div class="scan-grid" style="margin:8px 0">' +
+        mkScanItem('Level', pct + '%') +
+        mkScanItem('Status', scanData.batteryCharging) +
+        '</div>' +
+        '<div class="pbar-wrap"><div class="pbar"><div class="pbar-fill ' + cls + '" style="width:' + pct + '%"></div></div></div>';
+    }).catch(function(){});
+  }
+
+  scanCount++;
+  localStorage.setItem('sysai_scans', scanCount);
+  document.getElementById('sb-scans').textContent = scanCount;
+
+  setTimeout(function(){
+    statusBar.style.display = 'none';
+    toast('Scan complete', 'ok');
+  }, 1200);
+}
+
+function mkScanItem(label, value, sub){
+  return '<div class="scan-item"><div class="si-label">' + escHtml(label) + '</div>' +
+    '<div class="si-val mono">' + escHtml(String(value)) + '</div>' +
+    (sub ? '<div class="si-sub">' + escHtml(sub) + '</div>' : '') + '</div>';
+}
+
+function renderScanGrid(){
+  var items = [
+    ['OS', scanData.os],
+    ['Browser', scanData.browser],
+    ['Platform', scanData.platform],
+    ['CPU Cores', scanData.cores],
+    ['RAM (approx)', scanData.memory],
+    ['Screen', scanData.screenW + '×' + scanData.screenH],
+    ['Color Depth', scanData.colorDepth],
+    ['Pixel Ratio', scanData.pixelRatio + 'x'],
+    ['Timezone', scanData.timezone],
+    ['Network', scanData.onlineStatus],
+  ];
+  if(scanData.jsHeapUsed) items.push(['JS Heap Used', scanData.jsHeapUsed]);
+  if(scanData.jsHeapLimit) items.push(['JS Heap Limit', scanData.jsHeapLimit]);
+  document.getElementById('scan-grid').innerHTML = items.map(function(i){ return mkScanItem(i[0], i[1]); }).join('');
+}
+
+function buildSystemSummary(){
+  var lines = [];
+  lines.push('=== PROMPTMESH SYSAI SCAN ===');
+  lines.push('Scan time: ' + scanData.scanTime);
+  lines.push('OS: ' + (scanData.os || 'Unknown'));
+  lines.push('Browser: ' + (scanData.browser || 'Unknown'));
+  lines.push('CPU Cores: ' + (scanData.cores || 'Unknown'));
+  lines.push('RAM: ' + (scanData.memory || 'Unknown'));
+  lines.push('Screen: ' + (scanData.screenW || '?') + 'x' + (scanData.screenH || '?'));
+  lines.push('Timezone: ' + (scanData.timezone || 'Unknown'));
+  if(scanData.gpuRenderer) lines.push('GPU: ' + scanData.gpuRenderer);
+  if(scanData.gpuVendor) lines.push('GPU Vendor: ' + scanData.gpuVendor);
+  if(scanData.netType) lines.push('Network: ' + scanData.netType + (scanData.netDownlink ? ' @ ' + scanData.netDownlink : ''));
+  if(scanData.batteryLevel) lines.push('Battery: ' + scanData.batteryLevel + ' - ' + scanData.batteryCharging);
+  if(scanData.jsHeapUsed) lines.push('JS Heap: ' + scanData.jsHeapUsed + ' / ' + scanData.jsHeapLimit);
+  return lines.join('\n');
+}
+
+function exportScanJSON(){
+  if(!scanData.os){ toast('Run a scan first', 'bad'); return; }
+  var blob = new Blob([JSON.stringify(scanData, null, 2)], {type:'application/json'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'sysai-scan-' + Date.now() + '.json';
+  a.click();
+}
+
+function copySystemReport(){
+  if(!scanData.os){ toast('Run a scan first', 'bad'); return; }
+  navigator.clipboard.writeText(buildSystemSummary()).then(function(){
+    toast('Report copied!', 'ok');
+  });
+}
+
+// ══════════ AI CALLS ══════════
+async function callAI(systemPrompt, userMsg, maxTokens){
+  var key = getKey();
+  if(!key){ toast('Enter your Anthropic API key first', 'bad'); return null; }
+  try{
+    var resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-request-when-unauthenticated': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: maxTokens || 1024,
+        system: systemPrompt,
+        messages: [{role:'user', content: userMsg}]
+      })
+    });
+    if(resp.status === 401){ toast('Invalid API key', 'bad'); return null; }
+    if(resp.status === 429){ toast('Rate limited — wait a moment', 'bad'); return null; }
+    if(!resp.ok){ var d = await resp.json().catch(()=>({})); toast('API error: ' + (d?.error?.message || resp.status), 'bad'); return null; }
+    var data = await resp.json();
+    return data.content?.[0]?.text || '';
+  }catch(e){ toast('Network error: ' + e.message, 'bad'); return null; }
+}
+
+var SYSAI_SYSTEM = 'You are SysAI, an expert Windows PC technician and system optimizer embedded in PromptMesh. You help users diagnose and fix PC issues. When suggesting commands, always use PowerShell syntax and wrap them in code blocks. Be concise but thorough. Format responses with markdown: use **bold** for important points, `code` for file paths and values, and ```powershell code blocks for commands. Always mention if a command requires Administrator privileges.';
+
+// ══════════ ANALYZE SYSTEM AI ══════════
+async function analyzeSystemAI(){
+  if(!scanData.os){ toast('Run Quick Scan first', 'bad'); return; }
+  var btn = document.getElementById('analyze-ai-btn');
+  btn.disabled = true; btn.textContent = '⏳ Analyzing…';
+  var result = document.getElementById('ai-analysis-result');
+  result.style.display = 'block';
+  result.innerHTML = '<div class="typing-dots"><span></span><span></span><span></span></div>';
+
+  var summary = buildSystemSummary();
+  var response = await callAI(SYSAI_SYSTEM,
+    'Analyze this system scan and provide:\n1. A brief system health assessment\n2. Top 3 optimization recommendations specific to this hardware\n3. Any potential issues you notice\n\nSystem data:\n' + summary,
+    800);
+
+  btn.disabled = false; btn.textContent = '🤖 Analyze with AI';
+  if(!response){ result.innerHTML = '<p style="color:var(--red);font-size:.74rem">Analysis failed. Check your API key.</p>'; return; }
+  result.innerHTML = '<div style="font-size:.76rem;line-height:1.7;color:var(--ink2)">' + formatAIText(response) + '</div>';
+}
+
+// ══════════ CHAT ══════════
+function addChatMsg(role, text){
+  var el = document.getElementById('chat-messages');
+  var div = document.createElement('div');
+  div.className = 'msg ' + role;
+  if(role === 'ai'){
+    div.innerHTML = formatAIText(text) + '<div class="msg-time">' + fmtTime(new Date()) + '</div>';
+  } else {
+    div.textContent = text;
+  }
+  el.appendChild(div);
+  el.scrollTop = el.scrollHeight;
+  return div;
+}
+
+function addTypingIndicator(){
+  var el = document.getElementById('chat-messages');
+  var div = document.createElement('div');
+  div.className = 'msg ai';
+  div.id = 'typing-indicator';
+  div.innerHTML = '<div class="typing-dots"><span></span><span></span><span></span></div>';
+  el.appendChild(div);
+  el.scrollTop = el.scrollHeight;
+}
+
+function removeTypingIndicator(){
+  var t = document.getElementById('typing-indicator');
+  if(t) t.remove();
+}
+
+async function sendChat(){
+  var input = document.getElementById('chat-input');
+  var msg = input.value.trim();
+  if(!msg) return;
+  input.value = '';
+  input.style.height = 'auto';
+  showPanel('chat');
+  addChatMsg('user', msg);
+  chatHistory.push({role:'user', content: msg});
+  addTypingIndicator();
+
+  var key = getKey();
+  if(!key){
+    removeTypingIndicator();
+    addChatMsg('ai', '**No API key set.** Enter your Anthropic API key in the top bar to use the AI assistant.');
+    return;
+  }
+
+  try{
+    var context = '';
+    if(scanData.os) context = '\n\nUser system info:\n' + buildSystemSummary();
+    var messages = chatHistory.slice(-12).map(function(m){ return {role: m.role, content: m.content}; });
+
+    var resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-request-when-unauthenticated': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 1200,
+        system: SYSAI_SYSTEM + context,
+        messages: messages
+      })
+    });
+
+    removeTypingIndicator();
+    if(!resp.ok){ var d = await resp.json().catch(()=>({})); addChatMsg('ai', '**Error:** ' + (d?.error?.message || 'API error ' + resp.status)); return; }
+    var data = await resp.json();
+    var aiText = data.content?.[0]?.text || '';
+    chatHistory.push({role:'assistant', content: aiText});
+    addChatMsg('ai', aiText);
+  }catch(e){
+    removeTypingIndicator();
+    addChatMsg('ai', '**Network error:** ' + e.message);
+  }
+}
+
+function sendQuickPrompt(prompt){
+  document.getElementById('chat-input').value = prompt;
+  showPanel('chat');
+  sendChat();
+}
+
+function sendQuickPromptAndShow(prompt){
+  document.getElementById('chat-input').value = prompt;
+  showPanel('chat');
+  sendChat();
+}
+
+async function pasteAndAnalyze(){
+  var text = await navigator.clipboard.readText().catch(function(){ return ''; });
+  if(text && text.length > 20){
+    document.getElementById('chat-input').value = 'Analyze this system info and tell me what issues you see and how to fix them:\n\n' + text;
+    showPanel('chat');
+    sendChat();
+  } else {
+    var input = document.getElementById('chat-input');
+    input.value = 'Paste your system info here (HWinfo, Task Manager, Event Log, etc.) and I\'ll analyze it:\n\n';
+    input.focus();
+    showPanel('chat');
+    toast('Paste your system info in the input', 'info');
+  }
+}
+
+// ══════════ DIAGNOSTICS ══════════
+async function runDiagnostics(){
+  showPanel('diag');
+  document.getElementById('diag-idle').style.display = 'none';
+  var itemsDiv = document.getElementById('diag-items');
+  itemsDiv.style.display = 'block';
+
+  // Run browser-accessible checks
+  var checks = [];
+
+  checks.push({
+    name: 'Online connectivity',
+    status: navigator.onLine ? 'ok' : 'bad',
+    detail: navigator.onLine ? 'Internet connection active' : 'No internet connection detected',
+    action: navigator.onLine ? null : 'Troubleshoot'
+  });
+
+  checks.push({
+    name: 'CPU cores',
+    status: (navigator.hardwareConcurrency >= 4) ? 'ok' : 'warn',
+    detail: (navigator.hardwareConcurrency || '?') + ' logical processors detected',
+    action: null
+  });
+
+  checks.push({
+    name: 'Device memory',
+    status: !navigator.deviceMemory ? 'idle' : navigator.deviceMemory >= 8 ? 'ok' : navigator.deviceMemory >= 4 ? 'warn' : 'bad',
+    detail: navigator.deviceMemory ? navigator.deviceMemory + ' GB RAM reported by browser' : 'Not exposed by browser (requires Chrome)',
+    action: navigator.deviceMemory && navigator.deviceMemory < 8 ? 'Upgrade advice' : null
+  });
+
+  var conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+  if(conn){
+    var rtt = conn.rtt || 0;
+    checks.push({
+      name: 'Network latency',
+      status: rtt === 0 ? 'idle' : rtt < 100 ? 'ok' : rtt < 300 ? 'warn' : 'bad',
+      detail: rtt > 0 ? 'Estimated RTT: ' + rtt + 'ms (effective type: ' + conn.effectiveType + ')' : 'RTT not available',
+      action: rtt > 300 ? 'Fix latency' : null
+    });
+  }
+
+  if(navigator.deviceMemory && performance && performance.memory){
+    var heapPct = Math.round(performance.memory.usedJSHeapSize / performance.memory.jsHeapSizeLimit * 100);
+    checks.push({
+      name: 'Browser memory usage',
+      status: heapPct < 60 ? 'ok' : heapPct < 85 ? 'warn' : 'bad',
+      detail: 'JS heap: ' + Math.round(performance.memory.usedJSHeapSize/1024/1024) + 'MB / ' + Math.round(performance.memory.jsHeapSizeLimit/1024/1024) + 'MB (' + heapPct + '%)',
+      action: null
+    });
+  }
+
+  // OS check
+  checks.push({
+    name: 'OS detected',
+    status: 'idle',
+    detail: scanData.os || 'Run Quick Scan for OS details',
+    action: null
+  });
+
+  // GPU check
+  checks.push({
+    name: 'GPU / WebGL',
+    status: scanData.gpuRenderer ? (scanData.gpuRenderer.toLowerCase().includes('swiftshader') || scanData.gpuRenderer.toLowerCase().includes('software') ? 'warn' : 'ok') : 'idle',
+    detail: scanData.gpuRenderer || 'Run Quick Scan to detect GPU',
+    action: null
+  });
+
+  issueCount = checks.filter(function(c){ return c.status === 'bad'; }).length +
+               checks.filter(function(c){ return c.status === 'warn'; }).length;
+  document.getElementById('sb-issues').textContent = issueCount || '0';
+  document.getElementById('sb-issues').className = 'sb-stat-val ' + (issueCount > 2 ? 'red' : issueCount > 0 ? 'amber' : 'green');
+
+  itemsDiv.innerHTML = checks.map(function(c){
+    var action = c.action ? '<div class="diag-action" onclick="sendQuickPromptAndShow(\'' + c.name.replace(/'/g,'') + ': ' + c.detail.replace(/'/g,'') + '\\nPlease give me PowerShell commands to fix this.\')">Fix with AI →</div>' : '';
+    return '<div class="diag-item">' +
+      '<div class="diag-dot ' + c.status + '"></div>' +
+      '<div class="diag-info"><div class="diag-name">' + escHtml(c.name) + '</div><div class="diag-detail">' + escHtml(c.detail) + '</div></div>' +
+      action + '</div>';
+  }).join('');
+
+  toast(issueCount + ' issue' + (issueCount !== 1 ? 's' : '') + ' found', issueCount > 0 ? 'bad' : 'ok');
+}
+
+async function diagAIReport(){
+  if(!scanData.os) runQuickScan();
+  showPanel('chat');
+  var summary = buildSystemSummary();
+  document.getElementById('chat-input').value = 'Run a full system diagnostics report on my PC. Check for:\n- Performance issues\n- Common Windows problems\n- Security concerns\n- Hardware bottlenecks\n\n' + summary;
+  sendChat();
+}
+
+// ══════════ SPECIALIZED ANALYSIS ══════════
+async function runAnalysis(inputId, resultId, promptBuilder, btnText, spinText){
+  var input = document.getElementById(inputId).value.trim();
+  var resultDiv = document.getElementById(resultId);
+  resultDiv.style.display = 'block';
+  resultDiv.innerHTML = '<div class="info-card"><div class="typing-dots"><span></span><span></span><span></span></div></div>';
+
+  var prompt = promptBuilder(input);
+  var response = await callAI(SYSAI_SYSTEM, prompt, 1200);
+
+  if(!response){
+    resultDiv.innerHTML = '<div class="info-card" style="border-color:var(--red)"><p style="color:var(--red);font-size:.74rem">Analysis failed. Check your API key.</p></div>';
+    return;
+  }
+  resultDiv.innerHTML = '<div class="info-card"><div style="font-size:.76rem;line-height:1.8;color:var(--ink2)">' + formatAIText(response) + '</div></div>';
+}
+
+function analyzeTemps(){
+  runAnalysis('temp-input', 'temp-result', function(inp){
+    return 'Analyze these PC temperature readings and provide:\n1. Assessment of each reading (safe/warning/critical)\n2. Likely causes if temps are high\n3. Specific fix steps with commands where applicable\n4. Safe temperature ranges for reference\n\nTemperature data:\n' + (inp || 'No data provided — give general temperature guidelines for CPUs and GPUs');
+  });
+}
+
+function analyzeDrivers(){
+  runAnalysis('driver-input', 'driver-result', function(inp){
+    return 'Help diagnose and fix this driver issue:\n' + (inp || 'Give me a comprehensive guide to finding and updating all Windows drivers') + '\n\nProvide: specific download links where relevant, PowerShell commands for driver updates, and step-by-step fix instructions.';
+  });
+}
+
+function analyzePerfAI(){
+  var context = buildSystemSummary();
+  var extra = document.getElementById('perf-input').value.trim();
+  runAnalysis('perf-input', 'perf-result', function(inp){
+    return 'Create a personalized Windows performance optimization plan for this system:\n\nSystem: ' + context + '\n\nUse case / issue: ' + (inp || 'General performance optimization') + '\n\nProvide: specific registry tweaks, PowerShell commands, and Windows settings changes prioritized by impact.';
+  });
+}
+
+function analyzeDiskAI(){
+  runAnalysis('disk-input', 'disk-result', function(inp){
+    return 'Help clean up and optimize disk space for this situation:\n' + (inp || 'Give me comprehensive Windows disk cleanup commands') + '\n\nProvide PowerShell commands for safe cleanup. Include commands for: temp files, Windows Update cache, browser cache, WinSxS, and finding large files.';
+  });
+}
+
+function analyzeNetworkAI(){
+  runAnalysis('net-input', 'net-result', function(inp){
+    return 'Diagnose and fix this Windows network issue:\n' + (inp || 'Optimize my Windows network settings for best performance') + '\n\nProvide PowerShell commands for diagnosis and fixing. Include TCP optimization, DNS configuration, and specific troubleshooting steps.';
+  });
+}
+
+function analyzeSecurityAI(){
+  runAnalysis('sec-input', 'sec-result', function(inp){
+    return 'Perform a Windows security assessment for:\n' + (inp || 'Check general Windows security settings') + '\n\nCheck: Windows Defender status, firewall, updates, and provide PowerShell commands to verify and fix any security issues.';
+  });
+}
+
+async function getDriverGuide(){ sendQuickPromptAndShow('Give me a complete guide to updating all Windows 11 drivers: GPU (NVIDIA/AMD/Intel), chipset, audio, network. Include PowerShell commands and safe practices.'); showPanel('chat'); }
+async function getPerfGuide(){ sendQuickPromptAndShow('Give me the top 20 Windows 11 performance optimizations with PowerShell commands for each one, ordered by impact. Include registry tweaks, power settings, and system services.'); showPanel('chat'); }
+async function getNetworkGuide(){ sendQuickPromptAndShow('Diagnose and optimize my Windows network. Provide PowerShell commands to: check DNS, test connectivity, reset network stack, optimize TCP settings, and measure performance.'); showPanel('chat'); }
+async function getSecurityGuide(){ sendQuickPromptAndShow('Run a comprehensive Windows 11 security audit. Check: Windows Defender, firewall rules, open ports, Windows Updates, BitLocker, UAC settings. Provide PowerShell commands for each check.'); showPanel('chat'); }
+
+// ══════════ ISSUE FIXER ══════════
+async function runIssueFixer(){
+  var problem = document.getElementById('fixer-input').value.trim();
+  var specs = document.getElementById('fixer-specs').value.trim();
+  if(!problem){ toast('Describe your problem first', 'bad'); return; }
+
+  var resultDiv = document.getElementById('fixer-result');
+  resultDiv.style.display = 'block';
+  resultDiv.innerHTML = '<div class="info-card"><div class="typing-dots"><span></span><span></span><span></span></div></div>';
+
+  var context = specs ? '\nPC Specs: ' + specs : '';
+  if(scanData.os) context += '\nSystem scan: ' + buildSystemSummary();
+
+  var response = await callAI(SYSAI_SYSTEM,
+    'A user has this PC problem:\n\n' + problem + context + '\n\nProvide:\n1. **Root cause analysis** — what is likely causing this\n2. **Step-by-step fix** — numbered steps in order\n3. **PowerShell commands** — for any automated fixes (in code blocks)\n4. **Prevention** — how to prevent recurrence\n\nBe thorough but practical.',
+    1400);
+
+  if(!response){
+    resultDiv.innerHTML = '<div class="info-card" style="border-color:var(--red)"><p style="color:var(--red);font-size:.74rem">Failed. Check your API key.</p></div>';
+    return;
+  }
+  resultDiv.innerHTML = '<div class="info-card"><h3 style="margin-bottom:10px"><span class="ic-icon">🔩</span> Fix Plan</h3><div style="font-size:.76rem;line-height:1.8;color:var(--ink2)">' + formatAIText(response) + '</div></div>';
+}
+
+function fillFixer(text){
+  document.getElementById('fixer-input').value = text;
+  showPanel('fixer');
+}
+
+// ══════════ COMMAND LIBRARY ══════════
+var COMMANDS = [
+  {
+    cat: '🌡️ Temperature & Performance',
+    items: [
+      { name: 'Check CPU temp via PowerShell', risk: 'safe', desc: 'Read CPU temperature using WMI (may not work on all systems).', code: 'Get-WmiObject MSAcpi_ThermalZoneTemperature -Namespace "root/wmi" | Select-Object -ExpandProperty CurrentTemperature | ForEach-Object { [math]::Round($_ / 10 - 273.15, 1) }' },
+      { name: 'Enable Ultimate Performance plan', risk: 'safe', desc: 'Unlock hidden Ultimate Performance power plan (run as Admin).', code: 'powercfg -duplicatescheme e9a42b02-d5df-448d-aa00-03f14749eb61\npowercfg /setactive SCHEME_CURRENT' },
+      { name: 'Disable CPU throttling (High Perf)', risk: 'moderate', desc: 'Set minimum processor state to 100% — increases performance but heat.', code: 'powercfg /setacvalueindex SCHEME_CURRENT SUB_PROCESSOR PROCTHROTTLEMIN 100\npowercfg /setactive SCHEME_CURRENT' },
+      { name: 'Check running processes by CPU', risk: 'safe', desc: 'List top 20 processes by CPU usage.', code: 'Get-Process | Sort-Object CPU -Descending | Select-Object -First 20 Name, CPU, WorkingSet | Format-Table -AutoSize' },
+    ]
+  },
+  {
+    cat: '🔧 Driver & System',
+    items: [
+      { name: 'List all installed drivers', risk: 'safe', desc: 'Export list of all installed device drivers to a text file.', code: 'Get-WmiObject Win32_PnPSignedDriver | Select-Object DeviceName, DriverVersion, DriverDate | Export-Csv "$env:USERPROFILE\\Desktop\\drivers.csv" -NoTypeInformation\nWrite-Host "Saved to Desktop\\drivers.csv"' },
+      { name: 'Find unsigned / problem drivers', risk: 'safe', desc: 'Check for drivers without valid signatures.', code: 'Get-WmiObject Win32_PnPSignedDriver | Where-Object { $_.IsSigned -eq $false } | Select-Object DeviceName, DriverVersion | Format-Table -AutoSize' },
+      { name: 'Repair system files (SFC)', risk: 'safe', desc: 'Scan and repair corrupted Windows system files. Run as Admin.', code: 'sfc /scannow' },
+      { name: 'DISM health repair', risk: 'safe', desc: 'Repair Windows image if SFC fails. Run as Admin.', code: 'DISM /Online /Cleanup-Image /RestoreHealth' },
+      { name: 'Check Event Log errors', risk: 'safe', desc: 'Show last 20 system errors from Windows Event Log.', code: 'Get-EventLog -LogName System -EntryType Error -Newest 20 | Select-Object TimeGenerated, Source, Message | Format-List' },
+    ]
+  },
+  {
+    cat: '🧹 Cleanup & Storage',
+    items: [
+      { name: 'Clear all temp files', risk: 'safe', desc: 'Delete user and system temp files. Skips locked files.', code: 'Remove-Item "$env:TEMP\\*" -Recurse -Force -ErrorAction SilentlyContinue\nRemove-Item "C:\\Windows\\Temp\\*" -Recurse -Force -ErrorAction SilentlyContinue\nWrite-Host "Temp files cleared"' },
+      { name: 'Clear prefetch', risk: 'safe', desc: 'Clear Windows prefetch folder (safe, Windows rebuilds it).', code: 'Remove-Item "C:\\Windows\\Prefetch\\*" -Force -ErrorAction SilentlyContinue\nWrite-Host "Prefetch cleared"' },
+      { name: 'Find largest files on C:', risk: 'safe', desc: 'List top 20 largest files on C: drive.', code: 'Get-ChildItem C:\\ -Recurse -ErrorAction SilentlyContinue | Sort-Object Length -Descending | Select-Object -First 20 FullName, @{N="Size(MB)";E={[math]::Round($_.Length/1MB,1)}} | Format-Table -AutoSize' },
+      { name: 'Check disk health (SMART)', risk: 'safe', desc: 'Check physical disk health status via WMI.', code: 'Get-WmiObject -Namespace "Root\\WMI" -Class "MSStorageDriver_FailurePredictStatus" | Select-Object InstanceName, PredictFailure, Reason | Format-Table -AutoSize' },
+      { name: 'Run CHKDSK on C:', risk: 'moderate', desc: 'Schedule disk check on next reboot (cannot run on active drive live).', code: 'chkdsk C: /f /r /x' },
+    ]
+  },
+  {
+    cat: '🌐 Network',
+    items: [
+      { name: 'Flush DNS cache', risk: 'safe', desc: 'Clear DNS resolver cache to fix stale DNS entries.', code: 'ipconfig /flushdns\nWrite-Host "DNS cache flushed"' },
+      { name: 'Reset network stack', risk: 'moderate', desc: 'Full TCP/IP and Winsock reset. Requires reboot. Run as Admin.', code: 'netsh winsock reset\nnetsh int ip reset\nnetsh int tcp reset\nipconfig /release\nipconfig /renew\nipconfig /flushdns\nWrite-Host "Network stack reset — please reboot"' },
+      { name: 'Test connection & latency', risk: 'safe', desc: 'Ping major DNS servers to check latency.', code: 'Write-Host "Pinging 1.1.1.1 (Cloudflare):"\nping -n 10 1.1.1.1\nWrite-Host "`nPinging 8.8.8.8 (Google):"\nping -n 10 8.8.8.8' },
+      { name: 'Set DNS to Cloudflare', risk: 'moderate', desc: 'Change DNS to 1.1.1.1 and 1.0.0.1 on all adapters. Run as Admin.', code: 'Get-NetAdapter | Where-Object {$_.Status -eq "Up"} | ForEach-Object { Set-DnsClientServerAddress -InterfaceAlias $_.Name -ServerAddresses ("1.1.1.1","1.0.0.1") }\nWrite-Host "DNS set to Cloudflare 1.1.1.1"' },
+      { name: 'Show active connections', risk: 'safe', desc: 'List all active TCP connections with process names.', code: 'Get-NetTCPConnection -State Established | Select-Object LocalAddress, LocalPort, RemoteAddress, RemotePort, @{N="Process";E={(Get-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue).Name}} | Format-Table -AutoSize' },
+    ]
+  },
+  {
+    cat: '🛡️ Security',
+    items: [
+      { name: 'Check Windows Defender status', risk: 'safe', desc: 'Verify Windows Defender antivirus is running and up to date.', code: 'Get-MpComputerStatus | Select-Object AMServiceEnabled, AntispywareEnabled, AntivirusEnabled, RealTimeProtectionEnabled, AntivirusSignatureLastUpdated | Format-List' },
+      { name: 'Quick malware scan', risk: 'safe', desc: 'Run a Windows Defender quick scan. Run as Admin.', code: 'Start-MpScan -ScanType QuickScan\nWrite-Host "Quick scan started in background"' },
+      { name: 'Check Windows Update status', risk: 'safe', desc: 'List pending Windows Updates using PowerShell.', code: '(New-Object -ComObject Microsoft.Update.Session).CreateUpdateSearcher().Search("IsInstalled=0").Updates | Select-Object Title, @{N="Size(MB)";E={[math]::Round($_.MaxDownloadSize/1MB,1)}} | Format-Table -AutoSize' },
+      { name: 'List open firewall ports', risk: 'safe', desc: 'Show all firewall rules allowing inbound connections.', code: 'Get-NetFirewallRule -Direction Inbound -Action Allow -Enabled True | Select-Object DisplayName, Profile, @{N="Port";E={(Get-NetFirewallPortFilter -AssociatedNetFirewallRule $_).LocalPort}} | Format-Table -AutoSize' },
+    ]
+  },
+  {
+    cat: '🚀 Startup & Boot',
+    items: [
+      { name: 'List startup programs', risk: 'safe', desc: 'Show all programs that run at Windows startup.', code: 'Get-CimInstance Win32_StartupCommand | Select-Object Name, Command, Location | Format-Table -AutoSize' },
+      { name: 'Measure boot time', risk: 'safe', desc: 'Check last Windows boot duration and events.', code: 'Get-EventLog -LogName System -Source "Microsoft-Windows-Diagnostics-Performance" | Where-Object {$_.InstanceId -eq 100} | Select-Object -First 5 TimeGenerated, Message | Format-List' },
+      { name: 'Disable startup program (example)', risk: 'moderate', desc: 'Disable a startup entry from registry (replace "AppName" with actual name).', code: 'Remove-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Run" -Name "AppName" -ErrorAction SilentlyContinue\nWrite-Host "Startup entry removed (if it existed)"' },
+      { name: 'Fast startup toggle check', risk: 'safe', desc: 'Check if Windows Fast Startup is enabled.', code: 'Get-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Power" -Name HiberbootEnabled | Select-Object HiberbootEnabled' },
+    ]
+  },
+];
+
+function renderCommands(){
+  var body = document.getElementById('commands-body');
+  if(!body) return;
+  body.innerHTML = COMMANDS.map(function(cat){
+    return '<div class="cmd-category"><div class="cmd-cat-title">' + escHtml(cat.cat) + '</div>' +
+      cat.items.map(function(cmd, i){
+        var id = 'cmd-' + cat.cat.replace(/\W/g,'') + i;
+        return '<div class="cmd-item">' +
+          '<div class="cmd-head" onclick="toggleCmd(\'' + id + '\')">' +
+          '<span class="cmd-icon">📋</span>' +
+          '<span class="cmd-name">' + escHtml(cmd.name) + '</span>' +
+          '<span class="cmd-risk ' + cmd.risk + '">' + cmd.risk + '</span>' +
+          '</div>' +
+          '<div class="cmd-body" id="' + id + '">' +
+          '<div class="cmd-desc">' + escHtml(cmd.desc) + '</div>' +
+          '<div class="cmd-code" style="position:relative"><button class="copy-btn" onclick="copyText(this)" data-text="' + escHtml(cmd.code) + '">Copy</button>' + escHtml(cmd.code) + '</div>' +
+          '<div style="margin-top:8px"><button class="btn btn-ghost btn-xs" onclick="sendQuickPromptAndShow(\'Explain what this command does and any risks: ```powershell\\n' + cmd.code.replace(/\n/g,'\\n').replace(/'/g,"\\'") + '```\')">Explain</button></div>' +
+          '</div></div>';
+      }).join('') + '</div>';
+  }).join('');
+}
+
+function toggleCmd(id){
+  var body = document.getElementById(id);
+  if(body) body.classList.toggle('open');
+}
+</script>
+</body>
+</html>
