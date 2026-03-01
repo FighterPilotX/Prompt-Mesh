@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://api.anthropic.com;">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://api.anthropic.com http://localhost:7842;">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PromptMesh SysAI — PC System Optimizer</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -324,6 +324,16 @@ body.light .cmd-code{background:#f0f4ff;color:var(--blue2);}
       <div id="network-info-card" class="info-card" style="display:none">
         <h3><span class="ic-icon">📡</span> Network Connection</h3>
         <div id="network-info-body"></div>
+      </div>
+      <div id="agent-card" class="info-card" style="display:none">
+        <h3><span class="ic-icon">🔌</span> Local Agent <span id="agent-status-badge" style="font-size:.68rem;padding:2px 7px;border-radius:10px;margin-left:6px;background:rgba(34,197,94,.12);color:#16a34a">Connected</span></h3>
+        <div id="agent-body"></div>
+      </div>
+      <div id="agent-offline-card" class="info-card" style="display:none;border-color:rgba(239,68,68,.2)">
+        <h3><span class="ic-icon">🔌</span> Local Agent <span style="font-size:.68rem;padding:2px 7px;border-radius:10px;margin-left:6px;background:rgba(239,68,68,.1);color:#dc2626">Offline</span></h3>
+        <p style="font-size:.74rem;color:var(--ink3);margin:4px 0 8px">For real CPU/GPU temps and driver info, run the local agent:</p>
+        <code style="font-size:.72rem;background:var(--surface2);padding:6px 10px;border-radius:6px;display:block;margin-bottom:6px">pip install psutil wmi requests flask flask-cors</code>
+        <code style="font-size:.72rem;background:var(--surface2);padding:6px 10px;border-radius:6px;display:block">python agent/promptmesh_agent.py</code>
       </div>
       <div class="info-card">
         <h3><span class="ic-icon">💡</span> AI Analysis</h3>
@@ -953,10 +963,85 @@ function runQuickScan(){
   localStorage.setItem('sysai_scans', scanCount);
   document.getElementById('sb-scans').textContent = scanCount;
 
+  // Try local agent for real hardware data
+  tryLocalAgent();
+
   setTimeout(function(){
     statusBar.style.display = 'none';
     toast('Scan complete', 'ok');
   }, 1200);
+}
+
+function tryLocalAgent(){
+  fetch('http://localhost:7842/snapshot', {signal: AbortSignal.timeout(3000)})
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      // Enrich scanData with real values
+      if(d.cpu){
+        if(d.cpu.logical_cores) scanData.cores = d.cpu.logical_cores + ' logical / ' + (d.cpu.physical_cores||'?') + ' physical';
+        if(d.cpu.usage_percent != null) scanData.cpuUsage = d.cpu.usage_percent + '%';
+        if(d.cpu.freq_current_mhz) scanData.cpuFreq = d.cpu.freq_current_mhz + ' MHz';
+        if(d.cpu.temperatures && Object.keys(d.cpu.temperatures).length){
+          var temps = d.cpu.temperatures;
+          var key = Object.keys(temps)[0];
+          var t0 = temps[key][0];
+          if(t0 && t0.current) scanData.cpuTemp = t0.current + ' °C';
+        }
+      }
+      if(d.memory){
+        scanData.memory = d.memory.used_gb + ' / ' + d.memory.total_gb + ' GB (' + d.memory.percent + '%)';
+        if(d.memory.swap_total_gb > 0) scanData.swap = d.memory.swap_used_gb + ' / ' + d.memory.swap_total_gb + ' GB';
+      }
+      if(d.system){
+        scanData.os = d.system.os + ' ' + (d.system.os_version||'');
+        scanData.hostname = d.system.hostname;
+        scanData.uptime = d.system.uptime_hours + ' hours';
+        scanData.processor = d.system.processor;
+      }
+      if(d.disk && d.disk.partitions && d.disk.partitions.length){
+        var main = d.disk.partitions[0];
+        scanData.disk = main.used_gb + ' / ' + main.total_gb + ' GB (' + main.percent + '%) on ' + main.mountpoint;
+      }
+      if(d.gpu && d.gpu.gpus && d.gpu.gpus.length){
+        var g = d.gpu.gpus[0];
+        if(g.Name) scanData.gpuRenderer = g.Name;
+        if(g.DriverVersion) scanData.gpuDriver = g.DriverVersion;
+        if(g.AdapterRAM_GB) scanData.gpuVram = g.AdapterRAM_GB + ' GB';
+      }
+      if(d.battery && d.battery.present){
+        scanData.batteryLevel = Math.round(d.battery.percent) + '%';
+        scanData.batteryCharging = d.battery.power_plugged ? 'Charging' : 'On battery';
+      }
+      scanData._agentConnected = true;
+
+      // Refresh scan grid with enriched data
+      renderScanGrid();
+      renderAgentCard(d);
+    })
+    .catch(function(){
+      document.getElementById('agent-offline-card').style.display = 'block';
+    });
+}
+
+function renderAgentCard(d){
+  var el = document.getElementById('agent-card');
+  el.style.display = 'block';
+  var rows = [];
+  if(d.cpu){
+    rows.push(['CPU Usage', (d.cpu.usage_percent||'?') + '%']);
+    if(d.cpu.freq_current_mhz) rows.push(['CPU Freq', d.cpu.freq_current_mhz + ' MHz']);
+    if(scanData.cpuTemp) rows.push(['CPU Temp', scanData.cpuTemp]);
+  }
+  if(d.memory) rows.push(['RAM Used', d.memory.used_gb + ' / ' + d.memory.total_gb + ' GB']);
+  if(d.disk && d.disk.partitions && d.disk.partitions[0]){
+    var p = d.disk.partitions[0];
+    rows.push(['Disk (C:)', p.free_gb + ' GB free of ' + p.total_gb + ' GB']);
+  }
+  if(d.system) rows.push(['Uptime', d.system.uptime_hours + ' hours']);
+  document.getElementById('agent-body').innerHTML =
+    '<div class="scan-grid" style="margin:8px 0">' +
+    rows.map(function(r){ return mkScanItem(r[0], r[1]); }).join('') +
+    '</div>';
 }
 
 function mkScanItem(label, value, sub){
@@ -971,13 +1056,19 @@ function renderScanGrid(){
     ['Browser', scanData.browser],
     ['Platform', scanData.platform],
     ['CPU Cores', scanData.cores],
-    ['RAM (approx)', scanData.memory],
+    [scanData._agentConnected ? 'RAM (real)' : 'RAM (approx)', scanData.memory],
     ['Screen', scanData.screenW + '×' + scanData.screenH],
     ['Color Depth', scanData.colorDepth],
     ['Pixel Ratio', scanData.pixelRatio + 'x'],
     ['Timezone', scanData.timezone],
     ['Network', scanData.onlineStatus],
   ];
+  if(scanData.cpuUsage)   items.push(['CPU Usage', scanData.cpuUsage]);
+  if(scanData.cpuFreq)    items.push(['CPU Freq', scanData.cpuFreq]);
+  if(scanData.cpuTemp)    items.push(['CPU Temp', scanData.cpuTemp]);
+  if(scanData.disk)       items.push(['Disk', scanData.disk]);
+  if(scanData.uptime)     items.push(['Uptime', scanData.uptime]);
+  if(scanData.hostname)   items.push(['Hostname', scanData.hostname]);
   if(scanData.jsHeapUsed) items.push(['JS Heap Used', scanData.jsHeapUsed]);
   if(scanData.jsHeapLimit) items.push(['JS Heap Limit', scanData.jsHeapLimit]);
   document.getElementById('scan-grid').innerHTML = items.map(function(i){ return mkScanItem(i[0], i[1]); }).join('');
