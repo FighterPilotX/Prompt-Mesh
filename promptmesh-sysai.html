@@ -1206,8 +1206,12 @@ async function sendChat(){
   }
 
   try{
-    var context = '';
-    if(scanData.os) context = '\n\nUser system info:\n' + buildSystemSummary();
+    // Inject system context into the first user message only (not every system prompt)
+    // This saves ~100 input tokens per turn after the first one
+    var userMsgCount = chatHistory.filter(function(m){ return m.role === 'user'; }).length;
+    if(scanData.os && userMsgCount === 1){
+      chatHistory[chatHistory.length - 1].content = msg + '\n\n--- System Info ---\n' + buildSystemSummary();
+    }
     var messages = chatHistory.slice(-12).map(function(m){ return {role: m.role, content: m.content}; });
 
     var resp = await fetch('https://api.anthropic.com/v1/messages', {
@@ -1221,7 +1225,7 @@ async function sendChat(){
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 1200,
-        system: SYSAI_SYSTEM + context,
+        system: SYSAI_SYSTEM,
         messages: messages
       })
     });
