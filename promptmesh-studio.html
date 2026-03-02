@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://api.anthropic.com; frame-src 'none';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://api.anthropic.com https://api.openai.com https://generativelanguage.googleapis.com; frame-src 'none';">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PromptMesh Studio — AI Pipeline Builder</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -825,6 +825,36 @@ body.dark .dark-toggle::after { left:17px; background:#fff; }
       </div>
     </div>
 
+    <!-- OpenAI API Key (Final Polish stage) -->
+    <div class="settings-card">
+      <h3>OpenAI API Key <span style="font-size:.65rem;font-family:var(--mono);background:var(--sage-tint);color:var(--sage);padding:2px 7px;border-radius:3px;margin-left:6px">Final Polish · GPT-4o-mini</span></h3>
+      <p>Used for the Final Polish stage. Optional — falls back to Claude Haiku if not provided. Get a key at <span style="font-family:var(--mono);color:var(--ink2)">platform.openai.com</span>.</p>
+      <div class="field">
+        <label>OpenAI API Key</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <input class="input" id="openai-key-input" type="password" placeholder="sk-proj-…" style="flex:1;min-width:200px">
+          <button class="btn btn-secondary btn-sm" onclick="saveOpenAIKey()">Save Key</button>
+          <button class="btn btn-ghost btn-sm" onclick="clearOpenAIKey()">Clear</button>
+        </div>
+        <div style="font-size:.7rem;color:var(--ink4);margin-top:4px" id="openai-key-status"></div>
+      </div>
+    </div>
+
+    <!-- Gemini API Key (Art & Design stage) -->
+    <div class="settings-card">
+      <h3>Google Gemini API Key <span style="font-size:.65rem;font-family:var(--mono);background:rgba(124,92,191,0.1);color:#7c5cbf;padding:2px 7px;border-radius:3px;margin-left:6px">Art & Design · Gemini Flash</span></h3>
+      <p>Used for the Art & Design stage. Optional — falls back to Claude Haiku if not provided. Get a key at <span style="font-family:var(--mono);color:var(--ink2)">aistudio.google.com</span>.</p>
+      <div class="field">
+        <label>Gemini API Key</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <input class="input" id="gemini-key-input" type="password" placeholder="AIza…" style="flex:1;min-width:200px">
+          <button class="btn btn-secondary btn-sm" onclick="saveGeminiKey()">Save Key</button>
+          <button class="btn btn-ghost btn-sm" onclick="clearGeminiKey()">Clear</button>
+        </div>
+        <div style="font-size:.7rem;color:var(--ink4);margin-top:4px" id="gemini-key-status"></div>
+      </div>
+    </div>
+
     <!-- Credits -->
     <div class="settings-card">
       <h3>Credits</h3>
@@ -907,7 +937,7 @@ const STAGES_CONFIG = {
   planning: {
     id: 'planning', name: 'Planning Council', icon: '🧠',
     color: '#4a5568', bg: 'rgba(74,85,104,0.1)',
-    model: 'claude-haiku-4-5-20251001', tokenBudget: 450,
+    model: 'claude-haiku-4-5-20251001', provider: 'claude', tokenBudget: 450,
     costPer1k: 0.00025, feedType: 'fi-plan',
     badge: 'PLAN', badgeColor: '#4a5568',
     buildPrompt(userPrompt, prev, customSys) {
@@ -944,8 +974,8 @@ Under 280 words total.`;
   design: {
     id: 'design', name: 'Art & Design', icon: '🎨',
     color: '#7c5cbf', bg: 'rgba(124,92,191,0.1)',
-    model: 'claude-haiku-4-5-20251001', tokenBudget: 400,
-    costPer1k: 0.00025, feedType: 'fi-design',
+    model: 'gemini-2.0-flash', provider: 'gemini', tokenBudget: 400,
+    costPer1k: 0.00010, feedType: 'fi-design',
     badge: 'DESIGN', badgeColor: '#7c5cbf',
     buildPrompt(userPrompt, prev, customSys) {
       return `${customSys ? 'CONTEXT: ' + customSys + '\n\n' : ''}You are a senior UI/UX designer. Define the complete design system.
@@ -984,7 +1014,7 @@ Under 200 words.`;
   frontend: {
     id: 'frontend', name: 'Frontend', icon: '💻',
     color: '#2563ab', bg: 'rgba(37,99,171,0.1)',
-    model: 'claude-haiku-4-5-20251001', tokenBudget: 700,
+    model: 'claude-haiku-4-5-20251001', provider: 'claude', tokenBudget: 700,
     costPer1k: 0.00025, feedType: 'fi-frontend',
     badge: 'UI CODE', badgeColor: '#2563ab',
     buildPrompt(userPrompt, prev, customSys) {
@@ -1014,7 +1044,7 @@ Output just the code in a single \`\`\`html block.`;
   backend: {
     id: 'backend', name: 'Backend / Logic', icon: '⚙️',
     color: '#c47a2a', bg: 'rgba(196,122,42,0.1)',
-    model: 'claude-haiku-4-5-20251001', tokenBudget: 700,
+    model: 'claude-haiku-4-5-20251001', provider: 'claude', tokenBudget: 700,
     costPer1k: 0.00025, feedType: 'fi-backend',
     badge: 'LOGIC', badgeColor: '#c47a2a',
     buildPrompt(userPrompt, prev, customSys) {
@@ -1050,8 +1080,8 @@ Write working code. Not pseudocode. Assume vanilla JS in a browser.`;
   polish: {
     id: 'polish', name: 'Final Polish', icon: '✨',
     color: '#4a7c59', bg: 'rgba(74,124,89,0.1)',
-    model: 'claude-haiku-4-5-20251001', tokenBudget: 450,
-    costPer1k: 0.00025, feedType: 'fi-polish',
+    model: 'gpt-4o-mini', provider: 'openai', tokenBudget: 450,
+    costPer1k: 0.00015, feedType: 'fi-polish',
     badge: 'REVIEW', badgeColor: '#4a7c59',
     buildPrompt(userPrompt, prev, customSys) {
       return `${customSys ? 'CONTEXT: ' + customSys + '\n\n' : ''}You are a senior engineer doing a final review. Be direct and useful.
@@ -1218,15 +1248,21 @@ async function startRun() {
   const check = canRun();
   if (!check.ok) { showUpgradeModal(check.reason); return; }
 
-  const apiKey = sessionStorage.getItem('pm_key') || promptForKey();
-  if (!apiKey) return;
+  const anthropicKey = sessionStorage.getItem('pm_key') || promptForKey();
+  if (!anthropicKey) return;
+
+  const keys = {
+    anthropic: anthropicKey,
+    openai: sessionStorage.getItem('pm_openai_key') || null,
+    gemini: sessionStorage.getItem('pm_gemini_key') || null
+  };
 
   const mode = document.getElementById('mode-select').value;
   const stageIds = MODES[mode] || MODES.full;
 
   initRunView(prompt, mode, stageIds);
   consumeRun();
-  await executePipeline(apiKey, prompt, stageIds, mode);
+  await executePipeline(keys, prompt, stageIds, mode);
 }
 
 function promptForKey() {
@@ -1317,7 +1353,7 @@ function initRunView(prompt, mode, stageIds) {
 // ══════════════════════════════════════════
 //  PIPELINE EXECUTION
 // ══════════════════════════════════════════
-async function executePipeline(apiKey, prompt, stageIds, mode) {
+async function executePipeline(keys, prompt, stageIds, mode) {
   const customSys = sessionStorage.getItem('pm_custom_sys') || '';
 
   for (let i = 0; i < stageIds.length; i++) {
@@ -1332,13 +1368,13 @@ async function executePipeline(apiKey, prompt, stageIds, mode) {
     const userPrompt = s.buildPrompt(prompt, runState.results, customSys);
 
     try {
-      let result = await callAPI(apiKey, s, userPrompt);
+      let result = await callAPI(keys, s, userPrompt);
       // Retry if truncated — bump token budget by 1.5x (max 2 retries)
       let retryCount = 0;
       while (result.truncated && retryCount < 2 && !runState.aborted) {
         addFeed('fi-system', 'RETRY', `${s.name} output truncated — retrying with more tokens (attempt ${retryCount+2})`);
         const biggerStage = Object.assign({}, s, { tokenBudget: Math.min(s.tokenBudget * 2, 4096) });
-        result = await callAPI(apiKey, biggerStage, userPrompt);
+        result = await callAPI(keys, biggerStage, userPrompt);
         retryCount++;
       }
       const ms = Date.now() - t0;
@@ -1366,7 +1402,7 @@ async function executePipeline(apiKey, prompt, stageIds, mode) {
       setStageStatus(stageId, 'error');
       const errMsg = e.message || 'Unknown error';
       addFeed('fi-system', s.name.toUpperCase(), 'ERROR: ' + errMsg);
-      setStageOutput(stageId, '⚠️ Error: ' + errMsg + '\n\nCommon fixes:\n• Check your API key is valid (Account tab)\n• Make sure you have Anthropic API credits\n• Try again in a few seconds');
+      setStageOutput(stageId, '⚠️ Error: ' + errMsg + '\n\nCommon fixes:\n• Check your API keys in the Account tab\n• For Gemini/OpenAI stages: add provider keys in Account → PC Optimization Integrations\n• Make sure you have credits on the relevant API\n• Try again in a few seconds');
       setStatusPill('error', 'ERROR');
       toast(errMsg.substring(0, 80), 'bad');
       break;
@@ -1392,11 +1428,39 @@ async function executePipeline(apiKey, prompt, stageIds, mode) {
 }
 
 // ══════════════════════════════════════════
-//  API CALL
+//  API CALL — MULTI-PROVIDER ROUTING
 // ══════════════════════════════════════════
-async function callAPI(apiKey, stage, prompt) {
+async function callAPI(keys, stage, prompt) {
   if (runState.aborted) throw new Error('ABORTED');
+  const provider = stage.provider || 'claude';
 
+  if (provider === 'gemini') {
+    const geminiKey = (typeof keys === 'string') ? null : keys.gemini;
+    if (geminiKey) {
+      return callGeminiAPI(geminiKey, stage, prompt);
+    }
+    // Fallback to Claude Haiku if no Gemini key
+    const claudeKey = (typeof keys === 'string') ? keys : keys.anthropic;
+    addFeed('fi-system', 'ROUTING', 'No Gemini key — routing Art & Design to Claude Haiku');
+    return callAnthropicAPI(claudeKey, Object.assign({}, stage, { model: 'claude-haiku-4-5-20251001', costPer1k: 0.00025 }), prompt);
+  }
+
+  if (provider === 'openai') {
+    const openaiKey = (typeof keys === 'string') ? null : keys.openai;
+    if (openaiKey) {
+      return callOpenAIAPI(openaiKey, stage, prompt);
+    }
+    // Fallback to Claude Haiku if no OpenAI key
+    const claudeKey = (typeof keys === 'string') ? keys : keys.anthropic;
+    addFeed('fi-system', 'ROUTING', 'No OpenAI key — routing Final Polish to Claude Haiku');
+    return callAnthropicAPI(claudeKey, Object.assign({}, stage, { model: 'claude-haiku-4-5-20251001', costPer1k: 0.00025 }), prompt);
+  }
+
+  const claudeKey = (typeof keys === 'string') ? keys : keys.anthropic;
+  return callAnthropicAPI(claudeKey, stage, prompt);
+}
+
+async function callAnthropicAPI(apiKey, stage, prompt) {
   let resp;
   try {
     resp = await fetch('https://api.anthropic.com/v1/messages', {
@@ -1423,27 +1487,106 @@ async function callAPI(apiKey, stage, prompt) {
     try {
       const errData = await resp.json();
       const detail = errData?.error?.message || errData?.message || '';
-      if (resp.status === 401) errMsg = 'Invalid API key — check it starts with sk-ant-api03- and is correct';
+      if (resp.status === 401) errMsg = 'Invalid Anthropic API key — check it starts with sk-ant-api03-';
       else if (resp.status === 429) errMsg = 'Rate limited — wait a few seconds and try again';
       else if (resp.status === 400) errMsg = `Bad request: ${detail.substring(0, 120)}`;
-      else errMsg = `API error ${resp.status}: ${detail.substring(0, 120)}`;
+      else errMsg = `Anthropic API error ${resp.status}: ${detail.substring(0, 120)}`;
     } catch (_) {}
     throw new Error(errMsg);
   }
 
   let data;
-  try {
-    data = await resp.json();
-  } catch (_) {
-    throw new Error('Could not parse API response');
-  }
+  try { data = await resp.json(); } catch (_) { throw new Error('Could not parse Anthropic API response'); }
 
   const text = data.content?.[0]?.text || '';
   const tokens = (data.usage?.input_tokens || 0) + (data.usage?.output_tokens || 0);
   const stopReason = data.stop_reason || '';
-  if (!text) throw new Error('Empty response from API — model returned no content');
-  // Return truncation flag so pipeline can retry with more tokens
+  if (!text) throw new Error('Empty response from Anthropic — model returned no content');
   return { text, tokens, truncated: stopReason === 'max_tokens' };
+}
+
+async function callGeminiAPI(apiKey, stage, prompt) {
+  const systemPrompt = `You are the ${stage.name} stage of PromptMesh, an AI pipeline tool. Your role: produce the best possible ${stage.name.toLowerCase()} output. Be concise, specific, and output exactly what's requested with no preamble.`;
+  let resp;
+  try {
+    resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${stage.model}:generateContent?key=${encodeURIComponent(apiKey)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        systemInstruction: { parts: [{ text: systemPrompt }] },
+        generationConfig: { maxOutputTokens: stage.tokenBudget }
+      })
+    });
+  } catch (networkErr) {
+    throw new Error(`Network error calling Gemini — check your internet connection. (${networkErr.message})`);
+  }
+
+  if (!resp.ok) {
+    let errMsg = `Gemini HTTP ${resp.status}`;
+    try {
+      const errData = await resp.json();
+      const detail = errData?.error?.message || '';
+      if (resp.status === 400 && detail.includes('API_KEY')) errMsg = 'Invalid Gemini API key — check it starts with AIza';
+      else if (resp.status === 429) errMsg = 'Gemini rate limited — wait a few seconds and try again';
+      else if (detail) errMsg = `Gemini error: ${detail.substring(0, 120)}`;
+    } catch (_) {}
+    throw new Error(errMsg);
+  }
+
+  let data;
+  try { data = await resp.json(); } catch (_) { throw new Error('Could not parse Gemini API response'); }
+
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  const tokens = data.usageMetadata?.totalTokenCount || 0;
+  const finishReason = data.candidates?.[0]?.finishReason || '';
+  if (!text) throw new Error('Empty response from Gemini — model returned no content');
+  return { text, tokens, truncated: finishReason === 'MAX_TOKENS' };
+}
+
+async function callOpenAIAPI(apiKey, stage, prompt) {
+  const systemPrompt = `You are the ${stage.name} stage of PromptMesh, an AI pipeline tool. Your role: produce the best possible ${stage.name.toLowerCase()} output. Be concise, specific, and output exactly what's requested with no preamble.`;
+  let resp;
+  try {
+    resp = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: stage.model,
+        max_tokens: stage.tokenBudget,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: prompt }
+        ]
+      })
+    });
+  } catch (networkErr) {
+    throw new Error(`Network error calling OpenAI — check your internet connection. (${networkErr.message})`);
+  }
+
+  if (!resp.ok) {
+    let errMsg = `OpenAI HTTP ${resp.status}`;
+    try {
+      const errData = await resp.json();
+      const detail = errData?.error?.message || '';
+      if (resp.status === 401) errMsg = 'Invalid OpenAI API key — check it in the Account tab';
+      else if (resp.status === 429) errMsg = 'OpenAI rate limited — wait a few seconds and try again';
+      else if (detail) errMsg = `OpenAI error: ${detail.substring(0, 120)}`;
+    } catch (_) {}
+    throw new Error(errMsg);
+  }
+
+  let data;
+  try { data = await resp.json(); } catch (_) { throw new Error('Could not parse OpenAI API response'); }
+
+  const text = data.choices?.[0]?.message?.content || '';
+  const tokens = data.usage?.total_tokens || 0;
+  const finishReason = data.choices?.[0]?.finish_reason || '';
+  if (!text) throw new Error('Empty response from OpenAI — model returned no content');
+  return { text, tokens, truncated: finishReason === 'length' };
 }
 
 // ══════════════════════════════════════════
@@ -1460,8 +1603,14 @@ async function iterate() {
   const check = canRun();
   if (!check.ok) { showUpgradeModal(check.reason); return; }
 
-  const apiKey = sessionStorage.getItem('pm_key') || promptForKey();
-  if (!apiKey) return;
+  const anthropicKey = sessionStorage.getItem('pm_key') || promptForKey();
+  if (!anthropicKey) return;
+
+  const keys = {
+    anthropic: anthropicKey,
+    openai: sessionStorage.getItem('pm_openai_key') || null,
+    gemini: sessionStorage.getItem('pm_gemini_key') || null
+  };
 
   runState.iterationCount++;
   const iterPrompt = `Original request: "${runState.prompt}"
@@ -1479,7 +1628,7 @@ Apply these changes and improve the relevant parts. Output the updated version.`
 
   try {
     consumeRun();
-    const result = await callAPI(apiKey, STAGES_CONFIG.backend, iterPrompt);
+    const result = await callAPI(keys, STAGES_CONFIG.backend, iterPrompt);
     runState.results['iteration_' + runState.iterationCount] = result.text;
     addFeed('fi-system', 'ITERATE', `✓ Iteration complete · ${result.tokens} tokens`);
     const el = document.getElementById('final-output-scroll');
@@ -1797,7 +1946,7 @@ function clearByok() {
   sessionStorage.removeItem('pm_key');
   document.getElementById('byok-input').value = '';
   updateByokStatus();
-  toast('API key cleared');
+  toast('Anthropic API key cleared');
 }
 
 function updateByokStatus() {
@@ -1805,6 +1954,56 @@ function updateByokStatus() {
   if (!el) return;
   const key = sessionStorage.getItem('pm_key');
   el.textContent = key ? `✓ Key saved (${key.substring(0, 12)}…)` : 'No key saved — will prompt when you run.';
+  el.style.color = key ? 'var(--sage)' : 'var(--ink4)';
+}
+
+function saveOpenAIKey() {
+  const key = document.getElementById('openai-key-input').value.trim();
+  if (!key) { clearOpenAIKey(); return; }
+  if (key.length < 20) { toast('Key too short — double check it', 'bad'); return; }
+  sessionStorage.setItem('pm_openai_key', key);
+  document.getElementById('openai-key-input').value = '';
+  updateOpenAIKeyStatus();
+  toast('OpenAI key saved for this session ✓', 'ok');
+}
+
+function clearOpenAIKey() {
+  sessionStorage.removeItem('pm_openai_key');
+  document.getElementById('openai-key-input').value = '';
+  updateOpenAIKeyStatus();
+  toast('OpenAI API key cleared');
+}
+
+function updateOpenAIKeyStatus() {
+  const el = document.getElementById('openai-key-status');
+  if (!el) return;
+  const key = sessionStorage.getItem('pm_openai_key');
+  el.textContent = key ? `✓ Key saved (${key.substring(0, 10)}…) — Final Polish will use GPT-4o-mini` : 'No key — Final Polish stage will fall back to Claude Haiku.';
+  el.style.color = key ? 'var(--sage)' : 'var(--ink4)';
+}
+
+function saveGeminiKey() {
+  const key = document.getElementById('gemini-key-input').value.trim();
+  if (!key) { clearGeminiKey(); return; }
+  if (key.length < 20) { toast('Key too short — double check it', 'bad'); return; }
+  sessionStorage.setItem('pm_gemini_key', key);
+  document.getElementById('gemini-key-input').value = '';
+  updateGeminiKeyStatus();
+  toast('Gemini key saved for this session ✓', 'ok');
+}
+
+function clearGeminiKey() {
+  sessionStorage.removeItem('pm_gemini_key');
+  document.getElementById('gemini-key-input').value = '';
+  updateGeminiKeyStatus();
+  toast('Gemini API key cleared');
+}
+
+function updateGeminiKeyStatus() {
+  const el = document.getElementById('gemini-key-status');
+  if (!el) return;
+  const key = sessionStorage.getItem('pm_gemini_key');
+  el.textContent = key ? `✓ Key saved (${key.substring(0, 10)}…) — Art & Design will use Gemini Flash` : 'No key — Art & Design stage will fall back to Claude Haiku.';
   el.style.color = key ? 'var(--sage)' : 'var(--ink4)';
 }
 
@@ -1952,6 +2151,8 @@ function updateAccountUI() {
   if (credEl) credEl.textContent = u.credits;
 
   updateByokStatus();
+  updateOpenAIKeyStatus();
+  updateGeminiKeyStatus();
   updateCreditsDisplay();
   renderUserBadge();
   renderStats();
