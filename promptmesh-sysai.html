@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://api.anthropic.com;">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://api.anthropic.com https://api.openai.com https://generativelanguage.googleapis.com https://api.mistral.ai https://api.groq.com https://api.cohere.com http://localhost:5000;">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PromptMesh SysAI — PC System Optimizer</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -231,8 +231,16 @@ body.light .cmd-code{background:#f0f4ff;color:var(--blue2);}
   <span class="tb-product">/ SysAI</span>
   <div class="tb-space"></div>
   <div class="tb-key-wrap">
-    <span class="tb-key-label">API KEY</span>
-    <input id="topbar-key" type="password" placeholder="sk-ant-..." oninput="saveKey()" autocomplete="off">
+    <span class="tb-key-label">PROVIDER</span>
+    <select id="topbar-provider" style="background:var(--card);border:1px solid var(--rule2);color:var(--ink);font-family:var(--mono);font-size:.65rem;padding:3px 6px;border-radius:4px;outline:none;margin-right:4px" onchange="onSysAIProviderChange()">
+      <option value="anthropic">🤖 Claude</option>
+      <option value="openai">🧠 GPT</option>
+      <option value="gemini">✨ Gemini</option>
+      <option value="mistral">🌪️ Mistral</option>
+      <option value="groq">⚡ Groq</option>
+      <option value="cohere">🌊 Cohere</option>
+    </select>
+    <input id="topbar-key" type="password" placeholder="API key…" oninput="saveKey()" autocomplete="off">
   </div>
   <button class="btn btn-blue btn-sm" onclick="runQuickScan()">⚡ Quick Scan</button>
   <button class="dark-btn" onclick="toggleDark()" title="Toggle light/dark"></button>
@@ -736,6 +744,38 @@ I've already tried: reinstalling GPU driver, checking temps (all normal)"></text
 <div id="toast"></div>
 
 <script>
+// ══════════ LLM PROVIDERS ══════════
+var LLM_PROVIDERS = {
+  anthropic:{name:'Claude (Anthropic)',icon:'🤖',keyStorage:'sysai_key',keyHint:'sk-ant-api03-…',defaultModel:'claude-haiku-4-5-20251001',
+    call:function(key,model,sys,user,maxTok){return fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-request-when-unauthenticated':'true'},body:JSON.stringify({model:model,max_tokens:maxTok,system:sys,messages:[{role:'user',content:user}]})}).then(function(r){if(!r.ok){return r.json().catch(function(){return {};}).then(function(d){throw new Error((r.status===401?'Invalid Anthropic key':r.status===429?'Rate limited':'Anthropic error '+r.status)+': '+(d&&d.error&&d.error.message||'').substring(0,60));});}return r.json().then(function(d){var text=(d.content&&d.content[0]&&d.content[0].text)||'';if(!text)throw new Error('Empty response from Anthropic');return{text:text,tokens:((d.usage&&d.usage.input_tokens)||0)+((d.usage&&d.usage.output_tokens)||0)};});});}
+  },
+  openai:{name:'OpenAI (ChatGPT)',icon:'🧠',keyStorage:'sysai_key_openai',keyHint:'sk-proj-…',defaultModel:'gpt-4o-mini',
+    call:function(key,model,sys,user,maxTok){var msgs=[];if(sys)msgs.push({role:'system',content:sys});msgs.push({role:'user',content:user});return fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model:model,max_tokens:maxTok,messages:msgs})}).then(function(r){if(!r.ok){return r.json().catch(function(){return{};}).then(function(d){throw new Error((r.status===401?'Invalid OpenAI key':r.status===429?'Rate limited':'OpenAI error '+r.status)+': '+(d&&d.error&&d.error.message||'').substring(0,60));});}return r.json().then(function(d){var text=(d.choices&&d.choices[0]&&d.choices[0].message&&d.choices[0].message.content)||'';if(!text)throw new Error('Empty response from OpenAI');return{text:text,tokens:((d.usage&&d.usage.prompt_tokens)||0)+((d.usage&&d.usage.completion_tokens)||0)};});});}
+  },
+  gemini:{name:'Google Gemini',icon:'✨',keyStorage:'sysai_key_gemini',keyHint:'AIzaSy…',defaultModel:'gemini-2.0-flash',
+    call:function(key,model,sys,user,maxTok){var body={contents:[{parts:[{text:user}]}],generationConfig:{maxOutputTokens:maxTok}};if(sys)body.systemInstruction={parts:[{text:sys}]};return fetch('https://generativelanguage.googleapis.com/v1beta/models/'+model+':generateContent?key='+key,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(function(r){if(!r.ok){return r.json().catch(function(){return{};}).then(function(d){throw new Error((r.status===403?'Invalid Gemini key':r.status===429?'Rate limited':'Gemini error '+r.status)+': '+(d&&d.error&&d.error.message||'').substring(0,60));});}return r.json().then(function(d){var text=(d.candidates&&d.candidates[0]&&d.candidates[0].content&&d.candidates[0].content.parts&&d.candidates[0].content.parts[0]&&d.candidates[0].content.parts[0].text)||'';if(!text)throw new Error('Empty response from Gemini');return{text:text,tokens:((d.usageMetadata&&d.usageMetadata.promptTokenCount)||0)+((d.usageMetadata&&d.usageMetadata.candidatesTokenCount)||0)};});});}
+  },
+  mistral:{name:'Mistral AI',icon:'🌪️',keyStorage:'sysai_key_mistral',keyHint:'Mistral API key…',defaultModel:'mistral-small-latest',
+    call:function(key,model,sys,user,maxTok){var msgs=[];if(sys)msgs.push({role:'system',content:sys});msgs.push({role:'user',content:user});return fetch('https://api.mistral.ai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model:model,max_tokens:maxTok,messages:msgs})}).then(function(r){if(!r.ok){return r.json().catch(function(){return{};}).then(function(d){throw new Error((r.status===401?'Invalid Mistral key':r.status===429?'Rate limited':'Mistral error '+r.status)+': '+(d&&d.message||'').substring(0,60));});}return r.json().then(function(d){var text=(d.choices&&d.choices[0]&&d.choices[0].message&&d.choices[0].message.content)||'';if(!text)throw new Error('Empty response from Mistral');return{text:text,tokens:((d.usage&&d.usage.prompt_tokens)||0)+((d.usage&&d.usage.completion_tokens)||0)};});});}
+  },
+  groq:{name:'Groq (Llama)',icon:'⚡',keyStorage:'sysai_key_groq',keyHint:'gsk_…',defaultModel:'llama-3.3-70b-versatile',
+    call:function(key,model,sys,user,maxTok){var msgs=[];if(sys)msgs.push({role:'system',content:sys});msgs.push({role:'user',content:user});return fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model:model,max_tokens:maxTok,messages:msgs})}).then(function(r){if(!r.ok){return r.json().catch(function(){return{};}).then(function(d){throw new Error((r.status===401?'Invalid Groq key':r.status===429?'Rate limited':'Groq error '+r.status)+': '+(d&&d.error&&d.error.message||'').substring(0,60));});}return r.json().then(function(d){var text=(d.choices&&d.choices[0]&&d.choices[0].message&&d.choices[0].message.content)||'';if(!text)throw new Error('Empty response from Groq');return{text:text,tokens:((d.usage&&d.usage.prompt_tokens)||0)+((d.usage&&d.usage.completion_tokens)||0)};});});}
+  },
+  cohere:{name:'Cohere',icon:'🌊',keyStorage:'sysai_key_cohere',keyHint:'Cohere API key…',defaultModel:'command-r-08-2024',
+    call:function(key,model,sys,user,maxTok){return fetch('https://api.cohere.com/v2/chat',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model:model,max_tokens:maxTok,preamble:sys||undefined,messages:[{role:'user',content:user}]})}).then(function(r){if(!r.ok){return r.json().catch(function(){return{};}).then(function(d){throw new Error((r.status===401?'Invalid Cohere key':r.status===429?'Rate limited':'Cohere error '+r.status)+': '+(d&&d.message||'').substring(0,60));});}return r.json().then(function(d){var text=(d.message&&d.message.content&&d.message.content[0]&&d.message.content[0].text)||'';if(!text)throw new Error('Empty response from Cohere');return{text:text,tokens:((d.usage&&d.usage.tokens&&d.usage.tokens.input_tokens)||0)+((d.usage&&d.usage.tokens&&d.usage.tokens.output_tokens)||0)};});});}
+  }
+};
+
+function getSysAIProvider(){return document.getElementById('topbar-provider')&&document.getElementById('topbar-provider').value||'anthropic';}
+function onSysAIProviderChange(){
+  var pid=getSysAIProvider();var p=LLM_PROVIDERS[pid];
+  var inp=document.getElementById('topbar-key');
+  if(inp){inp.placeholder=p?p.keyHint:'API key…';}
+  // Load saved key for this provider
+  var saved=p?sessionStorage.getItem(p.keyStorage):'';
+  if(inp&&saved)inp.value='';// don't show saved key value for security
+}
+
 // ══════════ STATE ══════════
 var scanData = {};
 var chatHistory = [];
@@ -744,8 +784,7 @@ var issueCount = 0;
 
 // ══════════ INIT ══════════
 (function init(){
-  var key = sessionStorage.getItem('sysai_key') || '';
-  if(key) document.getElementById('topbar-key').value = key;
+  // Keys are stored per-provider in sessionStorage; don't pre-fill the input (security)
   document.getElementById('welcome-time').textContent = fmtTime(new Date());
   renderCommands();
   if(localStorage.getItem('pm_dark') === '0') document.body.classList.add('light');
@@ -764,13 +803,17 @@ var issueCount = 0;
 })();
 
 function saveKey(){
+  var pid = getSysAIProvider();
+  var p = LLM_PROVIDERS[pid];
   var k = document.getElementById('topbar-key').value.trim();
-  if(k) sessionStorage.setItem('sysai_key', k);
+  if(k && p) sessionStorage.setItem(p.keyStorage, k);
 }
 
 function getKey(){
-  return document.getElementById('topbar-key').value.trim() ||
-         sessionStorage.getItem('sysai_key') || '';
+  var pid = getSysAIProvider();
+  var p = LLM_PROVIDERS[pid];
+  return (p && sessionStorage.getItem(p.keyStorage)) ||
+         document.getElementById('topbar-key').value.trim() || '';
 }
 
 // ══════════ NAVIGATION ══════════
@@ -1017,32 +1060,20 @@ function copySystemReport(){
   });
 }
 
-// ══════════ AI CALLS ══════════
+// ══════════ AI CALLS — multi-provider ══════════
 async function callAI(systemPrompt, userMsg, maxTokens){
+  var pid = getSysAIProvider();
+  var p = LLM_PROVIDERS[pid];
   var key = getKey();
-  if(!key){ toast('Enter your Anthropic API key first', 'bad'); return null; }
+  if(!key){ toast('Enter your ' + (p?p.name:'') + ' API key first', 'bad'); return null; }
   try{
-    var resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': key,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-request-when-unauthenticated': 'true'
-      },
-      body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: maxTokens || 1024,
-        system: systemPrompt,
-        messages: [{role:'user', content: userMsg}]
-      })
-    });
-    if(resp.status === 401){ toast('Invalid API key', 'bad'); return null; }
-    if(resp.status === 429){ toast('Rate limited — wait a moment', 'bad'); return null; }
-    if(!resp.ok){ var d = await resp.json().catch(()=>({})); toast('API error: ' + (d?.error?.message || resp.status), 'bad'); return null; }
-    var data = await resp.json();
-    return data.content?.[0]?.text || '';
-  }catch(e){ toast('Network error: ' + e.message, 'bad'); return null; }
+    var result = await p.call(key, p.defaultModel, systemPrompt, userMsg, maxTokens||1024);
+    return result.text;
+  }catch(e){
+    if(e.message&&(e.message.includes('Invalid')||e.message.includes('401'))){ toast('Invalid API key for '+p.name, 'bad'); return null; }
+    if(e.message&&(e.message.includes('Rate')||e.message.includes('429'))){ toast('Rate limited — wait a moment', 'bad'); return null; }
+    toast((p?p.name:'AI')+' error: ' + e.message.substring(0,60), 'bad'); return null;
+  }
 }
 
 var SYSAI_SYSTEM = 'You are SysAI, an expert Windows PC technician and system optimizer embedded in PromptMesh. You help users diagnose and fix PC issues. When suggesting commands, always use PowerShell syntax and wrap them in code blocks. Be concise but thorough. Format responses with markdown: use **bold** for important points, `code` for file paths and values, and ```powershell code blocks for commands. Always mention if a command requires Administrator privileges.';
@@ -1107,43 +1138,29 @@ async function sendChat(){
   chatHistory.push({role:'user', content: msg});
   addTypingIndicator();
 
+  var pid = getSysAIProvider();
+  var p = LLM_PROVIDERS[pid];
   var key = getKey();
   if(!key){
     removeTypingIndicator();
-    addChatMsg('ai', '**No API key set.** Enter your Anthropic API key in the top bar to use the AI assistant.');
+    addChatMsg('ai', '**No API key set.** Enter your ' + (p?p.name:'') + ' API key in the top bar to use the AI assistant.');
     return;
   }
 
   try{
     var context = '';
     if(scanData.os) context = '\n\nUser system info:\n' + buildSystemSummary();
-    var messages = chatHistory.slice(-12).map(function(m){ return {role: m.role, content: m.content}; });
-
-    var resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': key,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-request-when-unauthenticated': 'true'
-      },
-      body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 1200,
-        system: SYSAI_SYSTEM + context,
-        messages: messages
-      })
-    });
-
+    // Build last user message incorporating context for non-Anthropic providers
+    var lastMsg = msg;
+    if(context && pid !== 'anthropic') lastMsg = msg + context;
+    var result = await p.call(key, p.defaultModel, SYSAI_SYSTEM + (pid==='anthropic'?context:''), lastMsg, 1200);
     removeTypingIndicator();
-    if(!resp.ok){ var d = await resp.json().catch(()=>({})); addChatMsg('ai', '**Error:** ' + (d?.error?.message || 'API error ' + resp.status)); return; }
-    var data = await resp.json();
-    var aiText = data.content?.[0]?.text || '';
+    var aiText = result.text;
     chatHistory.push({role:'assistant', content: aiText});
     addChatMsg('ai', aiText);
   }catch(e){
     removeTypingIndicator();
-    addChatMsg('ai', '**Network error:** ' + e.message);
+    addChatMsg('ai', '**Error:** ' + e.message);
   }
 }
 
