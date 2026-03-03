@@ -527,21 +527,13 @@ const LLM_PROVIDERS = {
 };
 
 const ALL_MODEL_IDS = Object.values(LLM_PROVIDERS).flatMap(p=>Object.keys(p.models));
+// Flat cost-per-1k lookup for all models, computed once
+const MODEL_COSTS = Object.values(LLM_PROVIDERS).reduce((acc,p)=>{Object.entries(p.models).forEach(([m,d])=>acc[m]=d.costPer1k);return acc;},{});
 
 function getProviderForModel(model){
   for(const[pid,p]of Object.entries(LLM_PROVIDERS)){if(model in p.models)return{pid,p};}
   return{pid:'anthropic',p:LLM_PROVIDERS.anthropic};
 }
-function getDevKey(model){
-  const{pid,p}=getProviderForModel(model||'claude-haiku-4-5-20251001');
-  return sessionStorage.getItem(p.keyStorage);
-}
-function getAnyDevKey(){
-  // Fallback: return first available key (for legacy single-key usage)
-  for(const p of Object.values(LLM_PROVIDERS)){const k=sessionStorage.getItem(p.keyStorage);if(k)return k;}
-  return null;
-}
-
 function getBots(){try{return JSON.parse(localStorage.getItem('dev_bots')||'[]');}catch{return[];}}
 function saveBots(b){localStorage.setItem('dev_bots',JSON.stringify(b));}
 function getBattles(){try{return JSON.parse(localStorage.getItem('dev_battles')||'[]');}catch{return[];}}
@@ -571,10 +563,9 @@ function loadSysTemplate(key){
 }
 
 function updateCostEst(){
-  const costs=Object.values(LLM_PROVIDERS).reduce((acc,p)=>{Object.entries(p.models).forEach(([m,d])=>acc[m]=d.costPer1k);return acc;},{});
   const tokens=parseInt(document.getElementById('b-tokens').value||512);
   const model=document.getElementById('b-model').value;
-  const cost=(tokens*((costs[model]||0.00025)/1000)).toFixed(5);
+  const cost=(tokens*((MODEL_COSTS[model]||0.00025)/1000)).toFixed(5);
   document.getElementById('b-cost-est').textContent='~$'+cost;
 }
 
@@ -954,9 +945,8 @@ async function runBot(key,bot,task){
   const{pid,p}=getProviderForModel(bot.model);
   const providerKey=sessionStorage.getItem(p.keyStorage)||key;
   if(!providerKey)throw new Error('No API key for '+p.name+' — add it in Settings');
-  const costs=Object.values(LLM_PROVIDERS).reduce((acc,pr)=>{Object.entries(pr.models).forEach(([m,d])=>acc[m]=d.costPer1k);return acc;},{});
   const result=await p.call(providerKey,bot.model,bot.sys,task,bot.maxTokens);
-  const cost=result.tokens*(costs[bot.model]||0.00025)/1000;
+  const cost=result.tokens*(MODEL_COSTS[bot.model]||0.00025)/1000;
   return{text:result.text,tokens:result.tokens,cost};
 }
 async function judge(key,task,textA,textB,hint,nameA,nameB){

@@ -1149,11 +1149,16 @@ async function sendChat(){
 
   try{
     var context = '';
-    if(scanData.os) context = '\n\nUser system info:\n' + buildSystemSummary();
-    // Build last user message incorporating context for non-Anthropic providers
-    var lastMsg = msg;
-    if(context && pid !== 'anthropic') lastMsg = msg + context;
-    var result = await p.call(key, p.defaultModel, SYSAI_SYSTEM + (pid==='anthropic'?context:''), lastMsg, 1200);
+    if(scanData.os) context = '\n\nSystem info:\n' + buildSystemSummary();
+    // Prepend recent conversation history so all providers maintain chat context
+    var historyPrefix = '';
+    if(chatHistory.length > 1){
+      historyPrefix = chatHistory.slice(-11, -1).map(function(m){
+        return (m.role === 'user' ? 'User' : 'Assistant') + ': ' + m.content.substring(0, 400);
+      }).join('\n') + '\n\n';
+    }
+    var fullMsg = historyPrefix + 'User: ' + msg + context;
+    var result = await p.call(key, p.defaultModel, SYSAI_SYSTEM, fullMsg, 1200);
     removeTypingIndicator();
     var aiText = result.text;
     chatHistory.push({role:'assistant', content: aiText});
