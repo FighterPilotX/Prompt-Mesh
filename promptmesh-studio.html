@@ -74,24 +74,25 @@ h1,h2,h3{font-family:var(--display);line-height:1.1;letter-spacing:-0.01em;}
 .select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%2378716c' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;}
 
 /* ───── NAV ───── */
-#nav{position:fixed;top:0;left:0;right:0;height:60px;display:flex;align-items:center;padding:0 32px;background:rgba(247,244,238,.96);backdrop-filter:blur(16px);border-bottom:1px solid var(--rule);z-index:500;}
-.nav-logo{font-family:var(--display);font-size:1.3rem;font-weight:900;color:var(--ink);letter-spacing:-.02em;cursor:pointer;display:flex;align-items:center;gap:8px;}
-.nav-logo .logo-mark{width:26px;height:26px;background:var(--coral);border-radius:5px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-.nav-logo .logo-mark svg{width:14px;height:14px;fill:#fff;}
+#nav{position:fixed;top:0;left:0;right:0;height:64px;display:flex;align-items:center;padding:0 28px;gap:8px;background:rgba(247,244,238,.97);backdrop-filter:blur(20px);border-bottom:1px solid var(--rule);z-index:500;}
+.nav-logo{font-family:var(--display);font-size:1.25rem;font-weight:900;color:var(--ink);letter-spacing:-.02em;cursor:pointer;display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.nav-logo .logo-mark{width:28px;height:28px;background:var(--coral);border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.nav-logo .logo-mark svg{width:15px;height:15px;fill:#fff;}
 .nav-spacer{flex:1;}
-.nav-links{display:flex;align-items:center;gap:6px;}
-.nav-link{font-size:.8rem;font-weight:500;color:var(--ink3);padding:6px 12px;border-radius:5px;cursor:pointer;transition:all .12s;text-decoration:none;}
+.nav-links{display:flex;align-items:center;gap:2px;}
+.nav-link{font-size:.8rem;font-weight:500;color:var(--ink3);padding:7px 11px;border-radius:6px;cursor:pointer;transition:all .12s;text-decoration:none;}
 .nav-link:hover{color:var(--ink);background:var(--rule);}
 .nav-link.active{color:var(--coral);}
-#user-badge{display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--surface);border:1px solid var(--rule2);border-radius:6px;cursor:pointer;font-size:.78rem;font-weight:600;transition:all .12s;}
+#user-badge{display:flex;align-items:center;gap:8px;padding:7px 13px;background:var(--surface);border:1px solid var(--rule2);border-radius:7px;cursor:pointer;font-size:.78rem;font-weight:600;transition:all .12s;flex-shrink:0;}
 #user-badge:hover{border-color:var(--rule2);background:var(--paper);}
-.plan-chip{font-size:.62rem;font-weight:700;padding:2px 7px;border-radius:3px;letter-spacing:.06em;text-transform:uppercase;}
+.plan-chip{font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:3px;letter-spacing:.06em;text-transform:uppercase;}
 .plan-chip.free{background:var(--rule);color:var(--ink3);}
 .plan-chip.starter{background:var(--amber-tint);color:var(--amber);border:1px solid rgba(196,122,42,.2);}
 .plan-chip.pro{background:var(--coral-tint);color:var(--coral);border:1px solid var(--coral-glow);}
+.plan-chip.demo{background:rgba(122,92,196,.15);color:#7a5cc4;border:1px solid rgba(122,92,196,.25);}
 
 /* ───── VIEWS ───── */
-.view{display:none;padding-top:60px;min-height:100vh;}
+.view{display:none;padding-top:64px;min-height:100vh;}
 .view.active{display:block;}
 
 /* ───── LANDING ───── */
@@ -166,7 +167,7 @@ h1,h2,h3{font-family:var(--display);line-height:1.1;letter-spacing:-0.01em;}
 .pack-savings{font-size:.64rem;color:var(--coral);font-weight:600;margin-top:4px;}
 
 /* ───── RUN PANEL (fullscreen takeover) ───── */
-#view-run{position:fixed;inset:60px 0 0;background:var(--cream);z-index:400;display:none;flex-direction:column;}
+#view-run{position:fixed;inset:64px 0 0;background:var(--cream);z-index:400;display:none;flex-direction:column;}
 #view-run.active{display:flex;}
 
 .run-topbar{padding:14px 28px;background:var(--surface);border-bottom:1px solid var(--rule);display:flex;align-items:center;gap:14px;flex-shrink:0;}
@@ -359,10 +360,15 @@ body.dark .fo-content pre { background: #0a0a09; }
 body.dark .modal { background: var(--surface); }
 body.dark .pack-item { background: var(--surface); }
 body.dark .cost-total-card { background: #0a0a09; }
-.dark-toggle { cursor:pointer; width:32px; height:18px; background:var(--rule2); border-radius:9px; position:relative; transition:background .2s; flex-shrink:0; border:none; }
-.dark-toggle::after { content:''; position:absolute; top:3px; left:3px; width:12px; height:12px; background:var(--ink4); border-radius:50%; transition:all .2s; }
-body.dark .dark-toggle { background:var(--coral); }
-body.dark .dark-toggle::after { left:17px; background:#fff; }
+.dark-toggle { cursor:pointer; width:36px; height:36px; background:transparent; border:1.5px solid var(--rule2); border-radius:8px; display:flex; align-items:center; justify-content:center; transition:all .18s; flex-shrink:0; color:var(--ink3); }
+.dark-toggle:hover { background:var(--rule); color:var(--ink); border-color:var(--rule2); }
+.dark-toggle svg { width:18px; height:18px; transition:opacity .15s; }
+.dark-toggle .icon-sun { display:block; }
+.dark-toggle .icon-moon { display:none; }
+body.dark .dark-toggle { border-color:var(--rule2); color:var(--ink3); }
+body.dark .dark-toggle:hover { background:var(--rule2); color:var(--ink); }
+body.dark .dark-toggle .icon-sun { display:none; }
+body.dark .dark-toggle .icon-moon { display:block; }
 
 /* ───── TEMPLATES MODAL ───── */
 .templates-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(200px,1fr)); gap:10px; margin-top:14px; }
@@ -374,7 +380,7 @@ body.dark .dark-toggle::after { left:17px; background:#fff; }
 .tpl-mode { font-family:var(--mono); font-size:.58rem; color:var(--ink4); margin-top:6px; }
 
 /* ───── HISTORY SIDEBAR ───── */
-.history-sidebar { position:fixed; right:0; top:60px; bottom:0; width:280px; background:var(--surface); border-left:1px solid var(--rule); z-index:300; transform:translateX(100%); transition:transform .25s cubic-bezier(.4,0,.2,1); overflow-y:auto; }
+.history-sidebar { position:fixed; right:0; top:64px; bottom:0; width:280px; background:var(--surface); border-left:1px solid var(--rule); z-index:300; transform:translateX(100%); transition:transform .25s cubic-bezier(.4,0,.2,1); overflow-y:auto; }
 .history-sidebar.open { transform:translateX(0); }
 .history-header { padding:16px 18px 10px; border-bottom:1px solid var(--rule); display:flex; align-items:center; justify-content:space-between; }
 .history-header h3 { font-family:var(--display); font-size:.9rem; font-weight:700; }
@@ -479,7 +485,7 @@ body.dark .dark-toggle::after { left:17px; background:#fff; }
 
 <!-- NAV -->
 <nav id="nav">
-  <a href="promptmesh-hub.html" class="btn btn-ghost btn-sm" style="margin-right:4px">← Hub</a>
+  <a href="promptmesh-hub.html" class="btn btn-ghost btn-sm" style="margin-right:2px;flex-shrink:0">← Hub</a>
   <div class="nav-logo" onclick="showView('landing')">
     <div class="logo-mark"><svg viewBox="0 0 14 14"><path d="M1 1h5v5H1zM8 1h5v5H8zM1 8h5v5H1zM8 8h5v5H8z" opacity=".5"/><line x1="6" y1="3.5" x2="8" y2="3.5" stroke="#fff" stroke-width="1.5"/><line x1="3.5" y1="6" x2="3.5" y2="8" stroke="#fff" stroke-width="1.5"/><line x1="10.5" y1="6" x2="10.5" y2="8" stroke="#fff" stroke-width="1.5"/><line x1="6" y1="10.5" x2="8" y2="10.5" stroke="#fff" stroke-width="1.5"/></svg></div>
     PromptMesh
@@ -493,7 +499,11 @@ body.dark .dark-toggle::after { left:17px; background:#fff; }
     <a class="nav-link" onclick="scrollToPricing()">Pricing</a>
     <a class="nav-link" onclick="showView('account')">Account</a>
   </div>
-  <button class="dark-toggle" id="dark-toggle" onclick="toggleDark()" title="Toggle dark mode"></button>
+  <button class="btn btn-sm" style="background:rgba(122,92,196,.12);color:#7a5cc4;border:1.5px solid rgba(122,92,196,.25);font-size:.72rem;flex-shrink:0" onclick="startDemoRun()" title="Try a demo without an API key">✨ Demo</button>
+  <button class="dark-toggle" id="dark-toggle" onclick="toggleDark()" title="Toggle dark mode">
+    <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+    <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+  </button>
   <div id="user-badge" onclick="showView('account')">
     <span id="user-name">Guest</span>
     <div class="plan-chip free" id="user-plan-badge">FREE</div>
@@ -1392,6 +1402,83 @@ async function executePipeline(apiKey, prompt, stageIds, mode) {
 }
 
 // ══════════════════════════════════════════
+//  DEMO MODE (no API key or credits needed)
+// ══════════════════════════════════════════
+const DEMO_RESULTS = {
+  plan: `## Project Plan\n\n**Goal:** Build a fully interactive browser-based app with clean UX.\n\n### Phases\n1. **Architecture** — Define component structure, state model, and data flow\n2. **UI Design** — Layout, color palette, typography, spacing system\n3. **Core Logic** — Business logic, interactivity, event handling\n4. **Polish** — Animations, responsiveness, edge-case handling\n5. **Delivery** — Self-contained HTML/CSS/JS, no dependencies\n\n### Constraints\n- Single file output (HTML + embedded CSS/JS)\n- Works in any modern browser offline\n- Accessible and mobile-friendly`,
+
+  design: `## Design System\n\n**Color Palette**\n- Primary: \`#e85d3a\` (coral) for CTAs and accents\n- Background: \`#f7f4ee\` (warm cream)\n- Surface: \`#ffffff\`\n- Text: \`#1c1917\` / \`#78716c\` (secondary)\n\n**Typography**\n- Headings: Georgia or serif stack, weights 700–900\n- Body: system-ui / sans-serif stack, 16px base\n- Code: monospace stack, 13px\n\n**Spacing** — 4px base unit, 8/12/16/24/32/48px scale\n\n**Components**\n- Cards with 1px border, 10px radius, subtle shadow\n- Buttons: filled primary, outlined secondary, ghost tertiary\n- Inputs: 1.5px border, coral focus ring\n- Transitions: 150ms ease for hover states`,
+
+  frontend: `<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width, initial-scale=1.0">\n<title>Demo App</title>\n<style>\n  *{box-sizing:border-box;margin:0;padding:0}\n  body{font-family:system-ui,sans-serif;background:#f7f4ee;color:#1c1917;min-height:100vh;display:flex;align-items:center;justify-content:center;}\n  .app{background:#fff;border-radius:16px;padding:40px;max-width:480px;width:90%;box-shadow:0 4px 32px rgba(0,0,0,.08);border:1px solid #e5e2db}\n  h1{font-size:1.6rem;font-weight:900;margin-bottom:8px;color:#1c1917}\n  p{color:#78716c;font-size:.9rem;margin-bottom:28px;line-height:1.6}\n  input{width:100%;padding:12px 16px;border:1.5px solid #e5e2db;border-radius:8px;font-size:.9rem;outline:none;transition:border-color .2s}\n  input:focus{border-color:#e85d3a;box-shadow:0 0 0 3px rgba(232,93,58,.12)}\n  button{margin-top:12px;width:100%;padding:13px;background:#e85d3a;color:#fff;border:none;border-radius:8px;font-size:.9rem;font-weight:700;cursor:pointer;transition:all .15s}\n  button:hover{background:#c94d2c;transform:translateY(-1px)}\n  .result{margin-top:20px;padding:14px;background:#f7f4ee;border-radius:8px;font-size:.85rem;color:#78716c;display:none}\n  .result.show{display:block}\n</style>\n</head>\n<body>\n<div class="app">\n  <h1>✨ Demo App</h1>\n  <p>This is a sample output from the PromptMesh demo. Real runs generate actual working apps from your prompt.</p>\n  <input type="text" id="inp" placeholder="Type something...">\n  <button onclick="go()">Try it</button>\n  <div class="result" id="res"></div>\n</div>\n<script>\nfunction go(){\n  const v=document.getElementById('inp').value.trim();\n  if(!v)return;\n  const el=document.getElementById('res');\n  el.textContent='You typed: '+v+' — in a real run this would be a full working app!';\n  el.classList.add('show');\n}\n</script>\n</body>\n</html>`,
+
+  backend: `## Backend Architecture\n\n**Approach:** Client-side only (no server required)\n\n**Data Persistence**\n- \`localStorage\` for user data and settings\n- \`sessionStorage\` for temporary state\n- JSON serialization for structured data\n\n**State Management**\n\`\`\`js\nconst state = {\n  items: JSON.parse(localStorage.getItem('items') || '[]'),\n  save() { localStorage.setItem('items', JSON.stringify(this.items)); }\n};\n\`\`\`\n\n**Error Handling**\n- Wrap all localStorage access in try/catch (private browsing)\n- Validate user input before processing\n- Show user-friendly error messages`,
+
+  polish: `## Polish & Final Review\n\n**Accessibility**\n- ✓ Semantic HTML elements (main, nav, button, etc.)\n- ✓ Focus indicators on all interactive elements\n- ✓ Sufficient color contrast (4.5:1 minimum)\n- ✓ Keyboard navigable\n\n**Responsiveness**\n- ✓ Fluid layout using flexbox/grid\n- ✓ Mobile-first breakpoints at 480px and 768px\n- ✓ Touch targets minimum 44px\n\n**Performance**\n- ✓ No external dependencies\n- ✓ Minimal repaints (CSS transitions over JS)\n- ✓ Lazy evaluation of expensive operations\n\n**UX Improvements**\n- Added hover/focus feedback on all interactive elements\n- Smooth transitions (150–250ms)\n- Empty state messaging where applicable`
+};
+
+async function startDemoRun() {
+  const demoPrompts = [
+    'A to-do list app with drag-and-drop and local storage',
+    'A pomodoro timer with session tracking',
+    'A simple budget tracker with pie chart',
+    'A flashcard quiz app with spaced repetition',
+  ];
+  const prompt = demoPrompts[Math.floor(Math.random() * demoPrompts.length)];
+  document.getElementById('main-input').value = prompt;
+
+  const mode = 'full';
+  const stageIds = MODES[mode] || MODES.full;
+
+  initRunView(prompt, mode, stageIds);
+  // Don't consume credits in demo mode
+
+  addFeed('fi-system', 'DEMO', '✨ Demo mode — showing example pipeline output (no API key needed)');
+
+  for (let i = 0; i < stageIds.length; i++) {
+    if (runState.aborted) break;
+    const stageId = stageIds[i];
+    const s = STAGES_CONFIG[stageId];
+    const demoText = DEMO_RESULTS[stageId] || `Sample ${s.name} output for: ${prompt}`;
+
+    setStageStatus(stageId, 'working');
+    addFeed(s.feedType, s.name.toUpperCase(), `Starting — ${s.model}`);
+
+    await sleep(600 + Math.random() * 500);
+
+    const fakeTokens = Math.round(demoText.length / 3.5);
+    const fakeCost = fakeTokens * s.costPer1k / 1000;
+
+    runState.results[stageId] = demoText;
+    runState.totalCost += fakeCost;
+    runState.totalTokens += fakeTokens;
+    runState.stagesDone++;
+
+    setStageStatus(stageId, 'done', `${(0.8 + Math.random()).toFixed(1)}s`);
+    setStageOutput(stageId, demoText);
+    setConnectorDone(stageId);
+    addFeed(s.feedType, s.name.toUpperCase(), `✓ Demo · ${fakeTokens} tokens · ~$${fakeCost.toFixed(5)}`);
+
+    document.getElementById('rs-stages').textContent = `${runState.stagesDone}/${stageIds.length}`;
+    document.getElementById('rs-cost').textContent = `$${runState.totalCost.toFixed(5)}`;
+
+    updateFinalOutput(stageIds);
+    updateCostBreakdown(stageIds);
+  }
+
+  if (!runState.aborted) {
+    setStatusPill('done', 'DEMO DONE');
+    addFeed('fi-system', 'DEMO', `✨ Demo complete — use your own API key for real results`);
+    toast('Demo complete! Add your API key in Account to run real pipelines.', 'ok');
+    document.getElementById('save-btn').style.display = '';
+    if (runState.results['frontend']) { autoPreview(); }
+  }
+
+  clearInterval(runState.elapsedTimer);
+  runState.running = false;
+  updateCreditsDisplay();
+}
+
+// ══════════════════════════════════════════
 //  API CALL
 // ══════════════════════════════════════════
 async function callAPI(apiKey, stage, prompt) {
@@ -1892,17 +1979,22 @@ function updateCostBreakdown(stageIds) {
     </div>`;
   }).join('');
 
-  const withoutMesh = runState.totalCost * 22;
-  const savingsPct = Math.round((1 - runState.totalCost / withoutMesh) * 100);
+  // Realistic comparison: what the same token count would cost using GPT-4o ($0.005/1k input)
+  // PromptMesh uses cheaper specialized models (Haiku, Sonnet) for most stages
+  const gpt4oCost = (runState.totalTokens * 0.005) / 1000;
+  const savingsPct = gpt4oCost > 0 ? Math.round((1 - runState.totalCost / gpt4oCost) * 100) : 0;
+  const savingsLabel = savingsPct > 0
+    ? `~${savingsPct}% cheaper than GPT-4o at the same token count`
+    : 'Cost shown above';
 
   el.innerHTML = rows + `
     <div class="cost-total-card">
       <div class="ctc-label">Total cost</div>
       <div class="ctc-amount">$${runState.totalCost.toFixed(5)}</div>
-      <div class="ctc-saved">Saved ~${savingsPct}% vs sending full context to GPT-4</div>
+      <div class="ctc-saved">${savingsLabel}</div>
       <div class="ctc-breakdown">
         <div class="ctb-item"><div class="ctb-val">${runState.totalTokens.toLocaleString()}</div><div class="ctb-lab">Tokens used</div></div>
-        <div class="ctb-item"><div class="ctb-val">~$${withoutMesh.toFixed(3)}</div><div class="ctb-lab">Without routing</div></div>
+        <div class="ctb-item"><div class="ctb-val">~$${gpt4oCost.toFixed(4)}</div><div class="ctb-lab">GPT-4o equiv.</div></div>
         <div class="ctb-item"><div class="ctb-val">${stageIds.length}</div><div class="ctb-lab">Stages run</div></div>
         <div class="ctb-item"><div class="ctb-val">${runState.mode}</div><div class="ctb-lab">Mode</div></div>
       </div>
