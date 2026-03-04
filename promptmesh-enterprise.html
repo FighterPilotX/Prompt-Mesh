@@ -964,7 +964,7 @@ function renderMap(){
     // Node
     ctx.shadowColor=a.active?'rgba(26,122,74,.2)':'transparent';ctx.shadowBlur=12;
     ctx.fillStyle=a.active?routerCol:'rgba(200,196,190,.5)';
-    ctx.strokeStyle=a.active?a.color:'var(--rule2)';ctx.lineWidth=2;
+    ctx.strokeStyle=a.active?a.color:(isDark?'#2d2b24':'#cec9be');ctx.lineWidth=2;
     ctx.beginPath();ctx.arc(ax,ay,28,0,Math.PI*2);ctx.fill();ctx.stroke();
     ctx.shadowBlur=0;
     // Text
@@ -1132,7 +1132,7 @@ function clearFeed(){document.getElementById('run-feed').innerHTML='';}
 function addFeed(cls,from,msg){
   const el=document.getElementById('run-feed');
   const d=new Date();
-  const ts=d.getHours().toString().padStart(2,'0')+':'+d.getSeconds().toString().padStart(2,'0');
+  const ts=d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0');
   const item=document.createElement('div');
   item.className='fi '+cls;
   item.innerHTML='<span class="fi-ts">'+ts+'</span><span class="fi-from">'+escHtml(from)+'</span><span class="fi-msg">'+escHtml(msg)+'</span>';

@@ -1488,25 +1488,33 @@ async function startDemoRun() {
 async function callAPI(apiKey, stage, prompt) {
   if (runState.aborted) throw new Error('ABORTED');
 
+  const MAX_NET_RETRIES = 3;
   let resp;
-  try {
-    resp = await fetch('/.netlify/functions/ai-proxy', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-request-when-unauthenticated': 'true'
-      },
-      body: JSON.stringify({
-        model: stage.model,
-        max_tokens: stage.tokenBudget,
-        system: stage.systemPrompt || `You are the ${stage.name} stage of PromptMesh. Produce the best possible output. Be concise, specific, and output exactly what's requested with no preamble.`,
-        messages: [{ role: 'user', content: prompt }]
-      })
-    });
-  } catch (networkErr) {
-    throw new Error(`Network error — check your internet connection. (${networkErr.message})`);
+  for (let attempt = 0; attempt < MAX_NET_RETRIES; attempt++) {
+    if (runState.aborted) throw new Error('ABORTED');
+    if (attempt > 0) await sleep(attempt * 1500); // 1.5s, 3s backoff
+    try {
+      resp = await fetch('/.netlify/functions/ai-proxy', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01'
+        },
+        body: JSON.stringify({
+          model: stage.model,
+          max_tokens: stage.tokenBudget,
+          system: stage.systemPrompt || `You are the ${stage.name} stage of PromptMesh. Produce the best possible output. Be concise, specific, and output exactly what's requested with no preamble.`,
+          messages: [{ role: 'user', content: prompt }]
+        })
+      });
+      break; // success — exit retry loop
+    } catch (networkErr) {
+      if (attempt === MAX_NET_RETRIES - 1) {
+        throw new Error(`Network error — check your internet connection. (${networkErr.message})`);
+      }
+      addFeed('fi-system', stage.name.toUpperCase(), `Network hiccup — retrying (${attempt + 1}/${MAX_NET_RETRIES - 1})…`);
+    }
   }
 
   if (!resp.ok) {
