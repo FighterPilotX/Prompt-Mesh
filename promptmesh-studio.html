@@ -1399,7 +1399,7 @@ async function callAPI(apiKey, stage, prompt) {
 
   let resp;
   try {
-    resp = await fetch('https://api.anthropic.com/v1/messages', {
+    resp = await fetch('/.netlify/functions/ai-proxy', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -1763,7 +1763,7 @@ async function testApiKey() {
   const btn = document.getElementById('test-key-btn');
   if (btn) { btn.textContent = 'Testing…'; btn.disabled = true; }
   try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    const resp = await fetch('/.netlify/functions/ai-proxy', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -2058,7 +2058,7 @@ function renderExamples() {
   const el = document.getElementById('examples-row');
   if (!el) return;
   el.innerHTML = EXAMPLES.map(e =>
-    `<div class="ex-chip" onclick="document.getElementById('main-input').value='+JSON.stringify(e)+'/g,"\\'")}';updateCostEst()">${escHtml(e)}</div>`
+    `<div class="ex-chip" onclick="document.getElementById('main-input').value=${JSON.stringify(e).replace(/"/g, '&quot;')};updateCostEst()">${escHtml(e)}</div>`
   ).join('');
 }
 

@@ -1022,7 +1022,7 @@ async function callAI(systemPrompt, userMsg, maxTokens){
   var key = getKey();
   if(!key){ toast('Enter your Anthropic API key first', 'bad'); return null; }
   try{
-    var resp = await fetch('https://api.anthropic.com/v1/messages', {
+    var resp = await fetch('/.netlify/functions/ai-proxy', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -1119,7 +1119,7 @@ async function sendChat(){
     if(scanData.os) context = '\n\nUser system info:\n' + buildSystemSummary();
     var messages = chatHistory.slice(-12).map(function(m){ return {role: m.role, content: m.content}; });
 
-    var resp = await fetch('https://api.anthropic.com/v1/messages', {
+    var resp = await fetch('/.netlify/functions/ai-proxy', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

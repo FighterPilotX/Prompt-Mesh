@@ -709,7 +709,7 @@ async function dispatch(){
 
 async function analyzeTask(key,task){
   if(dispatchState.aborted) throw new Error('ABORTED');
-  const resp=await fetch('https://api.anthropic.com/v1/messages',{
+  const resp=await fetch('/.netlify/functions/ai-proxy',{
     method:'POST',
     headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-request-when-unauthenticated':'true'},
     body:JSON.stringify({
@@ -765,7 +765,7 @@ async function callAgent(key,agent,task){
   if(dispatchState.aborted) throw new Error('ABORTED');
   let resp;
   try{
-    resp=await fetch('https://api.anthropic.com/v1/messages',{
+    resp=await fetch('/.netlify/functions/ai-proxy',{
       method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-request-when-unauthenticated':'true'},
       body:JSON.stringify({
