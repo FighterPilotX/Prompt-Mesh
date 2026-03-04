@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://api.anthropic.com;">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://api.anthropic.com https://api.openai.com https://generativelanguage.googleapis.com https://api.mistral.ai https://api.groq.com https://api.cohere.com;">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PromptMesh Dev — Bot Arena</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -218,8 +218,16 @@ body.light .dark-btn::after{left:15px;background:#fff;}
   <div class="sb-bot-list" id="sb-bot-list"></div>
 
   <div class="sb-bottom">
+    <select class="key-input" id="dev-provider-select" style="margin-bottom:4px;font-size:.68rem" onchange="updateDevKeyStatus()">
+      <option value="anthropic">🤖 Claude (Anthropic)</option>
+      <option value="openai">🧠 OpenAI</option>
+      <option value="gemini">✨ Gemini</option>
+      <option value="mistral">🌪️ Mistral</option>
+      <option value="groq">⚡ Groq</option>
+      <option value="cohere">🌊 Cohere</option>
+    </select>
     <div class="key-input-wrap">
-      <input class="key-input" id="dev-key-input" type="password" placeholder="sk-ant-… API key">
+      <input class="key-input" id="dev-key-input" type="password" placeholder="API key…">
       <button class="btn btn-purple btn-xs" onclick="saveDevKey()">Set</button>
     </div>
     <div class="key-status" id="dev-key-status">No key — bots can't run without it</div>
@@ -272,9 +280,35 @@ body.light .dark-btn::after{left:15px;background:#fff;}
           </div>
           <div class="field"><label>Model</label>
             <select class="select" id="b-model" onchange="updateCostEst()">
-              <option value="claude-haiku-4-5-20251001">claude-haiku-4-5-20251001 — cheapest, fastest</option>
-              <option value="claude-sonnet-4-6">claude-sonnet-4-6 — balanced, capable</option>
-              <option value="claude-opus-4-6">claude-opus-4-6 — most capable, expensive</option>
+              <optgroup label="🤖 Claude (Anthropic)">
+                <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 — cheapest, fastest</option>
+                <option value="claude-sonnet-4-6">Claude Sonnet 4.6 — balanced, capable</option>
+                <option value="claude-opus-4-6">Claude Opus 4.6 — most capable</option>
+              </optgroup>
+              <optgroup label="🧠 OpenAI (ChatGPT)">
+                <option value="gpt-4o-mini">GPT-4o Mini — fast, affordable</option>
+                <option value="gpt-4o">GPT-4o — flagship model</option>
+                <option value="gpt-3.5-turbo">GPT-3.5 Turbo — classic</option>
+              </optgroup>
+              <optgroup label="✨ Google Gemini">
+                <option value="gemini-2.0-flash">Gemini 2.0 Flash — fast &amp; cheap</option>
+                <option value="gemini-1.5-flash">Gemini 1.5 Flash — efficient</option>
+                <option value="gemini-1.5-pro">Gemini 1.5 Pro — advanced</option>
+              </optgroup>
+              <optgroup label="🌪️ Mistral AI">
+                <option value="mistral-small-latest">Mistral Small — lightweight</option>
+                <option value="open-mistral-nemo">Mistral Nemo — open weight</option>
+                <option value="mistral-large-latest">Mistral Large — high quality</option>
+              </optgroup>
+              <optgroup label="⚡ Groq (Llama/Mixtral)">
+                <option value="llama-3.3-70b-versatile">Llama 3.3 70B — versatile</option>
+                <option value="llama-3.1-8b-instant">Llama 3.1 8B — ultra fast</option>
+                <option value="mixtral-8x7b-32768">Mixtral 8x7B — long context</option>
+              </optgroup>
+              <optgroup label="🌊 Cohere">
+                <option value="command-r-08-2024">Command R — efficient</option>
+                <option value="command-r-plus-08-2024">Command R+ — powerful</option>
+              </optgroup>
             </select>
           </div>
           <div class="field"><label>Max Tokens</label>
@@ -497,11 +531,46 @@ const SYS_TEMPLATES = {
   creative:`You are a wildly creative AI with an unexpected, surprising take on every prompt. You find unusual angles, make unexpected connections, and delight in originality. You never give the boring answer. But you remain helpful — creative doesn't mean confusing.`,
 };
 
+// ══════════ LLM PROVIDERS ══════════
+const LLM_PROVIDERS = {
+  anthropic:{name:'Claude (Anthropic)',icon:'🤖',keyStorage:'dev_key',keyHint:'sk-ant-api03-…',
+    models:{'claude-haiku-4-5-20251001':{label:'Claude Haiku 4.5',costPer1k:0.00025},'claude-sonnet-4-6':{label:'Claude Sonnet 4.6',costPer1k:0.003},'claude-opus-4-6':{label:'Claude Opus 4.6',costPer1k:0.015}},defaultModel:'claude-haiku-4-5-20251001',
+    async call(key,model,sys,user,maxTok){const r=await fetch('/.netlify/functions/ai-proxy',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01'},body:JSON.stringify({model,max_tokens:maxTok,system:sys,messages:[{role:'user',content:user}]})});if(!r.ok){const d=await r.json().catch(()=>({}));throw new Error((r.status===401?'Invalid Anthropic key':r.status===429?'Rate limited by Anthropic':'Anthropic error '+r.status)+': '+(d?.error?.message||'').substring(0,60));}const d=await r.json();return{text:d.content?.[0]?.text||'',tokens:(d.usage?.input_tokens||0)+(d.usage?.output_tokens||0)};}
+  },
+  openai:{name:'OpenAI (ChatGPT)',icon:'🧠',keyStorage:'dev_key_openai',keyHint:'sk-proj-…',
+    models:{'gpt-4o':{label:'GPT-4o',costPer1k:0.005},'gpt-4o-mini':{label:'GPT-4o Mini',costPer1k:0.00015},'gpt-3.5-turbo':{label:'GPT-3.5 Turbo',costPer1k:0.0005}},defaultModel:'gpt-4o-mini',
+    async call(key,model,sys,user,maxTok){const msgs=[];if(sys)msgs.push({role:'system',content:sys});msgs.push({role:'user',content:user});const r=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model,max_tokens:maxTok,messages:msgs})});if(!r.ok){const d=await r.json().catch(()=>({}));throw new Error((r.status===401?'Invalid OpenAI key':r.status===429?'Rate limited by OpenAI':'OpenAI error '+r.status)+': '+(d?.error?.message||'').substring(0,60));}const d=await r.json();return{text:d.choices?.[0]?.message?.content||'',tokens:(d.usage?.prompt_tokens||0)+(d.usage?.completion_tokens||0)};}
+  },
+  gemini:{name:'Google Gemini',icon:'✨',keyStorage:'dev_key_gemini',keyHint:'AIzaSy…',
+    models:{'gemini-2.0-flash':{label:'Gemini 2.0 Flash',costPer1k:0.00010},'gemini-1.5-flash':{label:'Gemini 1.5 Flash',costPer1k:0.000075},'gemini-1.5-pro':{label:'Gemini 1.5 Pro',costPer1k:0.00125}},defaultModel:'gemini-2.0-flash',
+    async call(key,model,sys,user,maxTok){const body={contents:[{parts:[{text:user}]}],generationConfig:{maxOutputTokens:maxTok}};if(sys)body.systemInstruction={parts:[{text:sys}]};const r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+model+':generateContent?key='+key,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});if(!r.ok){const d=await r.json().catch(()=>({}));throw new Error((r.status===403?'Invalid Gemini key':r.status===429?'Rate limited by Gemini':'Gemini error '+r.status)+': '+(d?.error?.message||'').substring(0,60));}const d=await r.json();return{text:d.candidates?.[0]?.content?.parts?.[0]?.text||'',tokens:(d.usageMetadata?.promptTokenCount||0)+(d.usageMetadata?.candidatesTokenCount||0)};}
+  },
+  mistral:{name:'Mistral AI',icon:'🌪️',keyStorage:'dev_key_mistral',keyHint:'Mistral API key…',
+    models:{'mistral-large-latest':{label:'Mistral Large',costPer1k:0.002},'mistral-small-latest':{label:'Mistral Small',costPer1k:0.0002},'open-mistral-nemo':{label:'Mistral Nemo',costPer1k:0.00015}},defaultModel:'mistral-small-latest',
+    async call(key,model,sys,user,maxTok){const msgs=[];if(sys)msgs.push({role:'system',content:sys});msgs.push({role:'user',content:user});const r=await fetch('https://api.mistral.ai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model,max_tokens:maxTok,messages:msgs})});if(!r.ok){const d=await r.json().catch(()=>({}));throw new Error((r.status===401?'Invalid Mistral key':r.status===429?'Rate limited by Mistral':'Mistral error '+r.status)+': '+(d?.message||'').substring(0,60));}const d=await r.json();return{text:d.choices?.[0]?.message?.content||'',tokens:(d.usage?.prompt_tokens||0)+(d.usage?.completion_tokens||0)};}
+  },
+  groq:{name:'Groq (Llama/Mixtral)',icon:'⚡',keyStorage:'dev_key_groq',keyHint:'gsk_…',
+    models:{'llama-3.3-70b-versatile':{label:'Llama 3.3 70B',costPer1k:0.00059},'llama-3.1-8b-instant':{label:'Llama 3.1 8B (instant)',costPer1k:0.00005},'mixtral-8x7b-32768':{label:'Mixtral 8x7B',costPer1k:0.00024}},defaultModel:'llama-3.3-70b-versatile',
+    async call(key,model,sys,user,maxTok){const msgs=[];if(sys)msgs.push({role:'system',content:sys});msgs.push({role:'user',content:user});const r=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model,max_tokens:maxTok,messages:msgs})});if(!r.ok){const d=await r.json().catch(()=>({}));throw new Error((r.status===401?'Invalid Groq key':r.status===429?'Rate limited by Groq':'Groq error '+r.status)+': '+(d?.error?.message||'').substring(0,60));}const d=await r.json();return{text:d.choices?.[0]?.message?.content||'',tokens:(d.usage?.prompt_tokens||0)+(d.usage?.completion_tokens||0)};}
+  },
+  cohere:{name:'Cohere',icon:'🌊',keyStorage:'dev_key_cohere',keyHint:'Cohere API key…',
+    models:{'command-r-08-2024':{label:'Command R (latest)',costPer1k:0.00015},'command-r-plus-08-2024':{label:'Command R+ (latest)',costPer1k:0.003}},defaultModel:'command-r-08-2024',
+    async call(key,model,sys,user,maxTok){const r=await fetch('https://api.cohere.com/v2/chat',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model,max_tokens:maxTok,preamble:sys||undefined,messages:[{role:'user',content:user}]})});if(!r.ok){const d=await r.json().catch(()=>({}));throw new Error((r.status===401?'Invalid Cohere key':r.status===429?'Rate limited by Cohere':'Cohere error '+r.status)+': '+(d?.message||'').substring(0,60));}const d=await r.json();return{text:d.message?.content?.[0]?.text||'',tokens:(d.usage?.tokens?.input_tokens||0)+(d.usage?.tokens?.output_tokens||0)};}
+  }
+};
+
+const ALL_MODEL_IDS = Object.values(LLM_PROVIDERS).flatMap(p=>Object.keys(p.models));
+// Flat cost-per-1k lookup for all models, computed once
+const MODEL_COSTS = Object.values(LLM_PROVIDERS).reduce((acc,p)=>{Object.entries(p.models).forEach(([m,d])=>acc[m]=d.costPer1k);return acc;},{});
+
+function getProviderForModel(model){
+  for(const[pid,p]of Object.entries(LLM_PROVIDERS)){if(model in p.models)return{pid,p};}
+  return{pid:'anthropic',p:LLM_PROVIDERS.anthropic};
+}
 function getBots(){try{return JSON.parse(localStorage.getItem('dev_bots')||'[]');}catch{return[];}}
 function saveBots(b){localStorage.setItem('dev_bots',JSON.stringify(b));}
 function getBattles(){try{return JSON.parse(localStorage.getItem('dev_battles')||'[]');}catch{return[];}}
 function saveBattles(b){localStorage.setItem('dev_battles',JSON.stringify(b));}
-function getDevKey(){return sessionStorage.getItem('dev_key');}
 
 let arenaState={running:false,aborted:false,slotA:null,slotB:null,selectedChallenge:null};
 let editingBotId=null;
@@ -527,10 +596,9 @@ function loadSysTemplate(key){
 }
 
 function updateCostEst(){
-  const costs={'claude-haiku-4-5-20251001':0.00025,'claude-sonnet-4-6':0.003,'claude-opus-4-6':0.015};
   const tokens=parseInt(document.getElementById('b-tokens').value||512);
   const model=document.getElementById('b-model').value;
-  const cost=(tokens*((costs[model]||0.00025)/1000)).toFixed(5);
+  const cost=(tokens*((MODEL_COSTS[model]||0.00025)/1000)).toFixed(5);
   document.getElementById('b-cost-est').textContent='~$'+cost;
 }
 
@@ -617,13 +685,12 @@ function importBot(){
     if(typeof raw.name !== 'string' || typeof raw.sys !== 'string') throw new Error('Missing required fields: name and sys');
     if(raw.name.length > 80) throw new Error('Name too long (max 80)');
     if(raw.sys.length > 8000) throw new Error('System prompt too long (max 8000 chars)');
-    const ALLOWED_MODELS = ['claude-haiku-4-5-20251001','claude-sonnet-4-6','claude-opus-4-6'];
     const b = {
       id: 'bot_'+Date.now(),
       name: String(raw.name).substring(0,80),
       emoji: typeof raw.emoji === 'string' ? raw.emoji.substring(0,4) : '🤖',
       sys: String(raw.sys).substring(0,8000),
-      model: ALLOWED_MODELS.includes(raw.model) ? raw.model : 'claude-haiku-4-5-20251001',
+      model: ALL_MODEL_IDS.includes(raw.model) ? raw.model : 'claude-haiku-4-5-20251001',
       maxTokens: Math.min(Math.max(parseInt(raw.maxTokens)||512, 64), 4096),
       temperature: Math.min(Math.max(parseFloat(raw.temperature)||0.7, 0), 1),
       tags: typeof raw.tags === 'string' ? raw.tags.substring(0,200) : '',
@@ -764,8 +831,14 @@ async function runArena(){
   if(!botA||!botB){toast('Select two bots to compete','bad');return;}
   if(botA.id===botB.id){toast('Pick two different bots','bad');return;}
 
-  const key=getDevKey();
-  if(!key){toast('Set your API key in the sidebar first','bad');return;}
+  // Check that keys are available for both bots' providers
+  const{p:pA}=getProviderForModel(botA.model);
+  const{p:pB}=getProviderForModel(botB.model);
+  const keyA=sessionStorage.getItem(pA.keyStorage);
+  const keyB=sessionStorage.getItem(pB.keyStorage);
+  if(!keyA){toast('No API key for '+pA.name+' (Bot A) — add it in sidebar','bad');return;}
+  if(!keyB){toast('No API key for '+pB.name+' (Bot B) — add it in sidebar','bad');return;}
+  const key=keyA; // legacy compat var (used for judge)
 
   let taskPrompt=document.getElementById('custom-challenge').value.trim();
   let challengeTitle='Custom Challenge';
@@ -901,32 +974,14 @@ async function runArena(){
 }
 
 async function runBot(key,bot,task){
-  let resp;
-  try{
-    resp=await fetch('/.netlify/functions/ai-proxy',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-request-when-unauthenticated':'true'},
-      body:JSON.stringify({
-        model:bot.model,
-        max_tokens:bot.maxTokens||512,
-        system:bot.sys,
-        messages:[{role:'user',content:task}]
-      })
-    });
-  }catch(e){throw new Error('Network: '+e.message);}
-
-  if(resp.status===401) throw new Error('Invalid API key');
-  if(resp.status===429) throw new Error('Rate limited');
-  if(!resp.ok){const d=await resp.json().catch(()=>({}));throw new Error('API '+resp.status+': '+(d?.error?.message||'').substring(0,60));}
-
-  const d=await resp.json();
-  const text=d.content?.[0]?.text||'';
-  const tokens=(d.usage?.input_tokens||0)+(d.usage?.output_tokens||0);
-  const costs={'claude-haiku-4-5-20251001':0.00025,'claude-sonnet-4-6':0.003,'claude-opus-4-6':0.015};
-  const cost=tokens*(costs[bot.model]||0.00025)/1000;
-  return{text,tokens,cost};
+  // Route to the correct provider based on bot's model
+  const{pid,p}=getProviderForModel(bot.model);
+  const providerKey=sessionStorage.getItem(p.keyStorage)||key;
+  if(!providerKey)throw new Error('No API key for '+p.name+' — add it in Settings');
+  const result=await p.call(providerKey,bot.model,bot.sys,task,bot.maxTokens);
+  const cost=result.tokens*(MODEL_COSTS[bot.model]||0.00025)/1000;
+  return{text:result.text,tokens:result.tokens,cost};
 }
-
 async function judge(key,task,textA,textB,hint,nameA,nameB){
   const prompt=`You are an objective judge evaluating two AI responses to the same task.
 
@@ -943,25 +998,19 @@ Judge based on: ${hint}. Score each /10. Declare a winner or "Draw" if very clos
 Respond in JSON only:
 {"winner":"${nameA}" or "${nameB}" or "Draw","scoreA":8,"scoreB":7,"note":"One sentence explaining the decision"}`;
 
-  let resp;
+  // Use Anthropic (Haiku) as judge — get any available key
+  const judgeKey = sessionStorage.getItem(LLM_PROVIDERS.anthropic.keyStorage) || key;
+  if(!judgeKey) throw new Error('No Anthropic key for judge — add it in Settings');
   try{
-    resp=await fetch('/.netlify/functions/ai-proxy',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-request-when-unauthenticated':'true'},
-      body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:150,messages:[{role:'user',content:prompt}]})
-    });
-  }catch(e){throw new Error('Judge network error: '+e.message);}
-
-  if(!resp.ok) throw new Error('Judge API error '+resp.status);
-  const d=await resp.json();
-  const tokens=(d.usage?.input_tokens||0)+(d.usage?.output_tokens||0);
-  const cost=tokens*0.00025/1000;
-  try{
-    const j=JSON.parse(d.content[0].text.replace(/```json|```/g,'').trim());
-    return{...j,cost};
-  }catch{
-    return{winner:'Draw',scoreA:5,scoreB:5,note:'Could not parse judge response',cost};
-  }
+    const result = await LLM_PROVIDERS.anthropic.call(judgeKey,'claude-haiku-4-5-20251001','',prompt,150);
+    const cost=result.tokens*0.00025/1000;
+    try{
+      const j=JSON.parse(result.text.replace(/```json|```/g,'').trim());
+      return{...j,cost};
+    }catch{
+      return{winner:'Draw',scoreA:5,scoreB:5,note:'Could not parse judge response',cost};
+    }
+  }catch(e){throw new Error('Judge error: '+e.message);}
 }
 
 // ══════════ LEADERBOARD ══════════
@@ -1001,13 +1050,22 @@ function exportLeaderboard(){
 
 // ══════════ API KEY ══════════
 function saveDevKey(){
+  const pid=document.getElementById('dev-provider-select')?.value||'anthropic';
+  const p=LLM_PROVIDERS[pid];
   const k=document.getElementById('dev-key-input').value.trim();
   if(!k){toast('Enter a key','bad');return;}
-  sessionStorage.setItem('dev_key',k);
+  sessionStorage.setItem(p.keyStorage,k);
   document.getElementById('dev-key-input').value='';
-  document.getElementById('dev-key-status').textContent='Key set: '+k.substring(0,10)+'…';
-  document.getElementById('dev-key-status').style.color='var(--green)';
-  toast('API key saved','ok');
+  updateDevKeyStatus();
+  toast(p.name+' key saved','ok');
+}
+
+function updateDevKeyStatus(){
+  const pid=document.getElementById('dev-provider-select')?.value||'anthropic';
+  const p=LLM_PROVIDERS[pid];
+  const k=p?sessionStorage.getItem(p.keyStorage):null;
+  const el=document.getElementById('dev-key-status');
+  if(el){el.textContent=k?p.name+' key: '+k.substring(0,10)+'…':'No '+p.name+' key set';el.style.color=k?'var(--green)':'var(--ink4)';}
 }
 
 function clearArena(){
@@ -1028,8 +1086,7 @@ function toggleDark(){document.body.classList.toggle('light');localStorage.setIt
 document.addEventListener('DOMContentLoaded',()=>{
   if(localStorage.getItem('pm_dark')==='0') document.body.classList.add('light');
   renderBots();renderSbBots();renderChallengeList();renderLeaderboard();updateMyElo();updateCostEst();
-  const k=getDevKey();
-  if(k){document.getElementById('dev-key-status').textContent='Key: '+k.substring(0,10)+'…';document.getElementById('dev-key-status').style.color='var(--green)';}
+  updateDevKeyStatus();
   document.addEventListener('keydown',e=>{
     if(e.key==='Escape') document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none');
     if((e.ctrlKey||e.metaKey)&&e.key==='Enter') runArena();

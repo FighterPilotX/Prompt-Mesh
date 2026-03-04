@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://api.anthropic.com; frame-src 'none';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://api.anthropic.com https://api.openai.com https://generativelanguage.googleapis.com https://api.mistral.ai https://api.groq.com https://api.cohere.com; frame-src 'none';">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PromptMesh Studio — AI Pipeline Builder</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -525,7 +525,15 @@ body.dark .dark-toggle .icon-moon { display:block; }
           <div class="cost-est" id="cost-est">⚡ ~$0.003 est.</div>
           <div class="run-credits" id="credits-display"></div>
         </div>
-        <div style="display:flex;align-items:center;gap:8px">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <select class="select" id="provider-select" style="width:170px;padding:5px 28px 5px 10px;font-size:.74rem" onchange="onProviderChange()">
+            <option value="anthropic">🤖 Claude (Anthropic)</option>
+            <option value="openai">🧠 OpenAI (ChatGPT)</option>
+            <option value="gemini">✨ Google Gemini</option>
+            <option value="mistral">🌪️ Mistral AI</option>
+            <option value="groq">⚡ Groq (Llama)</option>
+            <option value="cohere">🌊 Cohere</option>
+          </select>
           <select class="select" id="mode-select" style="width:140px;padding:5px 28px 5px 10px;font-size:.74rem" onchange="updateCostEst()">
             <option value="quick">Quick (3 stages)</option>
             <option value="full">Full Team (5 stages)</option>
@@ -815,16 +823,27 @@ body.dark .dark-toggle .icon-moon { display:block; }
       </div>
     </div>
 
-    <!-- API Key (BYOK) -->
+    <!-- API Keys (BYOK) — multi-provider -->
     <div class="settings-card">
-      <h3>Your API Key (BYOK)</h3>
-      <p>Use your own Anthropic API key. Your runs cost you ~$0.003 directly — no markup. Key is stored in your browser only, never sent to our servers.</p>
+      <h3>API Keys (BYOK)</h3>
+      <p>Use your own API keys from any supported provider. Keys are stored in your browser only (sessionStorage), never sent to our servers. You pay providers directly — no markup.</p>
       <div class="byok-notice" style="margin-bottom:14px">
         <span>⚠️</span>
-        <span>BYOK bypasses our credit system entirely — you pay Anthropic directly. Great for power users. Key stored in sessionStorage only.</span>
+        <span>BYOK bypasses our credit system entirely. Keys stored in sessionStorage only — cleared when tab closes.</span>
+      </div>
+      <div class="field" style="margin-bottom:10px">
+        <label>Provider</label>
+        <select class="select" id="byok-provider-select" style="max-width:280px" onchange="updateByokProviderUI()">
+          <option value="anthropic">🤖 Claude (Anthropic) — sk-ant-api03-…</option>
+          <option value="openai">🧠 OpenAI (ChatGPT) — sk-proj-…</option>
+          <option value="gemini">✨ Google Gemini — AIzaSy…</option>
+          <option value="mistral">🌪️ Mistral AI</option>
+          <option value="groq">⚡ Groq (Llama/Mixtral) — gsk_…</option>
+          <option value="cohere">🌊 Cohere</option>
+        </select>
       </div>
       <div class="field">
-        <label>Anthropic API Key</label>
+        <label id="byok-key-label">Anthropic API Key</label>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <input class="input" id="byok-input" type="password" placeholder="sk-ant-api03-…" style="flex:1;min-width:200px">
           <button class="btn btn-secondary btn-sm" onclick="saveByok()">Save Key</button>
@@ -832,6 +851,10 @@ body.dark .dark-toggle .icon-moon { display:block; }
           <button class="btn btn-ghost btn-sm" onclick="clearByok()">Clear</button>
         </div>
         <div style="font-size:.7rem;color:var(--ink4);margin-top:4px" id="byok-status"></div>
+      </div>
+      <div style="margin-top:14px">
+        <div style="font-size:.7rem;font-weight:600;color:var(--ink3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Saved Keys</div>
+        <div id="all-keys-status" style="display:flex;flex-wrap:wrap;gap:6px"></div>
       </div>
     </div>
 
@@ -909,6 +932,107 @@ body.dark .dark-toggle .icon-moon { display:block; }
 
 <script>
 'use strict';
+
+// ══════════════════════════════════════════
+//  LLM PROVIDERS — multi-provider support
+// ══════════════════════════════════════════
+const LLM_PROVIDERS = {
+  anthropic: {
+    name:'Claude (Anthropic)', icon:'🤖', keyStorage:'pm_key', keyHint:'sk-ant-api03-…',
+    models:{'claude-haiku-4-5-20251001':{label:'Claude Haiku 4.5',costPer1k:0.00025},'claude-sonnet-4-6':{label:'Claude Sonnet 4.6',costPer1k:0.003},'claude-opus-4-6':{label:'Claude Opus 4.6',costPer1k:0.015}},
+    defaultModel:'claude-haiku-4-5-20251001',
+    async call(key,model,sys,user,maxTok){
+      const r=await fetch('/.netlify/functions/ai-proxy',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01'},body:JSON.stringify({model,max_tokens:maxTok,system:sys,messages:[{role:'user',content:user}]})});
+      if(!r.ok){const d=await r.json().catch(()=>({}));if(r.status===401)throw new Error('Invalid Anthropic key — check it starts with sk-ant-api03-');if(r.status===429)throw new Error('Rate limited by Anthropic — wait a moment');throw new Error('Anthropic error '+r.status+': '+(d?.error?.message||'').substring(0,80));}
+      const d=await r.json();const text=d.content?.[0]?.text||'';if(!text)throw new Error('Empty response from Anthropic');
+      return{text,tokens:(d.usage?.input_tokens||0)+(d.usage?.output_tokens||0),truncated:d.stop_reason==='max_tokens'};
+    }
+  },
+  openai: {
+    name:'OpenAI (ChatGPT)', icon:'🧠', keyStorage:'pm_key_openai', keyHint:'sk-proj-…',
+    models:{'gpt-4o':{label:'GPT-4o',costPer1k:0.005},'gpt-4o-mini':{label:'GPT-4o Mini',costPer1k:0.00015},'gpt-3.5-turbo':{label:'GPT-3.5 Turbo',costPer1k:0.0005}},
+    defaultModel:'gpt-4o-mini',
+    async call(key,model,sys,user,maxTok){
+      const msgs=[];if(sys)msgs.push({role:'system',content:sys});msgs.push({role:'user',content:user});
+      const r=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model,max_tokens:maxTok,messages:msgs})});
+      if(!r.ok){const d=await r.json().catch(()=>({}));if(r.status===401)throw new Error('Invalid OpenAI API key');if(r.status===429)throw new Error('Rate limited by OpenAI — wait a moment');throw new Error('OpenAI error '+r.status+': '+(d?.error?.message||'').substring(0,80));}
+      const d=await r.json();const text=d.choices?.[0]?.message?.content||'';if(!text)throw new Error('Empty response from OpenAI');
+      return{text,tokens:(d.usage?.prompt_tokens||0)+(d.usage?.completion_tokens||0),truncated:d.choices?.[0]?.finish_reason==='length'};
+    }
+  },
+  gemini: {
+    name:'Google Gemini', icon:'✨', keyStorage:'pm_key_gemini', keyHint:'AIzaSy…',
+    models:{'gemini-2.0-flash':{label:'Gemini 2.0 Flash',costPer1k:0.000100},'gemini-1.5-flash':{label:'Gemini 1.5 Flash',costPer1k:0.000075},'gemini-1.5-pro':{label:'Gemini 1.5 Pro',costPer1k:0.00125}},
+    defaultModel:'gemini-2.0-flash',
+    async call(key,model,sys,user,maxTok){
+      const body={contents:[{parts:[{text:user}]}],generationConfig:{maxOutputTokens:maxTok}};if(sys)body.systemInstruction={parts:[{text:sys}]};
+      const r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+model+':generateContent?key='+key,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+      if(!r.ok){const d=await r.json().catch(()=>({}));if(r.status===400)throw new Error('Gemini: '+(d?.error?.message||'Bad request').substring(0,80));if(r.status===403)throw new Error('Invalid Google Gemini API key');if(r.status===429)throw new Error('Rate limited by Gemini — wait a moment');throw new Error('Gemini error '+r.status+': '+(d?.error?.message||'').substring(0,80));}
+      const d=await r.json();const text=d.candidates?.[0]?.content?.parts?.[0]?.text||'';if(!text)throw new Error('Empty response from Gemini');
+      return{text,tokens:(d.usageMetadata?.promptTokenCount||0)+(d.usageMetadata?.candidatesTokenCount||0),truncated:d.candidates?.[0]?.finishReason==='MAX_TOKENS'};
+    }
+  },
+  mistral: {
+    name:'Mistral AI', icon:'🌪️', keyStorage:'pm_key_mistral', keyHint:'Mistral API key…',
+    models:{'mistral-large-latest':{label:'Mistral Large',costPer1k:0.002},'mistral-small-latest':{label:'Mistral Small',costPer1k:0.0002},'open-mistral-nemo':{label:'Mistral Nemo (free)',costPer1k:0.00015}},
+    defaultModel:'mistral-small-latest',
+    async call(key,model,sys,user,maxTok){
+      const msgs=[];if(sys)msgs.push({role:'system',content:sys});msgs.push({role:'user',content:user});
+      const r=await fetch('https://api.mistral.ai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model,max_tokens:maxTok,messages:msgs})});
+      if(!r.ok){const d=await r.json().catch(()=>({}));if(r.status===401)throw new Error('Invalid Mistral API key');if(r.status===429)throw new Error('Rate limited by Mistral — wait a moment');throw new Error('Mistral error '+r.status+': '+(d?.message||'').substring(0,80));}
+      const d=await r.json();const text=d.choices?.[0]?.message?.content||'';if(!text)throw new Error('Empty response from Mistral');
+      return{text,tokens:(d.usage?.prompt_tokens||0)+(d.usage?.completion_tokens||0),truncated:d.choices?.[0]?.finish_reason==='length'};
+    }
+  },
+  groq: {
+    name:'Groq (Llama/Mixtral)', icon:'⚡', keyStorage:'pm_key_groq', keyHint:'gsk_…',
+    models:{'llama-3.3-70b-versatile':{label:'Llama 3.3 70B',costPer1k:0.00059},'llama-3.1-8b-instant':{label:'Llama 3.1 8B (instant)',costPer1k:0.00005},'mixtral-8x7b-32768':{label:'Mixtral 8x7B',costPer1k:0.00024}},
+    defaultModel:'llama-3.3-70b-versatile',
+    async call(key,model,sys,user,maxTok){
+      const msgs=[];if(sys)msgs.push({role:'system',content:sys});msgs.push({role:'user',content:user});
+      const r=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model,max_tokens:maxTok,messages:msgs})});
+      if(!r.ok){const d=await r.json().catch(()=>({}));if(r.status===401)throw new Error('Invalid Groq API key');if(r.status===429)throw new Error('Rate limited by Groq — wait a moment');throw new Error('Groq error '+r.status+': '+(d?.error?.message||'').substring(0,80));}
+      const d=await r.json();const text=d.choices?.[0]?.message?.content||'';if(!text)throw new Error('Empty response from Groq');
+      return{text,tokens:(d.usage?.prompt_tokens||0)+(d.usage?.completion_tokens||0),truncated:d.choices?.[0]?.finish_reason==='length'};
+    }
+  },
+  cohere: {
+    name:'Cohere', icon:'🌊', keyStorage:'pm_key_cohere', keyHint:'Cohere API key…',
+    models:{'command-r-plus-08-2024':{label:'Command R+ (latest)',costPer1k:0.003},'command-r-08-2024':{label:'Command R (latest)',costPer1k:0.00015}},
+    defaultModel:'command-r-08-2024',
+    async call(key,model,sys,user,maxTok){
+      const r=await fetch('https://api.cohere.com/v2/chat',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model,max_tokens:maxTok,preamble:sys||undefined,messages:[{role:'user',content:user}]})});
+      if(!r.ok){const d=await r.json().catch(()=>({}));if(r.status===401)throw new Error('Invalid Cohere API key');if(r.status===429)throw new Error('Rate limited by Cohere — wait a moment');throw new Error('Cohere error '+r.status+': '+(d?.message||'').substring(0,80));}
+      const d=await r.json();const text=d.message?.content?.[0]?.text||'';if(!text)throw new Error('Empty response from Cohere');
+      return{text,tokens:(d.usage?.tokens?.input_tokens||0)+(d.usage?.tokens?.output_tokens||0),truncated:d.finish_reason==='MAX_TOKENS'};
+    }
+  }
+};
+
+function getSelectedProvider(){return document.getElementById('provider-select')?.value||'anthropic';}
+function getProviderKey(pid){const p=LLM_PROVIDERS[pid];return p?sessionStorage.getItem(p.keyStorage):null;}
+function setProviderKey(pid,key){const p=LLM_PROVIDERS[pid];if(p)sessionStorage.setItem(p.keyStorage,key);}
+
+function onProviderChange(){
+  updateCostEstLive();
+  // Sync byok provider selector if visible
+  const byokSel=document.getElementById('byok-provider-select');
+  const pid=getSelectedProvider();
+  if(byokSel)byokSel.value=pid;
+  updateByokStatus();
+  const key=getProviderKey(pid);
+  if(!key){const p=LLM_PROVIDERS[pid];setTimeout(()=>toast('Set your '+p.name+' API key in Account → API Keys','info'),100);}
+}
+
+function updateByokProviderUI(){
+  const pid=document.getElementById('byok-provider-select')?.value||'anthropic';
+  const p=LLM_PROVIDERS[pid];if(!p)return;
+  const lbl=document.getElementById('byok-key-label');
+  const inp=document.getElementById('byok-input');
+  if(lbl)lbl.textContent=p.name+' API Key';
+  if(inp)inp.placeholder=p.keyHint;
+  updateByokStatus();
+}
 
 // ══════════════════════════════════════════
 //  CONSTANTS & STAGE DEFINITIONS
@@ -1157,8 +1281,9 @@ function saveProjects(p) { localStorage.setItem('pm_projects', JSON.stringify(p)
 
 function canRun() {
   const u = getUser();
-  // BYOK users always can run
-  if (sessionStorage.getItem('pm_key')) return { ok: true, reason: 'byok' };
+  // BYOK users always can run — check any provider key
+  const hasKey = Object.values(LLM_PROVIDERS).some(p => sessionStorage.getItem(p.keyStorage));
+  if (hasKey) return { ok: true, reason: 'byok' };
   // Check daily reset
   const today = new Date().toDateString();
   if (u.lastRunDate !== today) { u.runsToday = 0; u.lastRunDate = today; saveUser(u); }
@@ -1232,7 +1357,8 @@ async function startRun() {
   const check = canRun();
   if (!check.ok) { showUpgradeModal(check.reason); return; }
 
-  const apiKey = sessionStorage.getItem('pm_key') || promptForKey();
+  const providerId = getSelectedProvider();
+  const apiKey = getProviderKey(providerId) || promptForKey();
   if (!apiKey) return;
 
   const mode = document.getElementById('mode-select').value;
@@ -1244,20 +1370,19 @@ async function startRun() {
 }
 
 function promptForKey() {
+  const pid = getSelectedProvider();
+  const p = LLM_PROVIDERS[pid] || LLM_PROVIDERS.anthropic;
   const key = window.prompt(
-    'Enter your Anthropic API key to use PromptMesh.\n\n' +
+    'Enter your ' + p.name + ' API key to use PromptMesh.\n\n' +
     '• Stored in sessionStorage only — cleared when you close the tab\n' +
-    '• Goes directly to Anthropic — never touches our servers\n' +
-    '• Get one at: console.anthropic.com\n\nPaste key below (starts with sk-ant-):'
+    '• Goes directly to the AI provider — never touches our servers\n' +
+    '• Key format: ' + p.keyHint + '\n\nPaste key below:'
   );
   if (!key || !key.trim()) return null;
   const trimmed = key.trim();
-  if (!trimmed.startsWith('sk-ant')) {
-    const ok = window.confirm('Key does not start with sk-ant- and may be invalid. Try anyway?');
-    if (!ok) return null;
-  }
-  sessionStorage.setItem('pm_key', trimmed);
-  toast('API key saved for this session', 'ok');
+  if (trimmed.length < 10) { toast('Key too short — check it and try again', 'bad'); return null; }
+  setProviderKey(pid, trimmed);
+  toast(p.name + ' key saved for this session', 'ok');
   updateByokStatus();
   updateCreditsDisplay();
   return trimmed;
@@ -1340,7 +1465,8 @@ async function executePipeline(apiKey, prompt, stageIds, mode) {
     const s = STAGES_CONFIG[stageId];
 
     setStageStatus(stageId, 'working');
-    addFeed(s.feedType, s.name.toUpperCase(), `Starting — ${s.model}`);
+    const _pid=getSelectedProvider();const _p=LLM_PROVIDERS[_pid];const _modelLabel=_p?((_p.models[_p.defaultModel]?.label)||_p.defaultModel):s.model;
+    addFeed(s.feedType, s.name.toUpperCase(), `Starting — ${_modelLabel}`);
 
     const t0 = Date.now();
     const userPrompt = s.buildPrompt(prompt, runState.results, customSys);
@@ -1548,6 +1674,28 @@ async function callAPI(apiKey, stage, prompt) {
 }
 
 // ══════════════════════════════════════════
+//  API CALL — multi-provider
+// ══════════════════════════════════════════
+async function callAPI(apiKey, stage, prompt) {
+  if (runState.aborted) throw new Error('ABORTED');
+  const pid = getSelectedProvider();
+  const p = LLM_PROVIDERS[pid];
+  if (!p) throw new Error('Unknown provider: ' + pid);
+  const key = getProviderKey(pid);
+  if (!key) throw new Error('No API key for ' + p.name + ' — save it in Account → API Keys');
+  const model = p.defaultModel;
+  const sysPrompt = `You are the ${stage.name} stage of PromptMesh, an AI pipeline tool. Your role: produce the best possible ${stage.name.toLowerCase()} output. Be concise, specific, and output exactly what's requested with no preamble.`;
+  try {
+    return await p.call(key, model, sysPrompt, prompt, stage.tokenBudget);
+  } catch (e) {
+    if (e.message && (e.message.toLowerCase().includes('failed to fetch') || e.message.toLowerCase().includes('networkerror'))) {
+      throw new Error('Network error — check your internet connection. (' + e.message + ')');
+    }
+    throw e;
+  }
+}
+
+// ══════════════════════════════════════════
 //  ITERATE
 // ══════════════════════════════════════════
 async function iterate() {
@@ -1561,7 +1709,8 @@ async function iterate() {
   const check = canRun();
   if (!check.ok) { showUpgradeModal(check.reason); return; }
 
-  const apiKey = sessionStorage.getItem('pm_key') || promptForKey();
+  const _itPid = getSelectedProvider();
+  const apiKey = getProviderKey(_itPid) || promptForKey();
   if (!apiKey) return;
 
   runState.iterationCount++;
@@ -1847,55 +1996,40 @@ function setTier(tier) {
 //  BYOK
 // ══════════════════════════════════════════
 function saveByok() {
+  const pid = document.getElementById('byok-provider-select')?.value || 'anthropic';
   const key = document.getElementById('byok-input').value.trim();
   if (!key) { clearByok(); return; }
-  // Accept any key that looks plausible
   if (key.length < 20) { toast('Key too short — double check it', 'bad'); return; }
-  sessionStorage.setItem('pm_key', key);
+  setProviderKey(pid, key);
   document.getElementById('byok-input').value = '';
   updateByokStatus();
   updateCreditsDisplay();
-  toast('API key saved for this session ✓', 'ok');
+  toast((LLM_PROVIDERS[pid]?.name || 'API') + ' key saved for this session ✓', 'ok');
 }
 
 async function testApiKey() {
-  const key = sessionStorage.getItem('pm_key');
-  if (!key) { toast('No API key saved yet', 'bad'); return; }
+  const pid = document.getElementById('byok-provider-select')?.value || 'anthropic';
+  const p = LLM_PROVIDERS[pid];
+  const key = getProviderKey(pid);
+  if (!key) { toast('No ' + (p?.name || '') + ' key saved yet', 'bad'); return; }
   const btn = document.getElementById('test-key-btn');
   if (btn) { btn.textContent = 'Testing…'; btn.disabled = true; }
   try {
-    const resp = await fetch('/.netlify/functions/ai-proxy', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': key,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-request-when-unauthenticated': 'true'
-      },
-      body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 10,
-        messages: [{ role: 'user', content: 'Reply with just the word OK' }]
-      })
-    });
-    if (resp.ok) {
-      toast('✓ API key works!', 'ok');
-      const el = document.getElementById('byok-status');
-      if (el) { el.textContent = '✓ Key verified and working'; el.style.color = 'var(--sage)'; }
-    } else {
-      const d = await resp.json().catch(() => ({}));
-      const msg = d?.error?.message || 'HTTP ' + resp.status;
-      toast('Key failed: ' + msg.substring(0, 60), 'bad');
-    }
+    await p.call(key, p.defaultModel, '', 'Reply with just the word OK', 10);
+    toast('✓ ' + p.name + ' key works!', 'ok');
+    const el = document.getElementById('byok-status');
+    if (el) { el.textContent = '✓ Key verified and working'; el.style.color = 'var(--sage)'; }
   } catch(e) {
-    toast('Network error: ' + e.message.substring(0, 60), 'bad');
+    toast('Key test failed: ' + e.message.substring(0, 60), 'bad');
   } finally {
     if (btn) { btn.textContent = 'Test Key'; btn.disabled = false; }
   }
 }
 
 function clearByok() {
-  sessionStorage.removeItem('pm_key');
+  const pid = document.getElementById('byok-provider-select')?.value || 'anthropic';
+  const p = LLM_PROVIDERS[pid];
+  if (p) sessionStorage.removeItem(p.keyStorage);
   document.getElementById('byok-input').value = '';
   updateByokStatus();
   toast('API key cleared');
@@ -1903,10 +2037,21 @@ function clearByok() {
 
 function updateByokStatus() {
   const el = document.getElementById('byok-status');
-  if (!el) return;
-  const key = sessionStorage.getItem('pm_key');
-  el.textContent = key ? `✓ Key saved (${key.substring(0, 12)}…)` : 'No key saved — will prompt when you run.';
-  el.style.color = key ? 'var(--sage)' : 'var(--ink4)';
+  const pid = document.getElementById('byok-provider-select')?.value || 'anthropic';
+  const p = LLM_PROVIDERS[pid];
+  const key = p ? sessionStorage.getItem(p.keyStorage) : null;
+  if (el) {
+    el.textContent = key ? `✓ Key saved (${key.substring(0, 12)}…)` : 'No key saved — enter one above.';
+    el.style.color = key ? 'var(--sage)' : 'var(--ink4)';
+  }
+  // Show all saved provider keys
+  const allEl = document.getElementById('all-keys-status');
+  if (allEl) {
+    allEl.innerHTML = Object.entries(LLM_PROVIDERS).map(([id, pr]) => {
+      const k = sessionStorage.getItem(pr.keyStorage);
+      return `<span style="font-size:.68rem;padding:3px 9px;border-radius:4px;background:${k?'var(--sage-tint)':'var(--rule)'};color:${k?'var(--sage)':'var(--ink4)'};border:1px solid ${k?'rgba(74,124,89,.2)':'transparent'}">${pr.icon} ${pr.name.split(' ')[0]}: ${k?'✓ saved':'—'}</span>`;
+    }).join('');
+  }
 }
 
 // ══════════════════════════════════════════
@@ -1979,15 +2124,19 @@ function updateFinalOutput(stageIds) {
 
 function updateCostBreakdown(stageIds) {
   const el = document.getElementById('cost-breakdown');
+  const pid = getSelectedProvider();
+  const p = LLM_PROVIDERS[pid];
+  const modelLabel = p ? (p.models[p.defaultModel]?.label || p.defaultModel) : 'Claude Haiku 4.5';
+  const costPer1k = p ? (p.models[p.defaultModel]?.costPer1k || 0.00025) : 0.00025;
   const rows = stageIds.map(id => {
     const s = STAGES_CONFIG[id];
     const text = runState.results[id] || '';
     const tokens = Math.ceil(text.length / 3.5);
-    const cost = tokens * s.costPer1k / 1000;
+    const cost = tokens * costPer1k / 1000;
     return `<div class="cost-row-item">
       <div class="cri-left">
         <div class="cri-icon">${s.icon}</div>
-        <div><div class="cri-name">${s.name}</div><div class="cri-model">${s.model}</div></div>
+        <div><div class="cri-name">${s.name}</div><div class="cri-model">${modelLabel}</div></div>
       </div>
       <div class="cri-cost">${tokens ? `~$${cost.toFixed(5)}` : '—'}</div>
     </div>`;
@@ -2067,8 +2216,8 @@ function updateCreditsDisplay() {
   const el = document.getElementById('credits-display');
   if (!el) return;
   const u = getUser();
-  const key = sessionStorage.getItem('pm_key');
-  if (key) { el.textContent = 'BYOK mode · free'; el.style.color = 'var(--sage)'; return; }
+  const hasAnyKey = Object.values(LLM_PROVIDERS).some(p => sessionStorage.getItem(p.keyStorage));
+  if (hasAnyKey) { el.textContent = 'BYOK mode · free'; el.style.color = 'var(--sage)'; return; }
   const today = new Date().toDateString();
   const used = u.lastRunDate === today ? u.runsToday : 0;
   el.textContent = u.credits > 0 ? `${u.credits} credits` : `${getRunLimit() - used} runs left today`;
@@ -2093,7 +2242,7 @@ function closeModal(id) {
 function clearAllData() {
   if (!confirm('This will delete all your saved projects and reset your account. Are you sure?')) return;
   localStorage.clear();
-  sessionStorage.removeItem('pm_key');
+  Object.values(LLM_PROVIDERS).forEach(p => sessionStorage.removeItem(p.keyStorage));
   toast('All data cleared', 'ok');
   renderUserBadge();
   updateAccountUI();
@@ -2179,11 +2328,12 @@ document.addEventListener('DOMContentLoaded', () => {
   updateByokStatus();
   document.getElementById('main-input').addEventListener('input', updateCostEstLive);
   document.getElementById('mode-select').addEventListener('change', updateCostEstLive);
+  document.getElementById('provider-select').addEventListener('change', updateCostEstLive);
 
   // Show a welcome hint for new users
   const u = getUser();
   if (!u.lastRunDate) {
-    setTimeout(() => toast('Enter your Anthropic key in Account to get started free', 'info'), 1500);
+    setTimeout(() => toast('Enter an API key in Account → API Keys to get started free', 'info'), 1500);
   }
 }, { once: true });
 
@@ -2437,12 +2587,15 @@ function renderStats() {
 function updateCostEstLive() {
   const prompt = document.getElementById('main-input')?.value || '';
   const mode = document.getElementById('mode-select')?.value || 'quick';
+  const pid = getSelectedProvider();
+  const p = LLM_PROVIDERS[pid];
+  const costPer1k = p ? (p.models[p.defaultModel]?.costPer1k || 0.00025) : 0.00025;
   const stageCounts = { quick: 3, full: 5, code: 3, design: 3 };
   const stages = stageCounts[mode] || 3;
-  // Cost increases slightly with longer prompts
   const promptTokens = Math.ceil(prompt.length / 4);
-  const baseCost = stages * 0.001;
-  const promptCost = promptTokens * 0.00025 / 1000 * stages;
+  // ~1000 output tokens per stage + proportional prompt cost
+  const baseCost = stages * costPer1k;
+  const promptCost = promptTokens * costPer1k / 1000 * stages;
   const total = baseCost + promptCost;
   const el = document.getElementById('cost-est');
   if (el) el.textContent = '⚡ ~$' + total.toFixed(4) + ' est.';
