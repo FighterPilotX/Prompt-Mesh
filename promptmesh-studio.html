@@ -537,6 +537,7 @@ body.dark .dark-toggle .icon-moon { display:block; }
           <select class="select" id="mode-select" style="width:140px;padding:5px 28px 5px 10px;font-size:.74rem" onchange="updateCostEst()">
             <option value="quick">Quick (3 stages)</option>
             <option value="full">Full Team (5 stages)</option>
+            <option value="fusion">⚡ Fusion (All Models)</option>
             <option value="code">Code Only</option>
             <option value="design">Design Focus</option>
           </select>
@@ -858,6 +859,51 @@ body.dark .dark-toggle .icon-moon { display:block; }
       </div>
     </div>
 
+    <!-- Master Key Bundle -->
+    <div class="settings-card" style="border-color:rgba(196,122,42,.3);background:rgba(196,122,42,.03)">
+      <h3>⚡ Master Key Bundle <span style="font-size:.65rem;font-family:var(--mono);background:rgba(196,122,42,.15);color:var(--amber);padding:2px 7px;border-radius:3px;margin-left:6px">All Providers at Once</span></h3>
+      <p>Paste all your API keys together in any format — the keys are auto-detected by their prefixes (<span style="font-family:var(--mono);font-size:.75rem">sk-ant-</span>, <span style="font-family:var(--mono);font-size:.75rem">sk-proj-</span>, <span style="font-family:var(--mono);font-size:.75rem">AIza</span>) and saved in one shot. Enables <strong>Fusion mode</strong>.</p>
+      <div class="field">
+        <label>Key Bundle (paste one or all three)</label>
+        <textarea class="textarea" id="master-bundle-input" rows="3" placeholder="Paste keys in any format, e.g.:&#10;sk-ant-api03-xxx   sk-proj-xxx   AIzaXXX&#10;or one per line — all are auto-detected" style="font-family:var(--mono);font-size:.78rem"></textarea>
+        <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+          <button class="btn btn-primary btn-sm" onclick="parseMasterBundle()">Parse &amp; Save All Keys</button>
+          <button class="btn btn-ghost btn-sm" onclick="clearAllProviderKeys()">Clear All Keys</button>
+        </div>
+        <div style="font-size:.7rem;color:var(--ink4);margin-top:6px" id="bundle-status"></div>
+      </div>
+    </div>
+
+    <!-- OpenAI Key -->
+    <div class="settings-card">
+      <h3>OpenAI API Key <span style="font-size:.65rem;font-family:var(--mono);background:rgba(74,124,89,.12);color:var(--sage);padding:2px 7px;border-radius:3px;margin-left:6px">Final Polish · GPT-4o-mini</span></h3>
+      <p>Used for the Final Polish stage and Fusion mode. Get a key at <span style="font-family:var(--mono)">platform.openai.com</span>. Falls back to Claude Haiku if not set.</p>
+      <div class="field">
+        <label>OpenAI API Key</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <input class="input" id="openai-key-input" type="password" placeholder="sk-proj-…" style="flex:1;min-width:200px">
+          <button class="btn btn-secondary btn-sm" onclick="saveOpenAIKey()">Save</button>
+          <button class="btn btn-ghost btn-sm" onclick="clearOpenAIKey()">Clear</button>
+        </div>
+        <div style="font-size:.7rem;color:var(--ink4);margin-top:4px" id="openai-key-status"></div>
+      </div>
+    </div>
+
+    <!-- Gemini Key -->
+    <div class="settings-card">
+      <h3>Google Gemini API Key <span style="font-size:.65rem;font-family:var(--mono);background:rgba(124,92,191,.12);color:#7c5cbf;padding:2px 7px;border-radius:3px;margin-left:6px">Art &amp; Design · Gemini Flash</span></h3>
+      <p>Used for the Art &amp; Design stage and Fusion mode. Get a key at <span style="font-family:var(--mono)">aistudio.google.com</span>. Falls back to Claude Haiku if not set.</p>
+      <div class="field">
+        <label>Gemini API Key</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <input class="input" id="gemini-key-input" type="password" placeholder="AIza…" style="flex:1;min-width:200px">
+          <button class="btn btn-secondary btn-sm" onclick="saveGeminiKey()">Save</button>
+          <button class="btn btn-ghost btn-sm" onclick="clearGeminiKey()">Clear</button>
+        </div>
+        <div style="font-size:.7rem;color:var(--ink4);margin-top:4px" id="gemini-key-status"></div>
+      </div>
+    </div>
+
     <!-- Credits -->
     <div class="settings-card">
       <h3>Credits</h3>
@@ -1041,7 +1087,7 @@ const STAGES_CONFIG = {
   planning: {
     id: 'planning', name: 'Planning Council', icon: '🧠',
     color: '#4a5568', bg: 'rgba(74,85,104,0.1)',
-    model: 'claude-haiku-4-5-20251001', tokenBudget: 450,
+    model: 'claude-haiku-4-5-20251001', provider: 'claude', tokenBudget: 450,
     costPer1k: 0.00025, feedType: 'fi-plan',
     badge: 'PLAN', badgeColor: '#4a5568',
     systemPrompt: 'You are a senior software architect. Output only the requested specification format — no preamble, no commentary, no markdown outside the template. Every word must add value.',
@@ -1079,8 +1125,8 @@ Under 280 words total.`;
   design: {
     id: 'design', name: 'Art & Design', icon: '🎨',
     color: '#7c5cbf', bg: 'rgba(124,92,191,0.1)',
-    model: 'claude-haiku-4-5-20251001', tokenBudget: 400,
-    costPer1k: 0.00025, feedType: 'fi-design',
+    model: 'gemini-2.0-flash', provider: 'gemini', tokenBudget: 400,
+    costPer1k: 0.00010, feedType: 'fi-design',
     badge: 'DESIGN', badgeColor: '#7c5cbf',
     systemPrompt: 'You are a senior UI/UX designer. Output only the design system in the exact format requested — no preamble, no extra explanation. Specific hex values and font names only.',
     buildPrompt(userPrompt, prev, customSys) {
@@ -1187,8 +1233,8 @@ Working code only. Vanilla JS, browser environment.`;
   polish: {
     id: 'polish', name: 'Final Polish', icon: '✨',
     color: '#4a7c59', bg: 'rgba(74,124,89,0.1)',
-    model: 'claude-haiku-4-5-20251001', tokenBudget: 450,
-    costPer1k: 0.00025, feedType: 'fi-polish',
+    model: 'gpt-4o-mini', provider: 'openai', tokenBudget: 450,
+    costPer1k: 0.00015, feedType: 'fi-polish',
     badge: 'REVIEW', badgeColor: '#4a7c59',
     systemPrompt: 'You are a senior engineer doing a final code review. Be direct and concrete — no filler phrases. Output only the requested sections.',
     buildPrompt(userPrompt, prev, customSys) {
@@ -1228,7 +1274,15 @@ const MODES = {
   quick:  ['planning','frontend','backend'],
   full:   ['planning','design','frontend','backend','polish'],
   code:   ['planning','backend','frontend'],
-  design: ['planning','design','frontend']
+  design: ['planning','design','frontend'],
+  fusion: ['planning','design','frontend','backend','polish']
+};
+
+// Provider display metadata
+const PROVIDER_META = {
+  claude: { label: 'Claude Haiku', color: '#c47a2a', bg: 'rgba(196,122,42,0.12)' },
+  gemini: { label: 'Gemini Flash', color: '#7c5cbf', bg: 'rgba(124,92,191,0.12)' },
+  openai: { label: 'GPT-4o-mini',  color: '#4a7c59', bg: 'rgba(74,124,89,0.12)' }
 };
 
 const EXAMPLES = [
@@ -1365,8 +1419,9 @@ async function startRun() {
   const stageIds = MODES[mode] || MODES.full;
 
   initRunView(prompt, mode, stageIds);
+  if (mode === 'fusion') addFeed('fi-system', 'SYSTEM', '⚡ Fusion mode — competing models per stage. Add OpenAI & Gemini keys in Account for maximum competition.');
   consumeRun();
-  await executePipeline(apiKey, prompt, stageIds, mode);
+  await executePipeline(keys, prompt, stageIds, mode);
 }
 
 function promptForKey() {
@@ -1423,7 +1478,7 @@ function initRunView(prompt, mode, stageIds) {
             <div class="sc-icon-wrap" style="background:${s.bg}">${s.icon}</div>
             <div class="sc-info">
               <div class="sc-name">${s.name}</div>
-              <div class="sc-sub">${s.model} · ${s.tokenBudget} max tokens</div>
+              <div class="sc-sub" id="scsub-${id}">${(() => { const pm = PROVIDER_META[s.provider] || PROVIDER_META.claude; return `<span style="font-size:.6rem;font-weight:700;padding:1px 6px;border-radius:3px;background:${pm.bg};color:${pm.color};margin-right:5px">${pm.label}</span>${s.tokenBudget} max tokens`; })()}</div>
             </div>
             <div class="sc-timing" id="sct-${id}"></div>
             <div class="sc-status-icon idle" id="sci-${id}">○</div>
@@ -1456,8 +1511,9 @@ function initRunView(prompt, mode, stageIds) {
 // ══════════════════════════════════════════
 //  PIPELINE EXECUTION
 // ══════════════════════════════════════════
-async function executePipeline(apiKey, prompt, stageIds, mode) {
+async function executePipeline(keys, prompt, stageIds, mode) {
   const customSys = sessionStorage.getItem('pm_custom_sys') || '';
+  const isFusion = mode === 'fusion';
 
   for (let i = 0; i < stageIds.length; i++) {
     if (runState.aborted) break;
@@ -1472,13 +1528,17 @@ async function executePipeline(apiKey, prompt, stageIds, mode) {
     const userPrompt = s.buildPrompt(prompt, runState.results, customSys);
 
     try {
-      let result = await callAPI(apiKey, s, userPrompt);
-      // Retry if truncated — bump token budget by 1.5x (max 2 retries)
+      // Fusion races models for non-claude stages; standard routing otherwise
+      let result = (isFusion && s.provider !== 'claude')
+        ? await callAPIFusion(keys, s, userPrompt)
+        : await callAPI(keys, s, userPrompt);
+
+      // Retry if truncated — bump token budget (max 2 retries)
       let retryCount = 0;
       while (result.truncated && retryCount < 2 && !runState.aborted) {
         addFeed('fi-system', 'RETRY', `${s.name} output truncated — retrying with more tokens (attempt ${retryCount+2})`);
         const biggerStage = Object.assign({}, s, { tokenBudget: Math.min(s.tokenBudget * 2, 4096) });
-        result = await callAPI(apiKey, biggerStage, userPrompt);
+        result = await callAPI(keys, biggerStage, userPrompt);
         retryCount++;
       }
       const ms = Date.now() - t0;
@@ -1611,8 +1671,13 @@ async function startDemoRun() {
 // ══════════════════════════════════════════
 //  API CALL
 // ══════════════════════════════════════════
-async function callAPI(apiKey, stage, prompt) {
-  if (runState.aborted) throw new Error('ABORTED');
+function getKeys() {
+  return {
+    anthropic: sessionStorage.getItem('pm_key') || null,
+    openai:    sessionStorage.getItem('pm_openai_key') || null,
+    gemini:    sessionStorage.getItem('pm_gemini_key') || null
+  };
+}
 
   const MAX_NET_RETRIES = 3;
   let resp;
@@ -1644,25 +1709,17 @@ async function callAPI(apiKey, stage, prompt) {
   }
 
   if (!resp.ok) {
-    let errMsg = `HTTP ${resp.status}`;
+    let msg = `Anthropic HTTP ${resp.status}`;
     try {
-      const errData = await resp.json();
-      const detail = errData?.error?.message || errData?.message || '';
-      if (resp.status === 401) errMsg = 'Invalid API key — check it starts with sk-ant-api03- and is correct';
-      else if (resp.status === 429) errMsg = 'Rate limited — wait a few seconds and try again';
-      else if (resp.status === 400) errMsg = `Bad request: ${detail.substring(0, 120)}`;
-      else errMsg = `API error ${resp.status}: ${detail.substring(0, 120)}`;
+      const d = await resp.json();
+      const det = d?.error?.message || '';
+      if (resp.status === 401) msg = 'Invalid Anthropic API key — check it starts with sk-ant-';
+      else if (resp.status === 429) msg = 'Anthropic rate limited — wait and retry';
+      else if (det) msg = `Anthropic error: ${det.substring(0, 120)}`;
     } catch (_) {}
-    throw new Error(errMsg);
+    throw new Error(msg);
   }
-
-  let data;
-  try {
-    data = await resp.json();
-  } catch (_) {
-    throw new Error('Could not parse API response');
-  }
-
+  const data = await resp.json().catch(() => { throw new Error('Could not parse Anthropic response'); });
   const text = data.content?.[0]?.text || '';
   const inputTokens = data.usage?.input_tokens || 0;
   const outputTokens = data.usage?.output_tokens || 0;
@@ -1729,7 +1786,7 @@ Apply these changes and improve the relevant parts. Output the updated version.`
 
   try {
     consumeRun();
-    const result = await callAPI(apiKey, STAGES_CONFIG.backend, iterPrompt);
+    const result = await callAPI(keys, STAGES_CONFIG.backend, iterPrompt);
     runState.results['iteration_' + runState.iterationCount] = result.text;
     addFeed('fi-system', 'ITERATE', `✓ Iteration complete · ${result.tokens} tokens`);
     const el = document.getElementById('final-output-scroll');
@@ -2032,7 +2089,7 @@ function clearByok() {
   if (p) sessionStorage.removeItem(p.keyStorage);
   document.getElementById('byok-input').value = '';
   updateByokStatus();
-  toast('API key cleared');
+  toast('Anthropic API key cleared');
 }
 
 function updateByokStatus() {
@@ -2052,6 +2109,98 @@ function updateByokStatus() {
       return `<span style="font-size:.68rem;padding:3px 9px;border-radius:4px;background:${k?'var(--sage-tint)':'var(--rule)'};color:${k?'var(--sage)':'var(--ink4)'};border:1px solid ${k?'rgba(74,124,89,.2)':'transparent'}">${pr.icon} ${pr.name.split(' ')[0]}: ${k?'✓ saved':'—'}</span>`;
     }).join('');
   }
+}
+
+// ── OpenAI key ──
+function saveOpenAIKey() {
+  const key = document.getElementById('openai-key-input')?.value.trim();
+  if (!key) { clearOpenAIKey(); return; }
+  if (key.length < 20) { toast('Key too short', 'bad'); return; }
+  sessionStorage.setItem('pm_openai_key', key);
+  document.getElementById('openai-key-input').value = '';
+  updateOpenAIKeyStatus();
+  toast('OpenAI key saved ✓', 'ok');
+}
+
+function clearOpenAIKey() {
+  sessionStorage.removeItem('pm_openai_key');
+  if (document.getElementById('openai-key-input')) document.getElementById('openai-key-input').value = '';
+  updateOpenAIKeyStatus();
+  toast('OpenAI key cleared');
+}
+
+function updateOpenAIKeyStatus() {
+  const el = document.getElementById('openai-key-status');
+  if (!el) return;
+  const key = sessionStorage.getItem('pm_openai_key');
+  el.textContent = key ? `✓ Saved (${key.substring(0, 10)}…) — Final Polish will use GPT-4o-mini` : 'Not set — Final Polish falls back to Claude Haiku.';
+  el.style.color = key ? 'var(--sage)' : 'var(--ink4)';
+}
+
+// ── Gemini key ──
+function saveGeminiKey() {
+  const key = document.getElementById('gemini-key-input')?.value.trim();
+  if (!key) { clearGeminiKey(); return; }
+  if (key.length < 20) { toast('Key too short', 'bad'); return; }
+  sessionStorage.setItem('pm_gemini_key', key);
+  document.getElementById('gemini-key-input').value = '';
+  updateGeminiKeyStatus();
+  toast('Gemini key saved ✓', 'ok');
+}
+
+function clearGeminiKey() {
+  sessionStorage.removeItem('pm_gemini_key');
+  if (document.getElementById('gemini-key-input')) document.getElementById('gemini-key-input').value = '';
+  updateGeminiKeyStatus();
+  toast('Gemini key cleared');
+}
+
+function updateGeminiKeyStatus() {
+  const el = document.getElementById('gemini-key-status');
+  if (!el) return;
+  const key = sessionStorage.getItem('pm_gemini_key');
+  el.textContent = key ? `✓ Saved (${key.substring(0, 10)}…) — Art & Design will use Gemini Flash` : 'Not set — Art & Design falls back to Claude Haiku.';
+  el.style.color = key ? 'var(--sage)' : 'var(--ink4)';
+}
+
+// ── Master Key Bundle ──
+function parseMasterBundle() {
+  const raw = document.getElementById('master-bundle-input')?.value || '';
+  const saved = [];
+
+  const anthropicMatch = raw.match(/sk-ant-[A-Za-z0-9_-]{20,}/);
+  // OpenAI keys: sk-proj-... (new) or sk-... (legacy, but not sk-ant-)
+  const openaiMatch = raw.match(/sk-proj-[A-Za-z0-9_-]{20,}/) || raw.match(/(?<!sk-ant-)\bsk-[A-Za-z0-9_-]{40,}/);
+  const geminiMatch = raw.match(/AIza[A-Za-z0-9_-]{30,}/);
+
+  if (anthropicMatch) { sessionStorage.setItem('pm_key', anthropicMatch[0]); saved.push('Anthropic'); }
+  if (openaiMatch)    { sessionStorage.setItem('pm_openai_key', openaiMatch[0]); saved.push('OpenAI'); }
+  if (geminiMatch)    { sessionStorage.setItem('pm_gemini_key', geminiMatch[0]); saved.push('Gemini'); }
+
+  if (!saved.length) { toast('No recognizable API keys found in that text', 'bad'); return; }
+
+  document.getElementById('master-bundle-input').value = '';
+  const statusEl = document.getElementById('bundle-status');
+  if (statusEl) {
+    statusEl.textContent = `✓ Saved: ${saved.join(', ')}${saved.length === 3 ? ' — All providers active! Try Fusion mode.' : ''}`;
+    statusEl.style.color = 'var(--sage)';
+  }
+  updateByokStatus(); updateOpenAIKeyStatus(); updateGeminiKeyStatus();
+  toast(`✓ Saved ${saved.length} key${saved.length > 1 ? 's' : ''}: ${saved.join(', ')}`, 'ok');
+}
+
+function clearAllProviderKeys() {
+  sessionStorage.removeItem('pm_key');
+  sessionStorage.removeItem('pm_openai_key');
+  sessionStorage.removeItem('pm_gemini_key');
+  ['byok-input','openai-key-input','gemini-key-input','master-bundle-input'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  const statusEl = document.getElementById('bundle-status');
+  if (statusEl) { statusEl.textContent = 'All keys cleared.'; statusEl.style.color = 'var(--ink4)'; }
+  updateByokStatus(); updateOpenAIKeyStatus(); updateGeminiKeyStatus();
+  toast('All API keys cleared');
 }
 
 // ══════════════════════════════════════════
@@ -2207,6 +2356,8 @@ function updateAccountUI() {
   if (credEl) credEl.textContent = u.credits;
 
   updateByokStatus();
+  updateOpenAIKeyStatus();
+  updateGeminiKeyStatus();
   updateCreditsDisplay();
   renderUserBadge();
   renderStats();
@@ -2598,7 +2749,9 @@ function updateCostEstLive() {
   const promptCost = promptTokens * costPer1k / 1000 * stages;
   const total = baseCost + promptCost;
   const el = document.getElementById('cost-est');
-  if (el) el.textContent = '⚡ ~$' + total.toFixed(4) + ' est.';
+  if (!el) return;
+  const tag = isFusion ? '⚡' : '💰';
+  el.textContent = `${tag} ~$${total.toFixed(4)} est.`;
 }
 
 
