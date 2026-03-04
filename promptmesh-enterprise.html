@@ -632,17 +632,17 @@ async function dispatch(){
       selectedAgent=agents.sort((a,b)=>a.costPer1k-b.costPer1k)[0];
       routeReason='Cheapest active agent';
     } else if(mode==='auto'||mode==='sequential'||mode==='parallel'){
-      // Call Haiku to analyze
-      analysis=await analyzeTask(key,task);
-      addFeed('fi-router','ROUTER','Analysis: type='+analysis.type+', complexity='+analysis.complexity);
-
-      // Check custom rules first
+      // Check custom rules client-side first — skip analyzeTask API call if a rule matches
       const matchedRule=checkRules(task,rules);
       if(matchedRule){
         selectedAgent=agents.find(a=>a.id===matchedRule.agentId);
         routeReason='Rule match: '+matchedRule.reason;
-        addFeed('fi-router','ROUTER','Rule matched → '+routeReason);
+        addFeed('fi-router','ROUTER','Rule matched (no analysis needed) → '+routeReason);
       } else {
+        // No rule matched — call Haiku to classify the task
+        addFeed('fi-router','ROUTER','No rule matched — analyzing task with Haiku…');
+        analysis=await analyzeTask(key,task);
+        addFeed('fi-router','ROUTER','Analysis: type='+analysis.type+', complexity='+analysis.complexity);
         selectedAgent=selectBestAgent(analysis,agents);
         routeReason='Auto-routed based on: '+analysis.type+'/'+analysis.complexity;
       }
@@ -657,7 +657,7 @@ async function dispatch(){
     // Step 2: Execute
     addFeed('fi-agent',selectedAgent.name,'Calling '+selectedAgent.model+'…');
     const t0=Date.now();
-    const result=await callAgent(key,selectedAgent,task);
+    const result=await callAgent(key,selectedAgent,task,analysis);
     const ms=Date.now()-t0;
     const cost=result.tokens*selectedAgent.costPer1k/1000;
     const gpt4Cost=result.tokens*0.02/1000;
@@ -761,15 +761,26 @@ function selectBestAgent(analysis,agents){
   return agents.sort((a,b)=>a.costPer1k-b.costPer1k)[0];
 }
 
-async function callAgent(key,agent,task){
+async function callAgent(key,agent,task,analysis){
   if(dispatchState.aborted) throw new Error('ABORTED');
+  // Adaptive token budget: match output size to task complexity
+  let maxTokens=800;
+  if(analysis){
+    if(analysis.complexity==='high'||analysis.type==='code') maxTokens=1600;
+    else if(analysis.complexity==='medium') maxTokens=1000;
+    else maxTokens=600; // low complexity / qa
+  } else {
+    // Fallback heuristic: long tasks likely need longer responses
+    if(task.length>600) maxTokens=1200;
+    else if(task.length>200) maxTokens=900;
+  }
   let resp;
   try{
     resp=await fetch('/.netlify/functions/ai-proxy',{
       method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-request-when-unauthenticated':'true'},
       body:JSON.stringify({
-        model:agent.model,max_tokens:1200,
+        model:agent.model,max_tokens:maxTokens,
         system:'You are '+agent.name+', a specialized AI assistant. Specialization: '+agent.spec+'. Be concise and directly useful. No unnecessary preamble.',
         messages:[{role:'user',content:task}]
       })
