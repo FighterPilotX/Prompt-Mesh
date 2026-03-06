@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://api.anthropic.com https://api.openai.com https://generativelanguage.googleapis.com https://api.mistral.ai https://api.groq.com https://api.cohere.com; frame-src 'none';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://api.anthropic.com https://api.openai.com https://generativelanguage.googleapis.com https://api.mistral.ai https://api.groq.com https://api.cohere.com https://api.deepseek.com https://api.x.ai https://api.cerebras.ai https://api.together.xyz; frame-src 'none';">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PromptMesh Studio — AI Pipeline Builder</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -536,6 +536,10 @@ body.dark .dark-toggle .icon-moon { display:block; }
             <option value="mistral">🌪️ Mistral AI</option>
             <option value="groq">⚡ Groq (Llama)</option>
             <option value="cohere">🌊 Cohere</option>
+            <option value="deepseek">🐋 DeepSeek</option>
+            <option value="xai">𝕏 xAI (Grok)</option>
+            <option value="cerebras">🧠⚡ Cerebras</option>
+            <option value="together">🤝 Together AI</option>
           </select>
           <select class="select" id="mode-select" style="width:155px;padding:5px 28px 5px 10px;font-size:.74rem" onchange="updateCostEst()">
             <option value="flash">⚡ Flash (1 stage)</option>
@@ -848,6 +852,10 @@ body.dark .dark-toggle .icon-moon { display:block; }
           <option value="mistral">🌪️ Mistral AI</option>
           <option value="groq">⚡ Groq (Llama/Mixtral) — gsk_…</option>
           <option value="cohere">🌊 Cohere</option>
+          <option value="deepseek">🐋 DeepSeek — sk-…</option>
+          <option value="xai">𝕏 xAI (Grok) — xai-…</option>
+          <option value="cerebras">🧠⚡ Cerebras — csk-…</option>
+          <option value="together">🤝 Together AI</option>
         </select>
       </div>
       <div class="field">
@@ -869,10 +877,10 @@ body.dark .dark-toggle .icon-moon { display:block; }
     <!-- Master Key Bundle -->
     <div class="settings-card" style="border-color:rgba(196,122,42,.3);background:rgba(196,122,42,.03)">
       <h3>⚡ Master Key Bundle <span style="font-size:.65rem;font-family:var(--mono);background:rgba(196,122,42,.15);color:var(--amber);padding:2px 7px;border-radius:3px;margin-left:6px">All Providers at Once</span></h3>
-      <p>Paste all your API keys together in any format — the keys are auto-detected by their prefixes (<span style="font-family:var(--mono);font-size:.75rem">sk-ant-</span>, <span style="font-family:var(--mono);font-size:.75rem">sk-proj-</span>, <span style="font-family:var(--mono);font-size:.75rem">AIza</span>) and saved in one shot. Enables <strong>Fusion mode</strong>.</p>
+      <p>Paste all your API keys together in any format — the keys are auto-detected by their prefixes (<span style="font-family:var(--mono);font-size:.75rem">sk-ant-</span>, <span style="font-family:var(--mono);font-size:.75rem">sk-proj-</span>, <span style="font-family:var(--mono);font-size:.75rem">AIza</span>, <span style="font-family:var(--mono);font-size:.75rem">gsk_</span>, <span style="font-family:var(--mono);font-size:.75rem">xai-</span>, <span style="font-family:var(--mono);font-size:.75rem">csk-</span>) and saved in one shot. Enables <strong>Fusion mode</strong>.</p>
       <div class="field">
-        <label>Key Bundle (paste one or all three)</label>
-        <textarea class="textarea" id="master-bundle-input" rows="3" placeholder="Paste keys in any format, e.g.:&#10;sk-ant-api03-xxx   sk-proj-xxx   AIzaXXX&#10;or one per line — all are auto-detected" style="font-family:var(--mono);font-size:.78rem"></textarea>
+        <label>Key Bundle (paste any or all)</label>
+        <textarea class="textarea" id="master-bundle-input" rows="3" placeholder="Paste keys in any format, e.g.:&#10;sk-ant-api03-xxx   sk-proj-xxx   AIzaXXX   xai-xxx   csk-xxx&#10;or one per line — all are auto-detected" style="font-family:var(--mono);font-size:.78rem"></textarea>
         <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
           <button class="btn btn-primary btn-sm" onclick="parseMasterBundle()">Parse &amp; Save All Keys</button>
           <button class="btn btn-ghost btn-sm" onclick="clearAllProviderKeys()">Clear All Keys</button>
@@ -1065,6 +1073,54 @@ const LLM_PROVIDERS = {
       if(!r.ok){const d=await r.json().catch(()=>({}));if(r.status===401)throw new Error('Invalid Cohere API key');if(r.status===429)throw new Error('Rate limited by Cohere — wait a moment');throw new Error('Cohere error '+r.status+': '+(d?.message||'').substring(0,80));}
       const d=await r.json();const text=d.message?.content?.[0]?.text||'';if(!text)throw new Error('Empty response from Cohere');
       return{text,tokens:(d.usage?.tokens?.input_tokens||0)+(d.usage?.tokens?.output_tokens||0),truncated:d.finish_reason==='MAX_TOKENS'};
+    }
+  },
+  deepseek: {
+    name:'DeepSeek', icon:'🐋', keyStorage:'pm_key_deepseek', keyHint:'sk-…',
+    models:{'deepseek-chat':{label:'DeepSeek V3 (best value)',costPer1k:0.00028},'deepseek-reasoner':{label:'DeepSeek R1 (reasoning)',costPer1k:0.00137}},
+    defaultModel:'deepseek-chat',
+    async call(key,model,sys,user,maxTok){
+      const msgs=[];if(sys)msgs.push({role:'system',content:sys});msgs.push({role:'user',content:user});
+      const r=await fetch('https://api.deepseek.com/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model,max_tokens:maxTok,messages:msgs})});
+      if(!r.ok){const d=await r.json().catch(()=>({}));if(r.status===401)throw new Error('Invalid DeepSeek API key — get one at platform.deepseek.com');if(r.status===429)throw new Error('Rate limited by DeepSeek — wait a moment');if(r.status===402)throw new Error('DeepSeek: insufficient balance — top up at platform.deepseek.com');throw new Error('DeepSeek error '+r.status+': '+(d?.error?.message||'').substring(0,80));}
+      const d=await r.json();const text=d.choices?.[0]?.message?.content||'';if(!text)throw new Error('Empty response from DeepSeek');
+      return{text,tokens:(d.usage?.prompt_tokens||0)+(d.usage?.completion_tokens||0),truncated:d.choices?.[0]?.finish_reason==='length'};
+    }
+  },
+  xai: {
+    name:'xAI (Grok)', icon:'𝕏', keyStorage:'pm_key_xai', keyHint:'xai-…',
+    models:{'grok-3-mini':{label:'Grok 3 Mini (fast)',costPer1k:0.0004},'grok-3':{label:'Grok 3',costPer1k:0.015},'grok-2-1212':{label:'Grok 2',costPer1k:0.002}},
+    defaultModel:'grok-3-mini',
+    async call(key,model,sys,user,maxTok){
+      const msgs=[];if(sys)msgs.push({role:'system',content:sys});msgs.push({role:'user',content:user});
+      const r=await fetch('https://api.x.ai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model,max_tokens:maxTok,messages:msgs})});
+      if(!r.ok){const d=await r.json().catch(()=>({}));if(r.status===401)throw new Error('Invalid xAI API key — get one at console.x.ai');if(r.status===429)throw new Error('Rate limited by xAI — wait a moment');throw new Error('xAI error '+r.status+': '+(d?.error?.message||'').substring(0,80));}
+      const d=await r.json();const text=d.choices?.[0]?.message?.content||'';if(!text)throw new Error('Empty response from xAI');
+      return{text,tokens:(d.usage?.prompt_tokens||0)+(d.usage?.completion_tokens||0),truncated:d.choices?.[0]?.finish_reason==='length'};
+    }
+  },
+  cerebras: {
+    name:'Cerebras (fastest)', icon:'🧠⚡', keyStorage:'pm_key_cerebras', keyHint:'csk-…',
+    models:{'llama3.3-70b':{label:'Llama 3.3 70B (ultra-fast)',costPer1k:0.00060},'llama3.1-8b':{label:'Llama 3.1 8B (instant)',costPer1k:0.00010}},
+    defaultModel:'llama3.3-70b',
+    async call(key,model,sys,user,maxTok){
+      const msgs=[];if(sys)msgs.push({role:'system',content:sys});msgs.push({role:'user',content:user});
+      const r=await fetch('https://api.cerebras.ai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model,max_tokens:maxTok,messages:msgs})});
+      if(!r.ok){const d=await r.json().catch(()=>({}));if(r.status===401)throw new Error('Invalid Cerebras API key — get one at cloud.cerebras.ai');if(r.status===429)throw new Error('Rate limited by Cerebras — wait a moment');throw new Error('Cerebras error '+r.status+': '+(d?.error?.message||d?.message||'').substring(0,80));}
+      const d=await r.json();const text=d.choices?.[0]?.message?.content||'';if(!text)throw new Error('Empty response from Cerebras');
+      return{text,tokens:(d.usage?.prompt_tokens||0)+(d.usage?.completion_tokens||0),truncated:d.choices?.[0]?.finish_reason==='length'};
+    }
+  },
+  together: {
+    name:'Together AI', icon:'🤝', keyStorage:'pm_key_together', keyHint:'Together API key…',
+    models:{'meta-llama/Llama-3.3-70B-Instruct-Turbo':{label:'Llama 3.3 70B Turbo',costPer1k:0.00088},'Qwen/Qwen2.5-Coder-32B-Instruct':{label:'Qwen 2.5 Coder 32B',costPer1k:0.00080},'meta-llama/Llama-3.1-8B-Instruct-Turbo':{label:'Llama 3.1 8B Turbo',costPer1k:0.00018}},
+    defaultModel:'Qwen/Qwen2.5-Coder-32B-Instruct',
+    async call(key,model,sys,user,maxTok){
+      const msgs=[];if(sys)msgs.push({role:'system',content:sys});msgs.push({role:'user',content:user});
+      const r=await fetch('https://api.together.xyz/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model,max_tokens:maxTok,messages:msgs})});
+      if(!r.ok){const d=await r.json().catch(()=>({}));if(r.status===401)throw new Error('Invalid Together AI key — get one at api.together.ai');if(r.status===429)throw new Error('Rate limited by Together AI — wait a moment');throw new Error('Together error '+r.status+': '+(d?.error?.message||'').substring(0,80));}
+      const d=await r.json();const text=d.choices?.[0]?.message?.content||'';if(!text)throw new Error('Empty response from Together AI');
+      return{text,tokens:(d.usage?.prompt_tokens||0)+(d.usage?.completion_tokens||0),truncated:d.choices?.[0]?.finish_reason==='length'};
     }
   }
 };
@@ -1754,7 +1810,11 @@ function getKeys() {
     gemini:    sessionStorage.getItem('pm_key_gemini') || null,
     mistral:   sessionStorage.getItem('pm_key_mistral') || null,
     groq:      sessionStorage.getItem('pm_key_groq') || null,
-    cohere:    sessionStorage.getItem('pm_key_cohere') || null
+    cohere:    sessionStorage.getItem('pm_key_cohere') || null,
+    deepseek:  sessionStorage.getItem('pm_key_deepseek') || null,
+    xai:       sessionStorage.getItem('pm_key_xai') || null,
+    cerebras:  sessionStorage.getItem('pm_key_cerebras') || null,
+    together:  sessionStorage.getItem('pm_key_together') || null
   };
 }
 
@@ -2377,20 +2437,29 @@ function parseMasterBundle() {
   const saved = [];
 
   const anthropicMatch = raw.match(/sk-ant-[A-Za-z0-9_-]{20,}/);
-  // OpenAI keys: sk-proj-... (new) or sk-... (legacy, but not sk-ant-)
-  const openaiMatch = raw.match(/sk-proj-[A-Za-z0-9_-]{20,}/) || raw.match(/(?<!sk-ant-)\bsk-[A-Za-z0-9_-]{40,}/);
+  // OpenAI keys: sk-proj-... (new) or sk-... (legacy, but not sk-ant-, xai-, csk-)
+  const openaiMatch = raw.match(/sk-proj-[A-Za-z0-9_-]{20,}/) || raw.match(/(?<!sk-ant-)(?<!xai-)(?<!csk-)\bsk-[A-Za-z0-9_-]{40,}/);
   const geminiMatch = raw.match(/AIza[A-Za-z0-9_-]{30,}/);
+  const groqMatch   = raw.match(/gsk_[A-Za-z0-9_-]{20,}/);
+  const xaiMatch    = raw.match(/xai-[A-Za-z0-9_-]{20,}/);
+  const cerebrasMatch = raw.match(/csk-[A-Za-z0-9_-]{20,}/);
+  // DeepSeek keys start with sk- but are shorter — match after ruling out OpenAI
+  const deepseekMatch = !openaiMatch && raw.match(/sk-[A-Za-z0-9_-]{20,}/);
 
   if (anthropicMatch) { sessionStorage.setItem('pm_key', anthropicMatch[0]); saved.push('Anthropic'); }
   if (openaiMatch)    { sessionStorage.setItem('pm_key_openai', openaiMatch[0]); saved.push('OpenAI'); }
   if (geminiMatch)    { sessionStorage.setItem('pm_key_gemini', geminiMatch[0]); saved.push('Gemini'); }
+  if (groqMatch)      { sessionStorage.setItem('pm_key_groq', groqMatch[0]); saved.push('Groq'); }
+  if (xaiMatch)       { sessionStorage.setItem('pm_key_xai', xaiMatch[0]); saved.push('xAI'); }
+  if (cerebrasMatch)  { sessionStorage.setItem('pm_key_cerebras', cerebrasMatch[0]); saved.push('Cerebras'); }
+  if (deepseekMatch)  { sessionStorage.setItem('pm_key_deepseek', deepseekMatch[0]); saved.push('DeepSeek'); }
 
   if (!saved.length) { toast('No recognizable API keys found in that text', 'bad'); return; }
 
   document.getElementById('master-bundle-input').value = '';
   const statusEl = document.getElementById('bundle-status');
   if (statusEl) {
-    statusEl.textContent = `✓ Saved: ${saved.join(', ')}${saved.length === 3 ? ' — All providers active! Try Fusion mode.' : ''}`;
+    statusEl.textContent = `✓ Saved: ${saved.join(', ')}${saved.length >= 3 ? ' — Multiple providers active! Try Fusion mode.' : ''}`;
     statusEl.style.color = 'var(--sage)';
   }
   updateByokStatus(); updateOpenAIKeyStatus(); updateGeminiKeyStatus();
