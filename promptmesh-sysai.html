@@ -303,7 +303,7 @@ body.light .cmd-code{background:#f0f4ff;color:var(--blue2);}
     <h2>🖥️ System Overview</h2>
     <p>Live hardware snapshot collected from your browser. Click <strong>Quick Scan</strong> to refresh.</p>
     <div class="vh-actions">
-      <button class="btn btn-blue btn-sm" onclick="runQuickScan()">⚡ Quick Scan</button>
+      <button class="btn btn-blue btn-sm" id="quick-scan-panel-btn" onclick="runQuickScan()">⚡ Quick Scan</button>
       <button class="btn btn-outline btn-sm" onclick="exportScanJSON()">↓ Export JSON</button>
       <button class="btn btn-outline btn-sm" onclick="copySystemReport()">Copy Report</button>
     </div>
@@ -313,7 +313,7 @@ body.light .cmd-code{background:#f0f4ff;color:var(--blue2);}
       <div style="font-size:2.4rem;margin-bottom:10px">🖥️</div>
       <div style="font-weight:700;font-size:.9rem;margin-bottom:6px">No scan yet</div>
       <div style="font-size:.76rem;color:var(--ink3);margin-bottom:16px">Click Quick Scan to read hardware info from your browser</div>
-      <button class="btn btn-blue" onclick="runQuickScan()">⚡ Run Quick Scan</button>
+      <button class="btn btn-blue" id="quick-scan-idle-btn" onclick="runQuickScan()">⚡ Run Quick Scan</button>
     </div>
     <div id="scan-result" style="display:none">
       <div id="scan-status-bar" class="scan-status" style="display:none">
@@ -882,6 +882,8 @@ function copyText(btn){
 
 // ══════════ QUICK SCAN ══════════
 function runQuickScan(){
+  var scanBtns = [document.getElementById('quick-scan-topbar-btn'), document.getElementById('quick-scan-panel-btn'), document.getElementById('quick-scan-idle-btn')];
+  scanBtns.forEach(function(b){ if(b){ b.disabled=true; b.textContent='Scanning…'; } });
   document.getElementById('scan-idle').style.display = 'none';
   document.getElementById('scan-result').style.display = 'block';
   var statusBar = document.getElementById('scan-status-bar');
@@ -1012,6 +1014,8 @@ function runQuickScan(){
   setTimeout(function(){
     statusBar.style.display = 'none';
     toast('Scan complete', 'ok');
+    var scanBtns = [document.getElementById('quick-scan-topbar-btn'), document.getElementById('quick-scan-panel-btn'), document.getElementById('quick-scan-idle-btn')];
+    scanBtns.forEach(function(b){ if(b){ b.disabled=false; b.textContent = b.id==='quick-scan-idle-btn' ? '⚡ Run Quick Scan' : '⚡ Quick Scan'; } });
   }, 1200);
 }
 

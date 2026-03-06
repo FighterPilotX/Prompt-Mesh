@@ -1360,7 +1360,7 @@ function consumeRun() {
 //  RUN STATE
 // ══════════════════════════════════════════
 let runState = {
-  running: false, aborted: false, prompt: '',
+  running: false, aborted: false, error: false, prompt: '',
   mode: 'quick', stages: [], results: {},
   totalCost: 0, totalTokens: 0,
   startTime: 0, stagesDone: 0,
@@ -1405,6 +1405,7 @@ function doCloseRun() {
 //  LAUNCH
 // ══════════════════════════════════════════
 async function startRun() {
+  if (runState.running) return;
   const prompt = document.getElementById('main-input').value.trim();
   if (!prompt) { toast('Tell me what to build first', 'bad'); return; }
 
@@ -1449,7 +1450,7 @@ function promptForKey() {
 // ══════════════════════════════════════════
 function initRunView(prompt, mode, stageIds) {
   runState = {
-    running: true, aborted: false, prompt, mode,
+    running: true, aborted: false, error: false, prompt, mode,
     stages: stageIds, results: {}, totalCost: 0, totalTokens: 0,
     startTime: Date.now(), stagesDone: 0, elapsedTimer: null, iterationCount: 0
   };
@@ -1564,6 +1565,7 @@ async function executePipeline(keys, prompt, stageIds, mode) {
 
     } catch (e) {
       if (e.message === 'ABORTED') { addFeed('fi-system', 'SYSTEM', 'Run aborted'); break; }
+      runState.error = true;
       setStageStatus(stageId, 'error');
       const errMsg = e.message || 'Unknown error';
       addFeed('fi-system', s.name.toUpperCase(), 'ERROR: ' + errMsg);
@@ -1576,7 +1578,7 @@ async function executePipeline(keys, prompt, stageIds, mode) {
     await sleep(250);
   }
 
-  if (!runState.aborted) {
+  if (!runState.aborted && !runState.error) {
     setStatusPill('done', 'COMPLETE');
     addFeed('fi-system', 'SYSTEM', `✓ Complete · Total: ~$${runState.totalCost.toFixed(5)} · ${runState.totalTokens.toLocaleString()} tokens`);
     toast(`Done! Cost: ~$${runState.totalCost.toFixed(5)}`, 'ok');
@@ -1585,6 +1587,10 @@ async function executePipeline(keys, prompt, stageIds, mode) {
     addToHistory(runState.prompt, runState.mode, runState.totalCost);
     updateStats(runState.totalCost, runState.totalTokens);
     if (runState.results['frontend']) { autoPreview(); }
+  } else if (runState.error && runState.stagesDone > 0) {
+    // Partial completion — still show save/iterate for stages that finished
+    document.getElementById('save-btn').style.display = '';
+    document.getElementById('iteration-bar').style.display = '';
   }
 
   clearInterval(runState.elapsedTimer);
@@ -1745,7 +1751,7 @@ async function callAPI(apiKey, stage, prompt) {
   const key = getProviderKey(pid);
   if (!key) throw new Error('No API key for ' + p.name + ' — save it in Account → API Keys');
   const model = p.defaultModel;
-  const sysPrompt = `You are the ${stage.name} stage of PromptMesh, an AI pipeline tool. Your role: produce the best possible ${stage.name.toLowerCase()} output. Be concise, specific, and output exactly what's requested with no preamble.`;
+  const sysPrompt = stage.systemPrompt || `You are the ${stage.name} stage of PromptMesh, an AI pipeline tool. Produce the best possible output. Be concise and output exactly what's requested with no preamble.`;
   try {
     return await p.call(key, model, sysPrompt, prompt, stage.tokenBudget);
   } catch (e) {
@@ -1763,7 +1769,7 @@ async function callAPIFusion(keys, stage, prompt) {
   const p = LLM_PROVIDERS[preferredPid] || LLM_PROVIDERS.anthropic;
   const key = keys[preferredPid] || getProviderKey(preferredPid) || getProviderKey('anthropic');
   if (!key) throw new Error('No API key for ' + p.name + ' — save it in Account → API Keys');
-  const sysPrompt = `You are the ${stage.name} stage of PromptMesh, an AI pipeline tool. Produce the best possible output. Be concise, specific, and output exactly what's requested with no preamble.`;
+  const sysPrompt = stage.systemPrompt || `You are the ${stage.name} stage of PromptMesh, an AI pipeline tool. Produce the best possible output. Be concise and output exactly what's requested with no preamble.`;
   try {
     return await p.call(key, p.defaultModel, sysPrompt, prompt, stage.tokenBudget);
   } catch (e) {
@@ -1774,6 +1780,38 @@ async function callAPIFusion(keys, stage, prompt) {
     }
     throw e;
   }
+}
+
+// ══════════════════════════════════════════
+//  RETRY STAGE
+// ══════════════════════════════════════════
+async function retryStage(stageId) {
+  const s = STAGES_CONFIG[stageId];
+  if (!s) return;
+  if (runState.running) { toast('Wait for current run to finish', 'bad'); return; }
+  if (!runState.prompt) { toast('No active run to retry', 'bad'); return; }
+  const check = canRun();
+  if (!check.ok) { showUpgradeModal(check.reason); return; }
+  const customSys = document.getElementById('sys-prompt-input')?.value.trim() || '';
+  const userPrompt = s.buildPrompt(runState.prompt, runState.results, customSys);
+  setStageStatus(stageId, 'working', '');
+  runState.running = true;
+  runState.error = false;
+  try {
+    consumeRun();
+    const result = await callAPI(null, s, userPrompt);
+    runState.results[stageId] = result.text;
+    runState.totalTokens += result.tokens;
+    setStageStatus(stageId, 'done', '↻');
+    setStageOutput(stageId, result.text);
+    updateFinalOutput(runState.stages);
+    addFeed('fi-system', s.name.toUpperCase(), `↻ Retried · ${result.tokens} tokens`);
+    toast('↻ ' + s.name + ' retried', 'ok');
+  } catch(e) {
+    setStageStatus(stageId, 'error');
+    toast(e.message.substring(0, 60), 'bad');
+  }
+  runState.running = false;
 }
 
 // ══════════════════════════════════════════
