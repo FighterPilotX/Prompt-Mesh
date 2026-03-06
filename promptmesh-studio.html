@@ -1635,7 +1635,7 @@ function getBotStage(stageId) {
   return { ...STAGES_CONFIG[stageId], ...bot.stages[stageId] };
 }
 
-function onBotSelect(botId) {
+function onBotSelect(botId, silent = false) {
   const bot = BOT_PRESETS[botId];
   if (!bot) return;
   sessionStorage.setItem('pm_active_bot', botId);
@@ -1664,7 +1664,7 @@ function onBotSelect(botId) {
   };
   if (launch) launch.textContent = labels[botId] || 'Run it →';
 
-  toast(bot.icon + ' ' + bot.name + ' bot selected', 'ok');
+  if (!silent) toast(bot.icon + ' ' + bot.name + ' bot selected', 'ok');
 }
 
 // Provider display metadata
@@ -3066,9 +3066,9 @@ document.addEventListener('DOMContentLoaded', () => {
   renderExamples();
   renderUserBadge();
 
-  // Restore previously selected bot (persists across page loads via sessionStorage)
+  // Restore previously selected bot silently (no toast on page load)
   const savedBot = sessionStorage.getItem('pm_active_bot') || 'builder';
-  onBotSelect(savedBot);
+  onBotSelect(savedBot, true);
   updateCreditsDisplay();
   updateByokStatus();
   updateCostEstLive(); // populate cost estimate immediately
