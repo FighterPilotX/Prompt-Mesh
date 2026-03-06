@@ -188,6 +188,7 @@ h1,h2,h3{font-family:var(--display);line-height:1.1;letter-spacing:-0.01em;}
 .stage-row{margin-bottom:4px;}
 .stage-card{border:1.5px solid var(--rule);border-radius:10px;overflow:hidden;transition:all .25s;}
 .stage-card.sc-active{border-color:var(--amber);}
+.stage-card.sc-working{border-color:var(--amber);background:var(--amber-tint);}
 .stage-card.sc-done{border-color:var(--rule2);}
 .stage-card.sc-error{border-color:var(--coral);}
 
@@ -522,10 +523,12 @@ body.dark .dark-toggle .icon-moon { display:block; }
       <textarea class="hero-textarea" id="main-input" placeholder="Describe what you want to build…&#10;&#10;e.g. A geometry dash clone with dinosaurs, a landing page for my bakery, a todo app with drag-and-drop" onkeydown="if((event.ctrlKey||event.metaKey)&&event.key==='Enter'){event.preventDefault();startRun()}"></textarea>
       <div class="hero-input-footer">
         <div style="display:flex;align-items:center;gap:12px">
-          <div class="cost-est" id="cost-est">⚡ ~$0.003 est.</div>
+          <div class="cost-est" id="cost-est">💰 ~$0.001 est.</div>
           <div class="run-credits" id="credits-display"></div>
+          <span style="font-family:var(--mono);font-size:.62rem;color:var(--ink4)" id="char-counter"></span>
         </div>
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-ghost btn-sm" id="enhance-btn" onclick="enhancePrompt()" title="AI improves your prompt before building" style="font-size:.72rem">✨ Enhance</button>
           <select class="select" id="provider-select" style="width:170px;padding:5px 28px 5px 10px;font-size:.74rem" onchange="onProviderChange()">
             <option value="anthropic">🤖 Claude (Anthropic)</option>
             <option value="openai">🧠 OpenAI (ChatGPT)</option>
@@ -715,9 +718,12 @@ body.dark .dark-toggle .icon-moon { display:block; }
   <div class="run-topbar">
     <button class="btn btn-ghost btn-sm" onclick="closeRun()">← Back</button>
     <div class="run-prompt-display" id="run-prompt-display">—</div>
+    <span id="run-mode-badge" style="font-family:var(--mono);font-size:.58rem;font-weight:700;padding:2px 8px;border-radius:3px;background:var(--rule);color:var(--ink4);letter-spacing:.05em;text-transform:uppercase;flex-shrink:0"></span>
     <div class="status-pill idle" id="status-pill">IDLE</div>
     <div style="font-family:var(--mono);font-size:.68rem;color:var(--ink4)" id="run-elapsed">0s</div>
     <button class="btn btn-ghost btn-sm" id="save-btn" onclick="saveProject()" style="display:none">💾 Save</button>
+    <button class="btn btn-ghost btn-sm" id="download-btn" onclick="downloadApp()" style="display:none" title="Download frontend as .html">↓ App</button>
+    <button class="btn btn-ghost btn-sm" id="merge-btn" onclick="mergeOutput()" style="display:none" title="Merge frontend + backend into one file">⊞ Merge</button>
     <button class="btn btn-outline btn-sm" onclick="exportOutput()">↓ Export</button>
     <button class="btn btn-ghost btn-sm" onclick="toggleSysPrompt()" title="Custom system prompt">⚙ Sys</button>
     <button class="btn btn-ghost btn-sm" onclick="abortRun()" id="abort-btn">■ Stop</button>
@@ -932,6 +938,7 @@ body.dark .dark-toggle .icon-moon { display:block; }
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn btn-ghost btn-sm" onclick="exportAllProjects()">↓ Export all projects</button>
         <button class="btn btn-outline btn-sm" onclick="runEfficiencyAudit()">📊 Efficiency audit</button>
+        <button class="btn btn-ghost btn-sm" onclick="clearSessionCache()" title="Clear session result cache (frees up sessionStorage)">🗑 Clear cache</button>
         <button class="btn btn-ghost btn-sm" style="color:var(--coral)" onclick="clearAllData()">Clear all data</button>
       </div>
     </div>
@@ -1483,6 +1490,10 @@ function initRunView(prompt, mode, stageIds) {
   rv.classList.add('active');
 
   document.getElementById('run-prompt-display').textContent = prompt.length > 80 ? prompt.substring(0, 80) + '…' : prompt;
+  const modeBadge = document.getElementById('run-mode-badge');
+  if (modeBadge) modeBadge.textContent = mode;
+  // Reset download/merge buttons
+  ['download-btn','merge-btn'].forEach(id => { const el = document.getElementById(id); if(el) el.style.display = 'none'; });
   setStatusPill('running', 'RUNNING');
   document.getElementById('save-btn').style.display = 'none';
   document.getElementById('iteration-bar').style.display = 'none';
@@ -1628,6 +1639,9 @@ async function executePipeline(keys, prompt, stageIds, mode) {
     updateStats(runState.totalCost, runState.totalTokens);
     if (runState.results['frontend']) {
       autoPreview();
+      // Show download + merge buttons
+      document.getElementById('download-btn').style.display = '';
+      if (runState.results['backend']) document.getElementById('merge-btn').style.display = '';
       // Switch to Output tab automatically so user sees the result
       const outBtn = document.querySelector('.ot[onclick*="output"]') || document.querySelectorAll('.ot')[1];
       if (outBtn) outBtn.click();
@@ -1636,6 +1650,10 @@ async function executePipeline(keys, prompt, stageIds, mode) {
     // Partial completion — still show save/iterate for stages that finished
     document.getElementById('save-btn').style.display = '';
     document.getElementById('iteration-bar').style.display = '';
+    if (runState.results['frontend']) {
+      document.getElementById('download-btn').style.display = '';
+      if (runState.results['backend']) document.getElementById('merge-btn').style.display = '';
+    }
   }
 
   clearInterval(runState.elapsedTimer);
@@ -1714,6 +1732,8 @@ async function startDemoRun() {
     document.getElementById('save-btn').style.display = '';
     if (runState.results['frontend']) {
       autoPreview();
+      document.getElementById('download-btn').style.display = '';
+      if (runState.results['backend']) document.getElementById('merge-btn').style.display = '';
       const outBtn = document.querySelector('.ot[onclick*="output"]') || document.querySelectorAll('.ot')[1];
       if (outBtn) outBtn.click();
     }
@@ -1952,6 +1972,12 @@ function loadProject(id) {
   updateFinalOutput(p.stages);
   updateCostBreakdown(p.stages);
   document.getElementById('iteration-bar').style.display = '';
+  document.getElementById('save-btn').style.display = '';
+  if (p.results['frontend']) {
+    document.getElementById('download-btn').style.display = '';
+    if (p.results['backend']) document.getElementById('merge-btn').style.display = '';
+    autoPreview();
+  }
   toast('Project loaded', 'ok');
 }
 
@@ -1970,7 +1996,8 @@ function exportOutput() {
   if (!Object.keys(runState.results).length) { toast('Nothing to export yet', 'bad'); return; }
 
   const u = getUser();
-  if (u.tier === 'free') { showUpgradeModal('Export requires Starter plan.'); return; }
+  const hasByok = Object.values(LLM_PROVIDERS).some(p => sessionStorage.getItem(p.keyStorage));
+  if (u.tier === 'free' && !hasByok) { showUpgradeModal('Export requires Starter plan — or add your own API key in Account.'); return; }
 
   const content = `# PromptMesh Export
 Generated: ${new Date().toLocaleString()}
@@ -2007,6 +2034,124 @@ function exportAllProjects() {
 function shareOutput() {
   const url = window.location.href;
   navigator.clipboard.writeText(url).then(() => toast('Link copied! (sharing requires backend in production)', 'info'));
+}
+
+// ══════════════════════════════════════════
+//  DOWNLOAD APP — save frontend output as .html
+// ══════════════════════════════════════════
+function _extractHtml(text) {
+  const fenceRe = /```(?:html)?\n?([\s\S]*?)```/g;
+  const blocks = [];
+  let m;
+  while ((m = fenceRe.exec(text)) !== null) blocks.push(m[1]);
+  const htmlBlock = blocks.find(b => b.trim().startsWith('<!') || b.trim().startsWith('<html') || b.includes('<body'));
+  if (htmlBlock) return htmlBlock;
+  const tagRe = /<!DOCTYPE[\s\S]*?<\/html>/i;
+  const tm = tagRe.exec(text);
+  return tm ? tm[0] : text;
+}
+
+function downloadApp() {
+  const src = runState.results['frontend'] || '';
+  if (!src) { toast('No frontend output yet — run a build first', 'bad'); return; }
+  const html = _extractHtml(src);
+  const blob = new Blob([html], { type: 'text/html' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  const slug = (runState.prompt || 'app').substring(0, 30).replace(/[^a-z0-9]+/gi, '-').toLowerCase();
+  a.download = slug + '.html';
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  toast('App downloaded as ' + a.download, 'ok');
+}
+
+// ══════════════════════════════════════════
+//  MERGE OUTPUT — inject backend JS into frontend HTML → single file
+// ══════════════════════════════════════════
+function mergeOutput() {
+  const frontSrc = runState.results['frontend'] || '';
+  const backSrc  = runState.results['backend']  || '';
+  if (!frontSrc) { toast('No frontend output — run a build first', 'bad'); return; }
+
+  let html = _extractHtml(frontSrc);
+
+  if (backSrc) {
+    // Extract JS from backend code blocks
+    const jsFenceRe = /```(?:javascript|js)?\n?([\s\S]*?)```/g;
+    const jsBlocks = [];
+    let m;
+    while ((m = jsFenceRe.exec(backSrc)) !== null) jsBlocks.push(m[1]);
+    const js = jsBlocks[0] || backSrc;
+
+    // Inject before </body> if present, else append
+    const tag = '</body>';
+    const inject = `\n<script>\n/* === Backend Logic (PromptMesh merged) === */\n${js}\n</scr` + `ipt>`;
+    html = html.includes(tag) ? html.replace(tag, inject + '\n' + tag) : html + inject;
+  }
+
+  const blob = new Blob([html], { type: 'text/html' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  const slug = (runState.prompt || 'app').substring(0, 30).replace(/[^a-z0-9]+/gi, '-').toLowerCase();
+  a.download = slug + '-merged.html';
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  toast('Merged app downloaded as ' + a.download, 'ok');
+}
+
+// ══════════════════════════════════════════
+//  ENHANCE PROMPT — AI improves the user's prompt
+// ══════════════════════════════════════════
+async function enhancePrompt() {
+  const ta = document.getElementById('main-input');
+  const raw = ta.value.trim();
+  if (!raw) { toast('Write something first, then enhance it', 'bad'); return; }
+
+  const btn = document.getElementById('enhance-btn');
+  if (btn) { btn.textContent = '⏳'; btn.disabled = true; }
+
+  const pid = getSelectedProvider();
+  const key = getProviderKey(pid) || getProviderKey('anthropic');
+  if (!key) { toast('Add an API key in Account to use Enhance', 'bad'); if (btn) { btn.textContent = '✨'; btn.disabled = false; } return; }
+
+  try {
+    const p = LLM_PROVIDERS[pid] || LLM_PROVIDERS.anthropic;
+    const k = key;
+    const sys = 'You are a prompt engineer. Rewrite the user\'s prompt to be clearer, more specific, and better suited for code generation. Keep the same core idea. Output ONLY the improved prompt — no preamble, no explanation, no quotes around it.';
+    const result = await p.call(k, p.defaultModel, sys, raw, 300);
+    ta.value = result.text.trim();
+    updateCostEstLive();
+    updateCharCounter();
+    toast('Prompt enhanced ✓', 'ok');
+  } catch(e) {
+    toast('Enhance failed: ' + e.message.substring(0, 50), 'bad');
+  } finally {
+    if (btn) { btn.textContent = '✨ Enhance'; btn.disabled = false; }
+  }
+}
+
+// ══════════════════════════════════════════
+//  CLEAR SESSION CACHE
+// ══════════════════════════════════════════
+function clearSessionCache() {
+  let cleared = 0;
+  for (let i = sessionStorage.length - 1; i >= 0; i--) {
+    const k = sessionStorage.key(i);
+    if (k && k.startsWith('pm_rc_')) { sessionStorage.removeItem(k); cleared++; }
+  }
+  toast(cleared > 0 ? `Cleared ${cleared} cached result${cleared > 1 ? 's' : ''}` : 'Cache was already empty', 'ok');
+}
+
+// ══════════════════════════════════════════
+//  CHAR COUNTER
+// ══════════════════════════════════════════
+function updateCharCounter() {
+  const ta = document.getElementById('main-input');
+  const el = document.getElementById('char-counter');
+  if (!el || !ta) return;
+  const n = ta.value.length;
+  el.textContent = n > 0 ? `${n} chars` : '';
+  el.style.color = n > 800 ? 'var(--amber)' : n > 1200 ? 'var(--coral)' : 'var(--ink4)';
 }
 
 // ══════════════════════════════════════════
@@ -2538,9 +2683,23 @@ document.addEventListener('DOMContentLoaded', () => {
   renderUserBadge();
   updateCreditsDisplay();
   updateByokStatus();
-  document.getElementById('main-input').addEventListener('input', updateCostEstLive);
+  updateCostEstLive(); // populate cost estimate immediately
+
+  const mainInput = document.getElementById('main-input');
+  mainInput.addEventListener('input', () => { updateCostEstLive(); updateCharCounter(); });
   document.getElementById('mode-select').addEventListener('change', updateCostEstLive);
   document.getElementById('provider-select').addEventListener('change', updateCostEstLive);
+
+  // Auto-focus textarea
+  mainInput.focus();
+
+  // Close history sidebar on outside click
+  document.addEventListener('click', e => {
+    const sidebar = document.getElementById('history-sidebar');
+    if (sidebar?.classList.contains('open') && !sidebar.contains(e.target) && !e.target.closest('[onclick*="toggleHistory"]')) {
+      sidebar.classList.remove('open');
+    }
+  });
 
   // Show a welcome hint for new users
   const u = getUser();
