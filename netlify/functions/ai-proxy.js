@@ -5,7 +5,7 @@ exports.handler = async function (event) {
   // Handle CORS preflight
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type, x-api-key, anthropic-version',
+    'Access-Control-Allow-Headers': 'Content-Type, x-api-key, anthropic-version, anthropic-beta',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
   };
 
@@ -27,14 +27,17 @@ exports.handler = async function (event) {
   }
 
   try {
+    const upstreamHeaders = {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': event.headers['anthropic-version'] || '2023-06-01',
+    };
+    const betaHeader = event.headers['anthropic-beta'] || event.headers['Anthropic-Beta'];
+    if (betaHeader) upstreamHeaders['anthropic-beta'] = betaHeader;
+
     const upstream = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version':
-          event.headers['anthropic-version'] || '2023-06-01',
-      },
+      headers: upstreamHeaders,
       body: event.body,
     });
 

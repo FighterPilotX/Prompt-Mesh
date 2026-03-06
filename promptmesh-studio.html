@@ -534,11 +534,12 @@ body.dark .dark-toggle .icon-moon { display:block; }
             <option value="groq">⚡ Groq (Llama)</option>
             <option value="cohere">🌊 Cohere</option>
           </select>
-          <select class="select" id="mode-select" style="width:140px;padding:5px 28px 5px 10px;font-size:.74rem" onchange="updateCostEst()">
-            <option value="quick">Quick (3 stages)</option>
+          <select class="select" id="mode-select" style="width:155px;padding:5px 28px 5px 10px;font-size:.74rem" onchange="updateCostEst()">
+            <option value="flash">⚡ Flash (1 stage)</option>
+            <option value="quick" selected>Quick (2 stages)</option>
             <option value="full">Full Team (5 stages)</option>
-            <option value="fusion">⚡ Fusion (All Models)</option>
-            <option value="code">Code Only</option>
+            <option value="fusion">🔀 Fusion (All Models)</option>
+            <option value="code">Code Only (3 stages)</option>
             <option value="design">Design Focus</option>
           </select>
           <button class="btn btn-plan" id="launch-btn" onclick="startRun()">Build it →</button>
@@ -988,10 +989,16 @@ const LLM_PROVIDERS = {
     models:{'claude-haiku-4-5-20251001':{label:'Claude Haiku 4.5',costPer1k:0.00025},'claude-sonnet-4-6':{label:'Claude Sonnet 4.6',costPer1k:0.003},'claude-opus-4-6':{label:'Claude Opus 4.6',costPer1k:0.015}},
     defaultModel:'claude-haiku-4-5-20251001',
     async call(key,model,sys,user,maxTok){
-      const r=await fetch('/.netlify/functions/ai-proxy',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01'},body:JSON.stringify({model,max_tokens:maxTok,system:sys,messages:[{role:'user',content:user}]})});
+      // Use cached system prompt array format for prompt caching (90% off cached input tokens)
+      const sysPayload = sys ? [{type:'text',text:sys,cache_control:{type:'ephemeral'}}] : undefined;
+      const r=await fetch('/.netlify/functions/ai-proxy',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-beta':'prompt-caching-2024-07-31'},body:JSON.stringify({model,max_tokens:maxTok,system:sysPayload,messages:[{role:'user',content:user}]})});
       if(!r.ok){const d=await r.json().catch(()=>({}));if(r.status===401)throw new Error('Invalid Anthropic key — check it starts with sk-ant-api03-');if(r.status===429)throw new Error('Rate limited by Anthropic — wait a moment');throw new Error('Anthropic error '+r.status+': '+(d?.error?.message||'').substring(0,80));}
       const d=await r.json();const text=d.content?.[0]?.text||'';if(!text)throw new Error('Empty response from Anthropic');
-      return{text,tokens:(d.usage?.input_tokens||0)+(d.usage?.output_tokens||0),truncated:d.stop_reason==='max_tokens'};
+      // Account for cached tokens (billed at 10% of normal price)
+      const inputTok=d.usage?.input_tokens||0, outTok=d.usage?.output_tokens||0;
+      const cacheRead=d.usage?.cache_read_input_tokens||0, cacheCreate=d.usage?.cache_creation_input_tokens||0;
+      const billedTok=Math.round(inputTok+outTok+cacheCreate*0.25-cacheRead*0.9); // net billed equivalent
+      return{text,tokens:billedTok||inputTok+outTok,rawTokens:inputTok+outTok,cacheRead,cacheCreate,truncated:d.stop_reason==='max_tokens'};
     }
   },
   openai: {
@@ -1087,7 +1094,7 @@ const STAGES_CONFIG = {
   planning: {
     id: 'planning', name: 'Planning Council', icon: '🧠',
     color: '#4a5568', bg: 'rgba(74,85,104,0.1)',
-    model: 'claude-haiku-4-5-20251001', provider: 'claude', tokenBudget: 450,
+    model: 'claude-haiku-4-5-20251001', provider: 'claude', tokenBudget: 380,
     costPer1k: 0.00025, feedType: 'fi-plan',
     badge: 'PLAN', badgeColor: '#4a5568',
     systemPrompt: 'You are a senior software architect. Output only the requested specification format — no preamble, no commentary, no markdown outside the template. Every word must add value.',
@@ -1125,7 +1132,7 @@ Under 280 words total.`;
   design: {
     id: 'design', name: 'Art & Design', icon: '🎨',
     color: '#7c5cbf', bg: 'rgba(124,92,191,0.1)',
-    model: 'gemini-2.0-flash', provider: 'gemini', tokenBudget: 400,
+    model: 'gemini-2.0-flash', provider: 'gemini', tokenBudget: 300,
     costPer1k: 0.00010, feedType: 'fi-design',
     badge: 'DESIGN', badgeColor: '#7c5cbf',
     systemPrompt: 'You are a senior UI/UX designer. Output only the design system in the exact format requested — no preamble, no extra explanation. Specific hex values and font names only.',
@@ -1276,11 +1283,12 @@ Under 280 words total.`;
 };
 
 const MODES = {
-  quick:  ['planning','frontend','backend'],
-  full:   ['planning','design','frontend','backend','polish'],
-  code:   ['planning','frontend','backend'],
-  design: ['planning','design','frontend'],
-  fusion: ['planning','design','frontend','backend','polish']
+  flash:  ['frontend'],                                         // 1 stage  ~$0.0003  ~5s
+  quick:  ['frontend','backend'],                               // 2 stages ~$0.0006  ~10s
+  full:   ['planning','design','frontend','backend','polish'],  // 5 stages ~$0.004   ~45s
+  code:   ['planning','frontend','backend'],                    // 3 stages ~$0.001   ~20s
+  design: ['planning','design','frontend'],                     // 3 stages ~$0.001   ~20s
+  fusion: ['planning','design','frontend','backend','polish'],  // 5 stages ~$0.004   ~45s
 };
 
 // Provider display metadata
@@ -1529,6 +1537,7 @@ function initRunView(prompt, mode, stageIds) {
 async function executePipeline(keys, prompt, stageIds, mode) {
   const customSys = sessionStorage.getItem('pm_custom_sys') || '';
   const isFusion = mode === 'fusion';
+  const pid = getSelectedProvider();
 
   for (let i = 0; i < stageIds.length; i++) {
     if (runState.aborted) break;
@@ -1536,11 +1545,27 @@ async function executePipeline(keys, prompt, stageIds, mode) {
     const s = STAGES_CONFIG[stageId];
 
     setStageStatus(stageId, 'working');
-    const _pid=getSelectedProvider();const _p=LLM_PROVIDERS[_pid];const _modelLabel=_p?((_p.models[_p.defaultModel]?.label)||_p.defaultModel):s.model;
-    addFeed(s.feedType, s.name.toUpperCase(), `Starting — ${_modelLabel}`);
+    const _p=LLM_PROVIDERS[pid];const _modelLabel=_p?((_p.models[_p.defaultModel]?.label)||_p.defaultModel):s.model;
 
     const t0 = Date.now();
     const userPrompt = s.buildPrompt(prompt, runState.results, customSys);
+
+    // Check session cache first — instant $0 replay for identical prompts
+    const cached = getResultCache(prompt, stageId, mode, pid);
+    if (cached) {
+      addFeed(s.feedType, s.name.toUpperCase(), `⚡ Cache hit — $0 · 0ms`);
+      runState.results[stageId] = cached.text;
+      runState.stagesDone++;
+      setStageStatus(stageId, 'done', '0ms');
+      setStageOutput(stageId, cached.text);
+      setConnectorDone(stageId);
+      document.getElementById('rs-stages').textContent = `${runState.stagesDone}/${stageIds.length}`;
+      updateFinalOutput(stageIds);
+      updateCostBreakdown(stageIds);
+      continue;
+    }
+
+    addFeed(s.feedType, s.name.toUpperCase(), `Starting — ${_modelLabel}`);
 
     try {
       // Fusion races models for non-claude stages; standard routing otherwise
@@ -1551,7 +1576,7 @@ async function executePipeline(keys, prompt, stageIds, mode) {
       // Retry if truncated — bump token budget (max 2 retries)
       let retryCount = 0;
       while (result.truncated && retryCount < 2 && !runState.aborted) {
-        addFeed('fi-system', 'RETRY', `${s.name} output truncated — retrying with more tokens (attempt ${retryCount+2})`);
+        addFeed('fi-system', 'RETRY', `${s.name} truncated — retrying with ${Math.min(s.tokenBudget * 2, 4096)} tokens`);
         const biggerStage = Object.assign({}, s, { tokenBudget: Math.min(s.tokenBudget * 2, 4096) });
         result = await callAPI(keys, biggerStage, userPrompt);
         retryCount++;
@@ -1559,16 +1584,20 @@ async function executePipeline(keys, prompt, stageIds, mode) {
       const ms = Date.now() - t0;
       const tokens = result.tokens;
       const cost = tokens * s.costPer1k / 1000;
+      const cacheNote = result.cacheRead ? ` · ${result.cacheRead} cached` : '';
 
       runState.results[stageId] = result.text;
       runState.totalCost += cost;
-      runState.totalTokens += tokens;
+      runState.totalTokens += (result.rawTokens || tokens);
       runState.stagesDone++;
 
       setStageStatus(stageId, 'done', `${(ms/1000).toFixed(1)}s`);
       setStageOutput(stageId, result.text);
       setConnectorDone(stageId);
-      addFeed(s.feedType, s.name.toUpperCase(), `✓ Done in ${(ms/1000).toFixed(1)}s · ${tokens} tokens · ~$${cost.toFixed(5)}`);
+      addFeed(s.feedType, s.name.toUpperCase(), `✓ ${(ms/1000).toFixed(1)}s · ${tokens} tokens · ~$${cost.toFixed(5)}${cacheNote}`);
+
+      // Save to session cache for instant replay
+      setResultCache(prompt, stageId, mode, pid, result);
 
       document.getElementById('rs-stages').textContent = `${runState.stagesDone}/${stageIds.length}`;
       document.getElementById('rs-cost').textContent = `$${runState.totalCost.toFixed(5)}`;
@@ -1587,8 +1616,6 @@ async function executePipeline(keys, prompt, stageIds, mode) {
       toast(errMsg.substring(0, 80), 'bad');
       break;
     }
-
-    await sleep(250);
   }
 
   if (!runState.aborted && !runState.error) {
@@ -2786,8 +2813,8 @@ function updateCostEstLive() {
   const pid = getSelectedProvider();
   const p = LLM_PROVIDERS[pid];
   const costPer1k = p ? (p.models[p.defaultModel]?.costPer1k || 0.00025) : 0.00025;
-  const stageCounts = { quick: 3, full: 5, code: 3, design: 3 };
-  const stages = stageCounts[mode] || 3;
+  const stageCounts = { flash: 1, quick: 2, full: 5, code: 3, design: 3, fusion: 5 };
+  const stages = stageCounts[mode] || 2;
   const promptTokens = Math.ceil(prompt.length / 4);
   // ~1000 output tokens per stage + proportional prompt cost
   const baseCost = stages * costPer1k;
@@ -2795,10 +2822,35 @@ function updateCostEstLive() {
   const total = baseCost + promptCost;
   const el = document.getElementById('cost-est');
   if (!el) return;
-  const tag = isFusion ? '⚡' : '💰';
-  el.textContent = `${tag} ~$${total.toFixed(4)} est.`;
+  const tag = mode === 'flash' ? '⚡' : mode === 'fusion' ? '🔀' : '💰';
+  const timeEst = { flash: '~5s', quick: '~10s', full: '~45s', code: '~20s', design: '~20s', fusion: '~45s' };
+  el.textContent = `${tag} ~$${total.toFixed(4)} · ${timeEst[mode] || '~20s'}`;
 }
 
+
+// ══════════════════════════════════════════
+//  SESSION RESULT CACHE — $0 re-runs for identical prompts
+// ══════════════════════════════════════════
+function _cacheKey(prompt, stageId, mode, pid) {
+  // Simple hash: first 120 chars of prompt + stage + mode + provider
+  const raw = `${stageId}|${mode}|${pid}|${prompt.substring(0, 120)}`;
+  let h = 0;
+  for (let i = 0; i < raw.length; i++) { h = Math.imul(31, h) + raw.charCodeAt(i) | 0; }
+  return 'pm_rc_' + (h >>> 0).toString(36);
+}
+
+function getResultCache(prompt, stageId, mode, pid) {
+  try {
+    const v = sessionStorage.getItem(_cacheKey(prompt, stageId, mode, pid));
+    return v ? JSON.parse(v) : null;
+  } catch { return null; }
+}
+
+function setResultCache(prompt, stageId, mode, pid, result) {
+  try {
+    sessionStorage.setItem(_cacheKey(prompt, stageId, mode, pid), JSON.stringify({ text: result.text, tokens: 0 }));
+  } catch {} // ignore quota errors
+}
 
 // ══════════════════════════════════════════
 //  COST EFFICIENCY AUDIT
