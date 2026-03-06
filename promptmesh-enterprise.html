@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://api.anthropic.com;">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://api.anthropic.com https://api.openai.com https://generativelanguage.googleapis.com https://api.mistral.ai https://api.groq.com https://api.cohere.com;">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PromptMesh Enterprise — Intelligent Agent Routing</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -527,11 +527,43 @@ body.dark .dark-btn::after{left:13px;background:#fff;}
 <script>
 'use strict';
 
+// ══════════ LLM PROVIDERS ══════════
+const LLM_PROVIDERS = {
+  anthropic:{name:'Claude (Anthropic)',icon:'🤖',keyStorage:'ent_key',keyHint:'sk-ant-api03-…',defaultModel:'claude-haiku-4-5-20251001',
+    async call(key,model,sys,user,maxTok){const r=await fetch('/.netlify/functions/ai-proxy',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01'},body:JSON.stringify({model,max_tokens:maxTok,system:sys||undefined,messages:[{role:'user',content:user}]})});if(!r.ok){const d=await r.json().catch(()=>({}));throw new Error((r.status===401?'Invalid Anthropic key':r.status===429?'Rate limited':'Anthropic error '+r.status)+': '+(d?.error?.message||'').substring(0,60));}const d=await r.json();return{text:d.content?.[0]?.text||'',tokens:(d.usage?.input_tokens||0)+(d.usage?.output_tokens||0)};}
+  },
+  openai:{name:'OpenAI',icon:'🧠',keyStorage:'ent_key_openai',keyHint:'sk-proj-…',defaultModel:'gpt-4o-mini',
+    async call(key,model,sys,user,maxTok){const msgs=[];if(sys)msgs.push({role:'system',content:sys});msgs.push({role:'user',content:user});const r=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model,max_tokens:maxTok,messages:msgs})});if(!r.ok){const d=await r.json().catch(()=>({}));throw new Error((r.status===401?'Invalid OpenAI key':r.status===429?'Rate limited':'OpenAI error '+r.status)+': '+(d?.error?.message||'').substring(0,60));}const d=await r.json();return{text:d.choices?.[0]?.message?.content||'',tokens:(d.usage?.prompt_tokens||0)+(d.usage?.completion_tokens||0)};}
+  },
+  gemini:{name:'Google Gemini',icon:'✨',keyStorage:'ent_key_gemini',keyHint:'AIzaSy…',defaultModel:'gemini-2.0-flash',
+    async call(key,model,sys,user,maxTok){const body={contents:[{parts:[{text:user}]}],generationConfig:{maxOutputTokens:maxTok}};if(sys)body.systemInstruction={parts:[{text:sys}]};const r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+model+':generateContent?key='+key,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});if(!r.ok){const d=await r.json().catch(()=>({}));throw new Error((r.status===403?'Invalid Gemini key':r.status===429?'Rate limited':'Gemini error '+r.status)+': '+(d?.error?.message||'').substring(0,60));}const d=await r.json();return{text:d.candidates?.[0]?.content?.parts?.[0]?.text||'',tokens:(d.usageMetadata?.promptTokenCount||0)+(d.usageMetadata?.candidatesTokenCount||0)};}
+  },
+  mistral:{name:'Mistral AI',icon:'🌪️',keyStorage:'ent_key_mistral',keyHint:'Mistral API key…',defaultModel:'mistral-small-latest',
+    async call(key,model,sys,user,maxTok){const msgs=[];if(sys)msgs.push({role:'system',content:sys});msgs.push({role:'user',content:user});const r=await fetch('https://api.mistral.ai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model,max_tokens:maxTok,messages:msgs})});if(!r.ok){const d=await r.json().catch(()=>({}));throw new Error((r.status===401?'Invalid Mistral key':r.status===429?'Rate limited':'Mistral error '+r.status)+': '+(d?.message||'').substring(0,60));}const d=await r.json();return{text:d.choices?.[0]?.message?.content||'',tokens:(d.usage?.prompt_tokens||0)+(d.usage?.completion_tokens||0)};}
+  },
+  groq:{name:'Groq',icon:'⚡',keyStorage:'ent_key_groq',keyHint:'gsk_…',defaultModel:'llama-3.3-70b-versatile',
+    async call(key,model,sys,user,maxTok){const msgs=[];if(sys)msgs.push({role:'system',content:sys});msgs.push({role:'user',content:user});const r=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model,max_tokens:maxTok,messages:msgs})});if(!r.ok){const d=await r.json().catch(()=>({}));throw new Error((r.status===401?'Invalid Groq key':r.status===429?'Rate limited':'Groq error '+r.status)+': '+(d?.error?.message||'').substring(0,60));}const d=await r.json();return{text:d.choices?.[0]?.message?.content||'',tokens:(d.usage?.prompt_tokens||0)+(d.usage?.completion_tokens||0)};}
+  },
+  cohere:{name:'Cohere',icon:'🌊',keyStorage:'ent_key_cohere',keyHint:'Cohere API key…',defaultModel:'command-r-08-2024',
+    async call(key,model,sys,user,maxTok){const r=await fetch('https://api.cohere.com/v2/chat',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model,max_tokens:maxTok,preamble:sys||undefined,messages:[{role:'user',content:user}]})});if(!r.ok){const d=await r.json().catch(()=>({}));throw new Error((r.status===401?'Invalid Cohere key':r.status===429?'Rate limited':'Cohere error '+r.status)+': '+(d?.message||'').substring(0,60));}const d=await r.json();return{text:d.message?.content?.[0]?.text||'',tokens:(d.usage?.tokens?.input_tokens||0)+(d.usage?.tokens?.output_tokens||0)};}
+  }
+};
+
+function getProviderKey(pid){const p=LLM_PROVIDERS[pid];return p?sessionStorage.getItem(p.keyStorage):null;}
+function setProviderKey(pid,key){const p=LLM_PROVIDERS[pid];if(p)sessionStorage.setItem(p.keyStorage,key);}
+function getAgentProvider(agent){return LLM_PROVIDERS[agent.type]||LLM_PROVIDERS.anthropic;}
+
 // ══════════ STATE ══════════
 const DEFAULT_AGENTS = [
-  {id:'agt_haiku',name:'Haiku Router',type:'claude',emoji:'⚡',model:'claude-haiku-4-5-20251001',costPer1k:0.00025,spec:'general,simple,fast',active:true,runs:0,totalTokens:0,totalCost:0,color:'#c47a2a'},
-  {id:'agt_sonnet',name:'Sonnet Pro',type:'claude',emoji:'🔮',model:'claude-sonnet-4-6',costPer1k:0.003,spec:'code,reasoning,complex',active:true,runs:0,totalTokens:0,totalCost:0,color:'#c8442a'},
-  {id:'agt_haiku2',name:'Haiku Analyst',type:'claude',emoji:'📊',model:'claude-haiku-4-5-20251001',costPer1k:0.00025,spec:'analysis,summarize,classification',active:true,runs:0,totalTokens:0,totalCost:0,color:'#1a7a4a'},
+  {id:'agt_haiku',name:'Haiku Router',type:'anthropic',emoji:'⚡',model:'claude-haiku-4-5-20251001',costPer1k:0.00025,spec:'general,simple,fast',active:true,runs:0,totalTokens:0,totalCost:0,color:'#c47a2a'},
+  {id:'agt_sonnet',name:'Sonnet Pro',type:'anthropic',emoji:'🔮',model:'claude-sonnet-4-6',costPer1k:0.003,spec:'code,reasoning,complex',active:true,runs:0,totalTokens:0,totalCost:0,color:'#c8442a'},
+  {id:'agt_haiku2',name:'Haiku Analyst',type:'anthropic',emoji:'📊',model:'claude-haiku-4-5-20251001',costPer1k:0.00025,spec:'analysis,summarize,classification',active:true,runs:0,totalTokens:0,totalCost:0,color:'#1a7a4a'},
+  {id:'agt_gpt4omini',name:'GPT-4o Mini',type:'openai',emoji:'🧠',model:'gpt-4o-mini',costPer1k:0.00015,spec:'writing,general,qa',active:false,runs:0,totalTokens:0,totalCost:0,color:'#10a37f'},
+  {id:'agt_gpt4o',name:'GPT-4o',type:'openai',emoji:'🌟',model:'gpt-4o',costPer1k:0.005,spec:'code,complex,reasoning',active:false,runs:0,totalTokens:0,totalCost:0,color:'#10a37f'},
+  {id:'agt_gemini_flash',name:'Gemini 2.0 Flash',type:'gemini',emoji:'✨',model:'gemini-2.0-flash',costPer1k:0.00010,spec:'general,summarize,fast',active:false,runs:0,totalTokens:0,totalCost:0,color:'#4285f4'},
+  {id:'agt_gemini_pro',name:'Gemini 1.5 Pro',type:'gemini',emoji:'🌈',model:'gemini-1.5-pro',costPer1k:0.00125,spec:'analysis,long-context,multimodal',active:false,runs:0,totalTokens:0,totalCost:0,color:'#4285f4'},
+  {id:'agt_llama',name:'Llama 3.3 70B',type:'groq',emoji:'🦙',model:'llama-3.3-70b-versatile',costPer1k:0.00059,spec:'general,code,writing',active:false,runs:0,totalTokens:0,totalCost:0,color:'#6366f1'},
+  {id:'agt_mistral',name:'Mistral Small',type:'mistral',emoji:'🌪️',model:'mistral-small-latest',costPer1k:0.0002,spec:'writing,general,multilingual',active:false,runs:0,totalTokens:0,totalCost:0,color:'#ff7000'},
 ];
 
 const DEFAULT_RULES = [
@@ -574,19 +606,25 @@ function showPanel(id){
 
 // ══════════ API KEY ══════════
 function promptKey(){
-  const k=window.prompt('Anthropic API key (sk-ant-…)\nStored in sessionStorage only:');
+  const pid=Object.keys(LLM_PROVIDERS).find(id=>!getProviderKey(id))||'anthropic';
+  const p=LLM_PROVIDERS[pid];
+  const k=window.prompt(p.name+' API key ('+p.keyHint+')\nStored in sessionStorage only:');
   if(!k||!k.trim()) return;
-  sessionStorage.setItem('ent_key',k.trim());
+  setProviderKey(pid,k.trim());
   updateKeyStatus();
-  toast('Key saved','ok');
+  toast(p.name+' key saved','ok');
 }
 
-function getKey(){return sessionStorage.getItem('ent_key');}
+function getKey(){
+  // For legacy compat: return the Anthropic key or any available key
+  return getProviderKey('anthropic') || Object.values(LLM_PROVIDERS).map(p=>sessionStorage.getItem(p.keyStorage)).find(Boolean) || null;
+}
 
 function updateKeyStatus(){
-  const k=getKey();
-  document.getElementById('key-dot').style.background=k?'var(--green)':'var(--ink4)';
-  document.getElementById('key-label').textContent=k?'Key set ('+k.substring(0,10)+'…)':'No API key';
+  const keysSet=Object.entries(LLM_PROVIDERS).filter(([,p])=>sessionStorage.getItem(p.keyStorage));
+  const hasAny=keysSet.length>0;
+  document.getElementById('key-dot').style.background=hasAny?'var(--green)':'var(--ink4)';
+  document.getElementById('key-label').textContent=hasAny?keysSet.map(([,p])=>p.icon).join('')+' '+keysSet.length+' key(s) set':'No API keys';
 }
 
 // ══════════ DISPATCH ══════════
@@ -632,17 +670,17 @@ async function dispatch(){
       selectedAgent=agents.sort((a,b)=>a.costPer1k-b.costPer1k)[0];
       routeReason='Cheapest active agent';
     } else if(mode==='auto'||mode==='sequential'||mode==='parallel'){
-      // Call Haiku to analyze
-      analysis=await analyzeTask(key,task);
-      addFeed('fi-router','ROUTER','Analysis: type='+analysis.type+', complexity='+analysis.complexity);
-
-      // Check custom rules first
+      // Check custom rules client-side first — skip analyzeTask API call if a rule matches
       const matchedRule=checkRules(task,rules);
       if(matchedRule){
         selectedAgent=agents.find(a=>a.id===matchedRule.agentId);
         routeReason='Rule match: '+matchedRule.reason;
-        addFeed('fi-router','ROUTER','Rule matched → '+routeReason);
+        addFeed('fi-router','ROUTER','Rule matched (no analysis needed) → '+routeReason);
       } else {
+        // No rule matched — call Haiku to classify the task
+        addFeed('fi-router','ROUTER','No rule matched — analyzing task with Haiku…');
+        analysis=await analyzeTask(key,task);
+        addFeed('fi-router','ROUTER','Analysis: type='+analysis.type+', complexity='+analysis.complexity);
         selectedAgent=selectBestAgent(analysis,agents);
         routeReason='Auto-routed based on: '+analysis.type+'/'+analysis.complexity;
       }
@@ -657,7 +695,7 @@ async function dispatch(){
     // Step 2: Execute
     addFeed('fi-agent',selectedAgent.name,'Calling '+selectedAgent.model+'…');
     const t0=Date.now();
-    const result=await callAgent(key,selectedAgent,task);
+    const result=await callAgent(key,selectedAgent,task,analysis);
     const ms=Date.now()-t0;
     const cost=result.tokens*selectedAgent.costPer1k/1000;
     const gpt4Cost=result.tokens*0.02/1000;
@@ -709,17 +747,11 @@ async function dispatch(){
 
 async function analyzeTask(key,task){
   if(dispatchState.aborted) throw new Error('ABORTED');
-  const resp=await fetch('https://api.anthropic.com/v1/messages',{
-    method:'POST',
-    headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-request-when-unauthenticated':'true'},
-    body:JSON.stringify({
-      model:'claude-haiku-4-5-20251001',max_tokens:120,
-      messages:[{role:'user',content:'Classify this task in JSON only, no explanation:\n"'+task.substring(0,300)+'"\n\nReturn: {"type":"code|writing|analysis|qa|creative|reasoning","complexity":"low|medium|high","estimatedTokens":300,"summary":"10 words max"}'}]
-    })
-  });
-  if(!resp.ok) throw new Error('Router HTTP '+resp.status);
-  const d=await resp.json();
-  try{return JSON.parse(d.content[0].text.replace(/```json|```/g,'').trim());}
+  // Use Anthropic (Haiku) as the router — fall back to any available key
+  const routerKey=getProviderKey('anthropic')||key;
+  if(!routerKey) throw new Error('No Anthropic key for task routing — add it in Settings');
+  const result=await LLM_PROVIDERS.anthropic.call(routerKey,'claude-haiku-4-5-20251001','','Classify this task in JSON only, no explanation:\n"'+task.substring(0,300)+'"\n\nReturn: {"type":"code|writing|analysis|qa|creative|reasoning","complexity":"low|medium|high","estimatedTokens":300,"summary":"10 words max"}',120);
+  try{return JSON.parse(result.text.replace(/```json|```/g,'').trim());}
   catch{return{type:'general',complexity:'medium',estimatedTokens:300,summary:task.substring(0,40)};}
 }
 
@@ -761,29 +793,30 @@ function selectBestAgent(analysis,agents){
   return agents.sort((a,b)=>a.costPer1k-b.costPer1k)[0];
 }
 
-async function callAgent(key,agent,task){
+async function callAgent(key,agent,task,analysis){
   if(dispatchState.aborted) throw new Error('ABORTED');
-  let resp;
-  try{
-    resp=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-request-when-unauthenticated':'true'},
-      body:JSON.stringify({
-        model:agent.model,max_tokens:1200,
-        system:'You are '+agent.name+', a specialized AI assistant. Specialization: '+agent.spec+'. Be concise and directly useful. No unnecessary preamble.',
-        messages:[{role:'user',content:task}]
-      })
-    });
-  }catch(e){throw new Error('Network error: '+e.message);}
-  if(!resp.ok){
-    const d=await resp.json().catch(()=>({}));
-    const msg=d?.error?.message||'HTTP '+resp.status;
-    if(resp.status===401) throw new Error('Invalid API key — check it in the toolbar');
-    if(resp.status===429) throw new Error('Rate limited — wait a moment and retry');
-    throw new Error('API error: '+msg.substring(0,100));
+  // Adaptive token budget: match output size to task complexity
+  let maxTokens=800;
+  if(analysis){
+    if(analysis.complexity==='high'||analysis.type==='code') maxTokens=1600;
+    else if(analysis.complexity==='medium') maxTokens=1000;
+    else maxTokens=600;
+  } else {
+    if(task.length>600) maxTokens=1200;
+    else if(task.length>200) maxTokens=900;
   }
-  const d=await resp.json();
-  return{text:d.content?.[0]?.text||'',tokens:(d.usage?.input_tokens||0)+(d.usage?.output_tokens||0),truncated:d.stop_reason==='max_tokens'};
+  const provider=getAgentProvider(agent);
+  const agentKey=getProviderKey(agent.type)||key;
+  if(!agentKey) throw new Error('No API key for '+provider.name+' — add it in Settings');
+  const sysPrompt='You are '+agent.name+', a specialized AI assistant. Specialization: '+agent.spec+'. Be concise and directly useful. No unnecessary preamble.';
+  try{
+    const result=await provider.call(agentKey,agent.model,sysPrompt,task,maxTokens);
+    return{text:result.text,tokens:result.tokens,truncated:false};
+  }catch(e){
+    if(e.message.toLowerCase().includes('invalid')||e.message.includes('401')) throw new Error('Invalid API key for '+provider.name+' — check Settings');
+    if(e.message.toLowerCase().includes('rate')) throw new Error('Rate limited by '+provider.name+' — wait a moment');
+    throw new Error(provider.name+' error: '+e.message.substring(0,100));
+  }
 }
 
 function abortDispatch(){
@@ -953,7 +986,7 @@ function renderMap(){
     // Node
     ctx.shadowColor=a.active?'rgba(26,122,74,.2)':'transparent';ctx.shadowBlur=12;
     ctx.fillStyle=a.active?routerCol:'rgba(200,196,190,.5)';
-    ctx.strokeStyle=a.active?a.color:'var(--rule2)';ctx.lineWidth=2;
+    ctx.strokeStyle=a.active?a.color:(isDark?'#2d2b24':'#cec9be');ctx.lineWidth=2;
     ctx.beginPath();ctx.arc(ax,ay,28,0,Math.PI*2);ctx.fill();ctx.stroke();
     ctx.shadowBlur=0;
     // Text
@@ -1121,7 +1154,7 @@ function clearFeed(){document.getElementById('run-feed').innerHTML='';}
 function addFeed(cls,from,msg){
   const el=document.getElementById('run-feed');
   const d=new Date();
-  const ts=d.getHours().toString().padStart(2,'0')+':'+d.getSeconds().toString().padStart(2,'0');
+  const ts=d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0');
   const item=document.createElement('div');
   item.className='fi '+cls;
   item.innerHTML='<span class="fi-ts">'+ts+'</span><span class="fi-from">'+escHtml(from)+'</span><span class="fi-msg">'+escHtml(msg)+'</span>';

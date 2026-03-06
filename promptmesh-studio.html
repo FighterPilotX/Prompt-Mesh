@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://api.anthropic.com; frame-src 'none';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://api.anthropic.com https://api.openai.com https://generativelanguage.googleapis.com https://api.mistral.ai https://api.groq.com https://api.cohere.com; frame-src 'none';">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PromptMesh Studio — AI Pipeline Builder</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -74,24 +74,25 @@ h1,h2,h3{font-family:var(--display);line-height:1.1;letter-spacing:-0.01em;}
 .select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%2378716c' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;}
 
 /* ───── NAV ───── */
-#nav{position:fixed;top:0;left:0;right:0;height:60px;display:flex;align-items:center;padding:0 32px;background:rgba(247,244,238,.96);backdrop-filter:blur(16px);border-bottom:1px solid var(--rule);z-index:500;}
-.nav-logo{font-family:var(--display);font-size:1.3rem;font-weight:900;color:var(--ink);letter-spacing:-.02em;cursor:pointer;display:flex;align-items:center;gap:8px;}
-.nav-logo .logo-mark{width:26px;height:26px;background:var(--coral);border-radius:5px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-.nav-logo .logo-mark svg{width:14px;height:14px;fill:#fff;}
+#nav{position:fixed;top:0;left:0;right:0;height:64px;display:flex;align-items:center;padding:0 28px;gap:8px;background:rgba(247,244,238,.97);backdrop-filter:blur(20px);border-bottom:1px solid var(--rule);z-index:500;}
+.nav-logo{font-family:var(--display);font-size:1.25rem;font-weight:900;color:var(--ink);letter-spacing:-.02em;cursor:pointer;display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.nav-logo .logo-mark{width:28px;height:28px;background:var(--coral);border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.nav-logo .logo-mark svg{width:15px;height:15px;fill:#fff;}
 .nav-spacer{flex:1;}
-.nav-links{display:flex;align-items:center;gap:6px;}
-.nav-link{font-size:.8rem;font-weight:500;color:var(--ink3);padding:6px 12px;border-radius:5px;cursor:pointer;transition:all .12s;text-decoration:none;}
+.nav-links{display:flex;align-items:center;gap:2px;}
+.nav-link{font-size:.8rem;font-weight:500;color:var(--ink3);padding:7px 11px;border-radius:6px;cursor:pointer;transition:all .12s;text-decoration:none;}
 .nav-link:hover{color:var(--ink);background:var(--rule);}
 .nav-link.active{color:var(--coral);}
-#user-badge{display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--surface);border:1px solid var(--rule2);border-radius:6px;cursor:pointer;font-size:.78rem;font-weight:600;transition:all .12s;}
+#user-badge{display:flex;align-items:center;gap:8px;padding:7px 13px;background:var(--surface);border:1px solid var(--rule2);border-radius:7px;cursor:pointer;font-size:.78rem;font-weight:600;transition:all .12s;flex-shrink:0;}
 #user-badge:hover{border-color:var(--rule2);background:var(--paper);}
-.plan-chip{font-size:.62rem;font-weight:700;padding:2px 7px;border-radius:3px;letter-spacing:.06em;text-transform:uppercase;}
+.plan-chip{font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:3px;letter-spacing:.06em;text-transform:uppercase;}
 .plan-chip.free{background:var(--rule);color:var(--ink3);}
 .plan-chip.starter{background:var(--amber-tint);color:var(--amber);border:1px solid rgba(196,122,42,.2);}
 .plan-chip.pro{background:var(--coral-tint);color:var(--coral);border:1px solid var(--coral-glow);}
+.plan-chip.demo{background:rgba(122,92,196,.15);color:#7a5cc4;border:1px solid rgba(122,92,196,.25);}
 
 /* ───── VIEWS ───── */
-.view{display:none;padding-top:60px;min-height:100vh;}
+.view{display:none;padding-top:64px;min-height:100vh;}
 .view.active{display:block;}
 
 /* ───── LANDING ───── */
@@ -166,7 +167,7 @@ h1,h2,h3{font-family:var(--display);line-height:1.1;letter-spacing:-0.01em;}
 .pack-savings{font-size:.64rem;color:var(--coral);font-weight:600;margin-top:4px;}
 
 /* ───── RUN PANEL (fullscreen takeover) ───── */
-#view-run{position:fixed;inset:60px 0 0;background:var(--cream);z-index:400;display:none;flex-direction:column;}
+#view-run{position:fixed;inset:64px 0 0;background:var(--cream);z-index:400;display:none;flex-direction:column;}
 #view-run.active{display:flex;}
 
 .run-topbar{padding:14px 28px;background:var(--surface);border-bottom:1px solid var(--rule);display:flex;align-items:center;gap:14px;flex-shrink:0;}
@@ -359,10 +360,15 @@ body.dark .fo-content pre { background: #0a0a09; }
 body.dark .modal { background: var(--surface); }
 body.dark .pack-item { background: var(--surface); }
 body.dark .cost-total-card { background: #0a0a09; }
-.dark-toggle { cursor:pointer; width:32px; height:18px; background:var(--rule2); border-radius:9px; position:relative; transition:background .2s; flex-shrink:0; border:none; }
-.dark-toggle::after { content:''; position:absolute; top:3px; left:3px; width:12px; height:12px; background:var(--ink4); border-radius:50%; transition:all .2s; }
-body.dark .dark-toggle { background:var(--coral); }
-body.dark .dark-toggle::after { left:17px; background:#fff; }
+.dark-toggle { cursor:pointer; width:36px; height:36px; background:transparent; border:1.5px solid var(--rule2); border-radius:8px; display:flex; align-items:center; justify-content:center; transition:all .18s; flex-shrink:0; color:var(--ink3); }
+.dark-toggle:hover { background:var(--rule); color:var(--ink); border-color:var(--rule2); }
+.dark-toggle svg { width:18px; height:18px; transition:opacity .15s; }
+.dark-toggle .icon-sun { display:block; }
+.dark-toggle .icon-moon { display:none; }
+body.dark .dark-toggle { border-color:var(--rule2); color:var(--ink3); }
+body.dark .dark-toggle:hover { background:var(--rule2); color:var(--ink); }
+body.dark .dark-toggle .icon-sun { display:none; }
+body.dark .dark-toggle .icon-moon { display:block; }
 
 /* ───── TEMPLATES MODAL ───── */
 .templates-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(200px,1fr)); gap:10px; margin-top:14px; }
@@ -374,7 +380,7 @@ body.dark .dark-toggle::after { left:17px; background:#fff; }
 .tpl-mode { font-family:var(--mono); font-size:.58rem; color:var(--ink4); margin-top:6px; }
 
 /* ───── HISTORY SIDEBAR ───── */
-.history-sidebar { position:fixed; right:0; top:60px; bottom:0; width:280px; background:var(--surface); border-left:1px solid var(--rule); z-index:300; transform:translateX(100%); transition:transform .25s cubic-bezier(.4,0,.2,1); overflow-y:auto; }
+.history-sidebar { position:fixed; right:0; top:64px; bottom:0; width:280px; background:var(--surface); border-left:1px solid var(--rule); z-index:300; transform:translateX(100%); transition:transform .25s cubic-bezier(.4,0,.2,1); overflow-y:auto; }
 .history-sidebar.open { transform:translateX(0); }
 .history-header { padding:16px 18px 10px; border-bottom:1px solid var(--rule); display:flex; align-items:center; justify-content:space-between; }
 .history-header h3 { font-family:var(--display); font-size:.9rem; font-weight:700; }
@@ -479,7 +485,7 @@ body.dark .dark-toggle::after { left:17px; background:#fff; }
 
 <!-- NAV -->
 <nav id="nav">
-  <a href="promptmesh-hub.html" class="btn btn-ghost btn-sm" style="margin-right:4px">← Hub</a>
+  <a href="promptmesh-hub.html" class="btn btn-ghost btn-sm" style="margin-right:2px;flex-shrink:0">← Hub</a>
   <div class="nav-logo" onclick="showView('landing')">
     <div class="logo-mark"><svg viewBox="0 0 14 14"><path d="M1 1h5v5H1zM8 1h5v5H8zM1 8h5v5H1zM8 8h5v5H8z" opacity=".5"/><line x1="6" y1="3.5" x2="8" y2="3.5" stroke="#fff" stroke-width="1.5"/><line x1="3.5" y1="6" x2="3.5" y2="8" stroke="#fff" stroke-width="1.5"/><line x1="10.5" y1="6" x2="10.5" y2="8" stroke="#fff" stroke-width="1.5"/><line x1="6" y1="10.5" x2="8" y2="10.5" stroke="#fff" stroke-width="1.5"/></svg></div>
     PromptMesh
@@ -493,7 +499,11 @@ body.dark .dark-toggle::after { left:17px; background:#fff; }
     <a class="nav-link" onclick="scrollToPricing()">Pricing</a>
     <a class="nav-link" onclick="showView('account')">Account</a>
   </div>
-  <button class="dark-toggle" id="dark-toggle" onclick="toggleDark()" title="Toggle dark mode"></button>
+  <button class="btn btn-sm" style="background:rgba(122,92,196,.12);color:#7a5cc4;border:1.5px solid rgba(122,92,196,.25);font-size:.72rem;flex-shrink:0" onclick="startDemoRun()" title="Try a demo without an API key">✨ Demo</button>
+  <button class="dark-toggle" id="dark-toggle" onclick="toggleDark()" title="Toggle dark mode">
+    <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+    <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+  </button>
   <div id="user-badge" onclick="showView('account')">
     <span id="user-name">Guest</span>
     <div class="plan-chip free" id="user-plan-badge">FREE</div>
@@ -515,10 +525,19 @@ body.dark .dark-toggle::after { left:17px; background:#fff; }
           <div class="cost-est" id="cost-est">⚡ ~$0.003 est.</div>
           <div class="run-credits" id="credits-display"></div>
         </div>
-        <div style="display:flex;align-items:center;gap:8px">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <select class="select" id="provider-select" style="width:170px;padding:5px 28px 5px 10px;font-size:.74rem" onchange="onProviderChange()">
+            <option value="anthropic">🤖 Claude (Anthropic)</option>
+            <option value="openai">🧠 OpenAI (ChatGPT)</option>
+            <option value="gemini">✨ Google Gemini</option>
+            <option value="mistral">🌪️ Mistral AI</option>
+            <option value="groq">⚡ Groq (Llama)</option>
+            <option value="cohere">🌊 Cohere</option>
+          </select>
           <select class="select" id="mode-select" style="width:140px;padding:5px 28px 5px 10px;font-size:.74rem" onchange="updateCostEst()">
             <option value="quick">Quick (3 stages)</option>
             <option value="full">Full Team (5 stages)</option>
+            <option value="fusion">⚡ Fusion (All Models)</option>
             <option value="code">Code Only</option>
             <option value="design">Design Focus</option>
           </select>
@@ -805,16 +824,27 @@ body.dark .dark-toggle::after { left:17px; background:#fff; }
       </div>
     </div>
 
-    <!-- API Key (BYOK) -->
+    <!-- API Keys (BYOK) — multi-provider -->
     <div class="settings-card">
-      <h3>Your API Key (BYOK)</h3>
-      <p>Use your own Anthropic API key. Your runs cost you ~$0.003 directly — no markup. Key is stored in your browser only, never sent to our servers.</p>
+      <h3>API Keys (BYOK)</h3>
+      <p>Use your own API keys from any supported provider. Keys are stored in your browser only (sessionStorage), never sent to our servers. You pay providers directly — no markup.</p>
       <div class="byok-notice" style="margin-bottom:14px">
         <span>⚠️</span>
-        <span>BYOK bypasses our credit system entirely — you pay Anthropic directly. Great for power users. Key stored in sessionStorage only.</span>
+        <span>BYOK bypasses our credit system entirely. Keys stored in sessionStorage only — cleared when tab closes.</span>
+      </div>
+      <div class="field" style="margin-bottom:10px">
+        <label>Provider</label>
+        <select class="select" id="byok-provider-select" style="max-width:280px" onchange="updateByokProviderUI()">
+          <option value="anthropic">🤖 Claude (Anthropic) — sk-ant-api03-…</option>
+          <option value="openai">🧠 OpenAI (ChatGPT) — sk-proj-…</option>
+          <option value="gemini">✨ Google Gemini — AIzaSy…</option>
+          <option value="mistral">🌪️ Mistral AI</option>
+          <option value="groq">⚡ Groq (Llama/Mixtral) — gsk_…</option>
+          <option value="cohere">🌊 Cohere</option>
+        </select>
       </div>
       <div class="field">
-        <label>Anthropic API Key</label>
+        <label id="byok-key-label">Anthropic API Key</label>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <input class="input" id="byok-input" type="password" placeholder="sk-ant-api03-…" style="flex:1;min-width:200px">
           <button class="btn btn-secondary btn-sm" onclick="saveByok()">Save Key</button>
@@ -822,6 +852,55 @@ body.dark .dark-toggle::after { left:17px; background:#fff; }
           <button class="btn btn-ghost btn-sm" onclick="clearByok()">Clear</button>
         </div>
         <div style="font-size:.7rem;color:var(--ink4);margin-top:4px" id="byok-status"></div>
+      </div>
+      <div style="margin-top:14px">
+        <div style="font-size:.7rem;font-weight:600;color:var(--ink3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Saved Keys</div>
+        <div id="all-keys-status" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+      </div>
+    </div>
+
+    <!-- Master Key Bundle -->
+    <div class="settings-card" style="border-color:rgba(196,122,42,.3);background:rgba(196,122,42,.03)">
+      <h3>⚡ Master Key Bundle <span style="font-size:.65rem;font-family:var(--mono);background:rgba(196,122,42,.15);color:var(--amber);padding:2px 7px;border-radius:3px;margin-left:6px">All Providers at Once</span></h3>
+      <p>Paste all your API keys together in any format — the keys are auto-detected by their prefixes (<span style="font-family:var(--mono);font-size:.75rem">sk-ant-</span>, <span style="font-family:var(--mono);font-size:.75rem">sk-proj-</span>, <span style="font-family:var(--mono);font-size:.75rem">AIza</span>) and saved in one shot. Enables <strong>Fusion mode</strong>.</p>
+      <div class="field">
+        <label>Key Bundle (paste one or all three)</label>
+        <textarea class="textarea" id="master-bundle-input" rows="3" placeholder="Paste keys in any format, e.g.:&#10;sk-ant-api03-xxx   sk-proj-xxx   AIzaXXX&#10;or one per line — all are auto-detected" style="font-family:var(--mono);font-size:.78rem"></textarea>
+        <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+          <button class="btn btn-primary btn-sm" onclick="parseMasterBundle()">Parse &amp; Save All Keys</button>
+          <button class="btn btn-ghost btn-sm" onclick="clearAllProviderKeys()">Clear All Keys</button>
+        </div>
+        <div style="font-size:.7rem;color:var(--ink4);margin-top:6px" id="bundle-status"></div>
+      </div>
+    </div>
+
+    <!-- OpenAI Key -->
+    <div class="settings-card">
+      <h3>OpenAI API Key <span style="font-size:.65rem;font-family:var(--mono);background:rgba(74,124,89,.12);color:var(--sage);padding:2px 7px;border-radius:3px;margin-left:6px">Final Polish · GPT-4o-mini</span></h3>
+      <p>Used for the Final Polish stage and Fusion mode. Get a key at <span style="font-family:var(--mono)">platform.openai.com</span>. Falls back to Claude Haiku if not set.</p>
+      <div class="field">
+        <label>OpenAI API Key</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <input class="input" id="openai-key-input" type="password" placeholder="sk-proj-…" style="flex:1;min-width:200px">
+          <button class="btn btn-secondary btn-sm" onclick="saveOpenAIKey()">Save</button>
+          <button class="btn btn-ghost btn-sm" onclick="clearOpenAIKey()">Clear</button>
+        </div>
+        <div style="font-size:.7rem;color:var(--ink4);margin-top:4px" id="openai-key-status"></div>
+      </div>
+    </div>
+
+    <!-- Gemini Key -->
+    <div class="settings-card">
+      <h3>Google Gemini API Key <span style="font-size:.65rem;font-family:var(--mono);background:rgba(124,92,191,.12);color:#7c5cbf;padding:2px 7px;border-radius:3px;margin-left:6px">Art &amp; Design · Gemini Flash</span></h3>
+      <p>Used for the Art &amp; Design stage and Fusion mode. Get a key at <span style="font-family:var(--mono)">aistudio.google.com</span>. Falls back to Claude Haiku if not set.</p>
+      <div class="field">
+        <label>Gemini API Key</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <input class="input" id="gemini-key-input" type="password" placeholder="AIza…" style="flex:1;min-width:200px">
+          <button class="btn btn-secondary btn-sm" onclick="saveGeminiKey()">Save</button>
+          <button class="btn btn-ghost btn-sm" onclick="clearGeminiKey()">Clear</button>
+        </div>
+        <div style="font-size:.7rem;color:var(--ink4);margin-top:4px" id="gemini-key-status"></div>
       </div>
     </div>
 
@@ -901,17 +980,119 @@ body.dark .dark-toggle::after { left:17px; background:#fff; }
 'use strict';
 
 // ══════════════════════════════════════════
+//  LLM PROVIDERS — multi-provider support
+// ══════════════════════════════════════════
+const LLM_PROVIDERS = {
+  anthropic: {
+    name:'Claude (Anthropic)', icon:'🤖', keyStorage:'pm_key', keyHint:'sk-ant-api03-…',
+    models:{'claude-haiku-4-5-20251001':{label:'Claude Haiku 4.5',costPer1k:0.00025},'claude-sonnet-4-6':{label:'Claude Sonnet 4.6',costPer1k:0.003},'claude-opus-4-6':{label:'Claude Opus 4.6',costPer1k:0.015}},
+    defaultModel:'claude-haiku-4-5-20251001',
+    async call(key,model,sys,user,maxTok){
+      const r=await fetch('/.netlify/functions/ai-proxy',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01'},body:JSON.stringify({model,max_tokens:maxTok,system:sys,messages:[{role:'user',content:user}]})});
+      if(!r.ok){const d=await r.json().catch(()=>({}));if(r.status===401)throw new Error('Invalid Anthropic key — check it starts with sk-ant-api03-');if(r.status===429)throw new Error('Rate limited by Anthropic — wait a moment');throw new Error('Anthropic error '+r.status+': '+(d?.error?.message||'').substring(0,80));}
+      const d=await r.json();const text=d.content?.[0]?.text||'';if(!text)throw new Error('Empty response from Anthropic');
+      return{text,tokens:(d.usage?.input_tokens||0)+(d.usage?.output_tokens||0),truncated:d.stop_reason==='max_tokens'};
+    }
+  },
+  openai: {
+    name:'OpenAI (ChatGPT)', icon:'🧠', keyStorage:'pm_key_openai', keyHint:'sk-proj-…',
+    models:{'gpt-4o':{label:'GPT-4o',costPer1k:0.005},'gpt-4o-mini':{label:'GPT-4o Mini',costPer1k:0.00015},'gpt-3.5-turbo':{label:'GPT-3.5 Turbo',costPer1k:0.0005}},
+    defaultModel:'gpt-4o-mini',
+    async call(key,model,sys,user,maxTok){
+      const msgs=[];if(sys)msgs.push({role:'system',content:sys});msgs.push({role:'user',content:user});
+      const r=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model,max_tokens:maxTok,messages:msgs})});
+      if(!r.ok){const d=await r.json().catch(()=>({}));if(r.status===401)throw new Error('Invalid OpenAI API key');if(r.status===429)throw new Error('Rate limited by OpenAI — wait a moment');throw new Error('OpenAI error '+r.status+': '+(d?.error?.message||'').substring(0,80));}
+      const d=await r.json();const text=d.choices?.[0]?.message?.content||'';if(!text)throw new Error('Empty response from OpenAI');
+      return{text,tokens:(d.usage?.prompt_tokens||0)+(d.usage?.completion_tokens||0),truncated:d.choices?.[0]?.finish_reason==='length'};
+    }
+  },
+  gemini: {
+    name:'Google Gemini', icon:'✨', keyStorage:'pm_key_gemini', keyHint:'AIzaSy…',
+    models:{'gemini-2.0-flash':{label:'Gemini 2.0 Flash',costPer1k:0.000100},'gemini-1.5-flash':{label:'Gemini 1.5 Flash',costPer1k:0.000075},'gemini-1.5-pro':{label:'Gemini 1.5 Pro',costPer1k:0.00125}},
+    defaultModel:'gemini-2.0-flash',
+    async call(key,model,sys,user,maxTok){
+      const body={contents:[{parts:[{text:user}]}],generationConfig:{maxOutputTokens:maxTok}};if(sys)body.systemInstruction={parts:[{text:sys}]};
+      const r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+model+':generateContent?key='+key,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+      if(!r.ok){const d=await r.json().catch(()=>({}));if(r.status===400)throw new Error('Gemini: '+(d?.error?.message||'Bad request').substring(0,80));if(r.status===403)throw new Error('Invalid Google Gemini API key');if(r.status===429)throw new Error('Rate limited by Gemini — wait a moment');throw new Error('Gemini error '+r.status+': '+(d?.error?.message||'').substring(0,80));}
+      const d=await r.json();const text=d.candidates?.[0]?.content?.parts?.[0]?.text||'';if(!text)throw new Error('Empty response from Gemini');
+      return{text,tokens:(d.usageMetadata?.promptTokenCount||0)+(d.usageMetadata?.candidatesTokenCount||0),truncated:d.candidates?.[0]?.finishReason==='MAX_TOKENS'};
+    }
+  },
+  mistral: {
+    name:'Mistral AI', icon:'🌪️', keyStorage:'pm_key_mistral', keyHint:'Mistral API key…',
+    models:{'mistral-large-latest':{label:'Mistral Large',costPer1k:0.002},'mistral-small-latest':{label:'Mistral Small',costPer1k:0.0002},'open-mistral-nemo':{label:'Mistral Nemo (free)',costPer1k:0.00015}},
+    defaultModel:'mistral-small-latest',
+    async call(key,model,sys,user,maxTok){
+      const msgs=[];if(sys)msgs.push({role:'system',content:sys});msgs.push({role:'user',content:user});
+      const r=await fetch('https://api.mistral.ai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model,max_tokens:maxTok,messages:msgs})});
+      if(!r.ok){const d=await r.json().catch(()=>({}));if(r.status===401)throw new Error('Invalid Mistral API key');if(r.status===429)throw new Error('Rate limited by Mistral — wait a moment');throw new Error('Mistral error '+r.status+': '+(d?.message||'').substring(0,80));}
+      const d=await r.json();const text=d.choices?.[0]?.message?.content||'';if(!text)throw new Error('Empty response from Mistral');
+      return{text,tokens:(d.usage?.prompt_tokens||0)+(d.usage?.completion_tokens||0),truncated:d.choices?.[0]?.finish_reason==='length'};
+    }
+  },
+  groq: {
+    name:'Groq (Llama/Mixtral)', icon:'⚡', keyStorage:'pm_key_groq', keyHint:'gsk_…',
+    models:{'llama-3.3-70b-versatile':{label:'Llama 3.3 70B',costPer1k:0.00059},'llama-3.1-8b-instant':{label:'Llama 3.1 8B (instant)',costPer1k:0.00005},'mixtral-8x7b-32768':{label:'Mixtral 8x7B',costPer1k:0.00024}},
+    defaultModel:'llama-3.3-70b-versatile',
+    async call(key,model,sys,user,maxTok){
+      const msgs=[];if(sys)msgs.push({role:'system',content:sys});msgs.push({role:'user',content:user});
+      const r=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model,max_tokens:maxTok,messages:msgs})});
+      if(!r.ok){const d=await r.json().catch(()=>({}));if(r.status===401)throw new Error('Invalid Groq API key');if(r.status===429)throw new Error('Rate limited by Groq — wait a moment');throw new Error('Groq error '+r.status+': '+(d?.error?.message||'').substring(0,80));}
+      const d=await r.json();const text=d.choices?.[0]?.message?.content||'';if(!text)throw new Error('Empty response from Groq');
+      return{text,tokens:(d.usage?.prompt_tokens||0)+(d.usage?.completion_tokens||0),truncated:d.choices?.[0]?.finish_reason==='length'};
+    }
+  },
+  cohere: {
+    name:'Cohere', icon:'🌊', keyStorage:'pm_key_cohere', keyHint:'Cohere API key…',
+    models:{'command-r-plus-08-2024':{label:'Command R+ (latest)',costPer1k:0.003},'command-r-08-2024':{label:'Command R (latest)',costPer1k:0.00015}},
+    defaultModel:'command-r-08-2024',
+    async call(key,model,sys,user,maxTok){
+      const r=await fetch('https://api.cohere.com/v2/chat',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model,max_tokens:maxTok,preamble:sys||undefined,messages:[{role:'user',content:user}]})});
+      if(!r.ok){const d=await r.json().catch(()=>({}));if(r.status===401)throw new Error('Invalid Cohere API key');if(r.status===429)throw new Error('Rate limited by Cohere — wait a moment');throw new Error('Cohere error '+r.status+': '+(d?.message||'').substring(0,80));}
+      const d=await r.json();const text=d.message?.content?.[0]?.text||'';if(!text)throw new Error('Empty response from Cohere');
+      return{text,tokens:(d.usage?.tokens?.input_tokens||0)+(d.usage?.tokens?.output_tokens||0),truncated:d.finish_reason==='MAX_TOKENS'};
+    }
+  }
+};
+
+function getSelectedProvider(){return document.getElementById('provider-select')?.value||'anthropic';}
+function getProviderKey(pid){const p=LLM_PROVIDERS[pid];return p?sessionStorage.getItem(p.keyStorage):null;}
+function setProviderKey(pid,key){const p=LLM_PROVIDERS[pid];if(p)sessionStorage.setItem(p.keyStorage,key);}
+
+function onProviderChange(){
+  updateCostEstLive();
+  // Sync byok provider selector if visible
+  const byokSel=document.getElementById('byok-provider-select');
+  const pid=getSelectedProvider();
+  if(byokSel)byokSel.value=pid;
+  updateByokStatus();
+  const key=getProviderKey(pid);
+  if(!key){const p=LLM_PROVIDERS[pid];setTimeout(()=>toast('Set your '+p.name+' API key in Account → API Keys','info'),100);}
+}
+
+function updateByokProviderUI(){
+  const pid=document.getElementById('byok-provider-select')?.value||'anthropic';
+  const p=LLM_PROVIDERS[pid];if(!p)return;
+  const lbl=document.getElementById('byok-key-label');
+  const inp=document.getElementById('byok-input');
+  if(lbl)lbl.textContent=p.name+' API Key';
+  if(inp)inp.placeholder=p.keyHint;
+  updateByokStatus();
+}
+
+// ══════════════════════════════════════════
 //  CONSTANTS & STAGE DEFINITIONS
 // ══════════════════════════════════════════
 const STAGES_CONFIG = {
   planning: {
     id: 'planning', name: 'Planning Council', icon: '🧠',
     color: '#4a5568', bg: 'rgba(74,85,104,0.1)',
-    model: 'claude-haiku-4-5-20251001', tokenBudget: 450,
+    model: 'claude-haiku-4-5-20251001', provider: 'claude', tokenBudget: 450,
     costPer1k: 0.00025, feedType: 'fi-plan',
     badge: 'PLAN', badgeColor: '#4a5568',
+    systemPrompt: 'You are a senior software architect. Output only the requested specification format — no preamble, no commentary, no markdown outside the template. Every word must add value.',
     buildPrompt(userPrompt, prev, customSys) {
-      return `${customSys ? 'CONTEXT: ' + customSys + '\n\n' : ''}You are a senior architect. Produce a tight project specification for building this:
+      return `${customSys ? 'CONTEXT: ' + customSys + '\n\n' : ''}Produce a tight project specification for building this:
 
 "${userPrompt}"
 
@@ -944,14 +1125,15 @@ Under 280 words total.`;
   design: {
     id: 'design', name: 'Art & Design', icon: '🎨',
     color: '#7c5cbf', bg: 'rgba(124,92,191,0.1)',
-    model: 'claude-haiku-4-5-20251001', tokenBudget: 400,
-    costPer1k: 0.00025, feedType: 'fi-design',
+    model: 'gemini-2.0-flash', provider: 'gemini', tokenBudget: 400,
+    costPer1k: 0.00010, feedType: 'fi-design',
     badge: 'DESIGN', badgeColor: '#7c5cbf',
+    systemPrompt: 'You are a senior UI/UX designer. Output only the design system in the exact format requested — no preamble, no extra explanation. Specific hex values and font names only.',
     buildPrompt(userPrompt, prev, customSys) {
-      return `${customSys ? 'CONTEXT: ' + customSys + '\n\n' : ''}You are a senior UI/UX designer. Define the complete design system.
+      return `${customSys ? 'CONTEXT: ' + customSys + '\n\n' : ''}Define the complete design system for this project.
 
 PROJECT: "${userPrompt}"
-SPEC: ${(prev.planning||'').substring(0,300)}
+SPEC: ${(prev.planning||'').substring(0,350)}
 
 Output EXACTLY this format — be very specific:
 ## Colors
@@ -984,53 +1166,54 @@ Under 200 words.`;
   frontend: {
     id: 'frontend', name: 'Frontend', icon: '💻',
     color: '#2563ab', bg: 'rgba(37,99,171,0.1)',
-    model: 'claude-haiku-4-5-20251001', tokenBudget: 700,
+    model: 'claude-haiku-4-5-20251001', tokenBudget: 1000,
     costPer1k: 0.00025, feedType: 'fi-frontend',
     badge: 'UI CODE', badgeColor: '#2563ab',
+    systemPrompt: 'You are a frontend engineer. Output only a single complete HTML file in a ```html block — no explanation before or after. Working code, not pseudocode.',
     buildPrompt(userPrompt, prev, customSys) {
-      return `${customSys ? 'CONTEXT: ' + customSys + '\n\n' : ''}You are a frontend engineer. Write real, working code for the main screen.
+      return `${customSys ? 'CONTEXT: ' + customSys + '\n\n' : ''}Write the main UI screen as a single complete HTML file.
 
 PROJECT: "${userPrompt}"
-DESIGN SYSTEM: ${(prev.design||'').substring(0,280)}
-SPEC: ${(prev.planning||'').substring(0,200)}
+DESIGN SYSTEM: ${(prev.design||'Generate a clean, modern design system appropriate to the project.').substring(0,400)}
+SPEC: ${(prev.planning||'').substring(0,300)}
 
-Write a single COMPLETE HTML file with:
+Requirements:
 1. Google Fonts import matching the design system
-2. CSS with variables from the design system (implement ALL colors/fonts defined above)
-3. The most important UI screen — fully styled, interactive
+2. CSS custom properties for all colors/fonts from the design system
+3. The primary UI screen — fully styled and interactive
 4. Smooth transitions and hover states
-5. Responsive (works on mobile)
+5. Responsive layout (mobile-first)
 
 Rules:
-- Use semantic HTML5
+- Semantic HTML5
 - CSS variables for theming
 - Vanilla JS only
-- Working code — not pseudocode
-- Include at least one animation/transition
+- Working code, not pseudocode
+- At least one CSS transition/animation
 
-Output just the code in a single \`\`\`html block.`;
+Output: one \`\`\`html block only.`;
     }
   },
   backend: {
     id: 'backend', name: 'Backend / Logic', icon: '⚙️',
     color: '#c47a2a', bg: 'rgba(196,122,42,0.1)',
-    model: 'claude-haiku-4-5-20251001', tokenBudget: 700,
+    model: 'claude-haiku-4-5-20251001', tokenBudget: 900,
     costPer1k: 0.00025, feedType: 'fi-backend',
     badge: 'LOGIC', badgeColor: '#c47a2a',
+    systemPrompt: 'You are a backend/logic engineer. Output only a single ```javascript block — no explanation before or after. Write working browser-compatible vanilla JS, not pseudocode.',
     buildPrompt(userPrompt, prev, customSys) {
-      return `${customSys ? 'CONTEXT: ' + customSys + '\n\n' : ''}You are a backend/logic engineer. Write the core JavaScript logic.
+      return `${customSys ? 'CONTEXT: ' + customSys + '\n\n' : ''}Write the core JavaScript logic module.
 
 PROJECT: "${userPrompt}"
-SPEC: ${(prev.planning||'').substring(0,280)}
+SPEC: ${(prev.planning||'').substring(0,400)}
 
-Write in a \`\`\`javascript block:
+Write in a single \`\`\`javascript block:
 
-1. STATE — the complete initial state object with all fields and example values
-2. CORE FUNCTIONS — implement the 4-5 most important functions FULLY (not stubs)
-   - Each function should actually work, handle edge cases
-   - Include localStorage save/load if data needs to persist
-3. GAME LOOP or STATE MACHINE (if applicable) — the main tick/update function
-4. EVENT HANDLERS — the 2-3 key user interactions
+1. STATE — complete initial state object with all fields and example values
+2. CORE FUNCTIONS — the 4-5 most important functions, FULLY implemented (not stubs)
+   - Handle edge cases; include localStorage save/load where data must persist
+3. GAME LOOP or STATE MACHINE (if applicable) — the main tick/update cycle
+4. EVENT HANDLERS — the 2-3 key user interactions wired to DOM events
 
 Format:
 \`\`\`javascript
@@ -1044,21 +1227,22 @@ function [name]([args]) { ... }
 function init() { ... }
 \`\`\`
 
-Write working code. Not pseudocode. Assume vanilla JS in a browser.`;
+Working code only. Vanilla JS, browser environment.`;
     }
   },
   polish: {
     id: 'polish', name: 'Final Polish', icon: '✨',
     color: '#4a7c59', bg: 'rgba(74,124,89,0.1)',
-    model: 'claude-haiku-4-5-20251001', tokenBudget: 450,
-    costPer1k: 0.00025, feedType: 'fi-polish',
+    model: 'gpt-4o-mini', provider: 'openai', tokenBudget: 450,
+    costPer1k: 0.00015, feedType: 'fi-polish',
     badge: 'REVIEW', badgeColor: '#4a7c59',
+    systemPrompt: 'You are a senior engineer doing a final code review. Be direct and concrete — no filler phrases. Output only the requested sections.',
     buildPrompt(userPrompt, prev, customSys) {
-      return `${customSys ? 'CONTEXT: ' + customSys + '\n\n' : ''}You are a senior engineer doing a final review. Be direct and useful.
+      return `${customSys ? 'CONTEXT: ' + customSys + '\n\n' : ''}Final review for this project.
 
 PROJECT: "${userPrompt}"
-FRONTEND (excerpt): ${(prev.frontend||'').substring(0,250)}
-LOGIC (excerpt): ${(prev.backend||'').substring(0,250)}
+FRONTEND (excerpt): ${(prev.frontend||'').substring(0,320)}
+LOGIC (excerpt): ${(prev.backend||'').substring(0,320)}
 
 Write:
 
@@ -1071,7 +1255,7 @@ Write:
 **Setup:** [3 steps max]
 
 ## Integration Notes
-The specific changes needed to wire frontend to backend logic (be concrete with line numbers or function names if possible).
+Specific changes to wire frontend to backend logic (concrete function/variable names).
 
 ## Quick Wins (Next 3 improvements)
 1. [specific improvement with rough effort — e.g. "Add localStorage (30 min)"]
@@ -1090,7 +1274,15 @@ const MODES = {
   quick:  ['planning','frontend','backend'],
   full:   ['planning','design','frontend','backend','polish'],
   code:   ['planning','backend','frontend'],
-  design: ['planning','design','frontend']
+  design: ['planning','design','frontend'],
+  fusion: ['planning','design','frontend','backend','polish']
+};
+
+// Provider display metadata
+const PROVIDER_META = {
+  claude: { label: 'Claude Haiku', color: '#c47a2a', bg: 'rgba(196,122,42,0.12)' },
+  gemini: { label: 'Gemini Flash', color: '#7c5cbf', bg: 'rgba(124,92,191,0.12)' },
+  openai: { label: 'GPT-4o-mini',  color: '#4a7c59', bg: 'rgba(74,124,89,0.12)' }
 };
 
 const EXAMPLES = [
@@ -1143,8 +1335,9 @@ function saveProjects(p) { localStorage.setItem('pm_projects', JSON.stringify(p)
 
 function canRun() {
   const u = getUser();
-  // BYOK users always can run
-  if (sessionStorage.getItem('pm_key')) return { ok: true, reason: 'byok' };
+  // BYOK users always can run — check any provider key
+  const hasKey = Object.values(LLM_PROVIDERS).some(p => sessionStorage.getItem(p.keyStorage));
+  if (hasKey) return { ok: true, reason: 'byok' };
   // Check daily reset
   const today = new Date().toDateString();
   if (u.lastRunDate !== today) { u.runsToday = 0; u.lastRunDate = today; saveUser(u); }
@@ -1218,32 +1411,33 @@ async function startRun() {
   const check = canRun();
   if (!check.ok) { showUpgradeModal(check.reason); return; }
 
-  const apiKey = sessionStorage.getItem('pm_key') || promptForKey();
+  const providerId = getSelectedProvider();
+  const apiKey = getProviderKey(providerId) || promptForKey();
   if (!apiKey) return;
 
   const mode = document.getElementById('mode-select').value;
   const stageIds = MODES[mode] || MODES.full;
 
   initRunView(prompt, mode, stageIds);
+  if (mode === 'fusion') addFeed('fi-system', 'SYSTEM', '⚡ Fusion mode — competing models per stage. Add OpenAI & Gemini keys in Account for maximum competition.');
   consumeRun();
-  await executePipeline(apiKey, prompt, stageIds, mode);
+  await executePipeline(keys, prompt, stageIds, mode);
 }
 
 function promptForKey() {
+  const pid = getSelectedProvider();
+  const p = LLM_PROVIDERS[pid] || LLM_PROVIDERS.anthropic;
   const key = window.prompt(
-    'Enter your Anthropic API key to use PromptMesh.\n\n' +
+    'Enter your ' + p.name + ' API key to use PromptMesh.\n\n' +
     '• Stored in sessionStorage only — cleared when you close the tab\n' +
-    '• Goes directly to Anthropic — never touches our servers\n' +
-    '• Get one at: console.anthropic.com\n\nPaste key below (starts with sk-ant-):'
+    '• Goes directly to the AI provider — never touches our servers\n' +
+    '• Key format: ' + p.keyHint + '\n\nPaste key below:'
   );
   if (!key || !key.trim()) return null;
   const trimmed = key.trim();
-  if (!trimmed.startsWith('sk-ant')) {
-    const ok = window.confirm('Key does not start with sk-ant- and may be invalid. Try anyway?');
-    if (!ok) return null;
-  }
-  sessionStorage.setItem('pm_key', trimmed);
-  toast('API key saved for this session', 'ok');
+  if (trimmed.length < 10) { toast('Key too short — check it and try again', 'bad'); return null; }
+  setProviderKey(pid, trimmed);
+  toast(p.name + ' key saved for this session', 'ok');
   updateByokStatus();
   updateCreditsDisplay();
   return trimmed;
@@ -1284,7 +1478,7 @@ function initRunView(prompt, mode, stageIds) {
             <div class="sc-icon-wrap" style="background:${s.bg}">${s.icon}</div>
             <div class="sc-info">
               <div class="sc-name">${s.name}</div>
-              <div class="sc-sub">${s.model} · ${s.tokenBudget} max tokens</div>
+              <div class="sc-sub" id="scsub-${id}">${(() => { const pm = PROVIDER_META[s.provider] || PROVIDER_META.claude; return `<span style="font-size:.6rem;font-weight:700;padding:1px 6px;border-radius:3px;background:${pm.bg};color:${pm.color};margin-right:5px">${pm.label}</span>${s.tokenBudget} max tokens`; })()}</div>
             </div>
             <div class="sc-timing" id="sct-${id}"></div>
             <div class="sc-status-icon idle" id="sci-${id}">○</div>
@@ -1317,8 +1511,9 @@ function initRunView(prompt, mode, stageIds) {
 // ══════════════════════════════════════════
 //  PIPELINE EXECUTION
 // ══════════════════════════════════════════
-async function executePipeline(apiKey, prompt, stageIds, mode) {
+async function executePipeline(keys, prompt, stageIds, mode) {
   const customSys = sessionStorage.getItem('pm_custom_sys') || '';
+  const isFusion = mode === 'fusion';
 
   for (let i = 0; i < stageIds.length; i++) {
     if (runState.aborted) break;
@@ -1326,19 +1521,24 @@ async function executePipeline(apiKey, prompt, stageIds, mode) {
     const s = STAGES_CONFIG[stageId];
 
     setStageStatus(stageId, 'working');
-    addFeed(s.feedType, s.name.toUpperCase(), `Starting — ${s.model}`);
+    const _pid=getSelectedProvider();const _p=LLM_PROVIDERS[_pid];const _modelLabel=_p?((_p.models[_p.defaultModel]?.label)||_p.defaultModel):s.model;
+    addFeed(s.feedType, s.name.toUpperCase(), `Starting — ${_modelLabel}`);
 
     const t0 = Date.now();
     const userPrompt = s.buildPrompt(prompt, runState.results, customSys);
 
     try {
-      let result = await callAPI(apiKey, s, userPrompt);
-      // Retry if truncated — bump token budget by 1.5x (max 2 retries)
+      // Fusion races models for non-claude stages; standard routing otherwise
+      let result = (isFusion && s.provider !== 'claude')
+        ? await callAPIFusion(keys, s, userPrompt)
+        : await callAPI(keys, s, userPrompt);
+
+      // Retry if truncated — bump token budget (max 2 retries)
       let retryCount = 0;
       while (result.truncated && retryCount < 2 && !runState.aborted) {
         addFeed('fi-system', 'RETRY', `${s.name} output truncated — retrying with more tokens (attempt ${retryCount+2})`);
         const biggerStage = Object.assign({}, s, { tokenBudget: Math.min(s.tokenBudget * 2, 4096) });
-        result = await callAPI(apiKey, biggerStage, userPrompt);
+        result = await callAPI(keys, biggerStage, userPrompt);
         retryCount++;
       }
       const ms = Date.now() - t0;
@@ -1392,58 +1592,164 @@ async function executePipeline(apiKey, prompt, stageIds, mode) {
 }
 
 // ══════════════════════════════════════════
+//  DEMO MODE (no API key or credits needed)
+// ══════════════════════════════════════════
+const DEMO_RESULTS = {
+  plan: `## Project Plan\n\n**Goal:** Build a fully interactive browser-based app with clean UX.\n\n### Phases\n1. **Architecture** — Define component structure, state model, and data flow\n2. **UI Design** — Layout, color palette, typography, spacing system\n3. **Core Logic** — Business logic, interactivity, event handling\n4. **Polish** — Animations, responsiveness, edge-case handling\n5. **Delivery** — Self-contained HTML/CSS/JS, no dependencies\n\n### Constraints\n- Single file output (HTML + embedded CSS/JS)\n- Works in any modern browser offline\n- Accessible and mobile-friendly`,
+
+  design: `## Design System\n\n**Color Palette**\n- Primary: \`#e85d3a\` (coral) for CTAs and accents\n- Background: \`#f7f4ee\` (warm cream)\n- Surface: \`#ffffff\`\n- Text: \`#1c1917\` / \`#78716c\` (secondary)\n\n**Typography**\n- Headings: Georgia or serif stack, weights 700–900\n- Body: system-ui / sans-serif stack, 16px base\n- Code: monospace stack, 13px\n\n**Spacing** — 4px base unit, 8/12/16/24/32/48px scale\n\n**Components**\n- Cards with 1px border, 10px radius, subtle shadow\n- Buttons: filled primary, outlined secondary, ghost tertiary\n- Inputs: 1.5px border, coral focus ring\n- Transitions: 150ms ease for hover states`,
+
+  frontend: `<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width, initial-scale=1.0">\n<title>Demo App</title>\n<style>\n  *{box-sizing:border-box;margin:0;padding:0}\n  body{font-family:system-ui,sans-serif;background:#f7f4ee;color:#1c1917;min-height:100vh;display:flex;align-items:center;justify-content:center;}\n  .app{background:#fff;border-radius:16px;padding:40px;max-width:480px;width:90%;box-shadow:0 4px 32px rgba(0,0,0,.08);border:1px solid #e5e2db}\n  h1{font-size:1.6rem;font-weight:900;margin-bottom:8px;color:#1c1917}\n  p{color:#78716c;font-size:.9rem;margin-bottom:28px;line-height:1.6}\n  input{width:100%;padding:12px 16px;border:1.5px solid #e5e2db;border-radius:8px;font-size:.9rem;outline:none;transition:border-color .2s}\n  input:focus{border-color:#e85d3a;box-shadow:0 0 0 3px rgba(232,93,58,.12)}\n  button{margin-top:12px;width:100%;padding:13px;background:#e85d3a;color:#fff;border:none;border-radius:8px;font-size:.9rem;font-weight:700;cursor:pointer;transition:all .15s}\n  button:hover{background:#c94d2c;transform:translateY(-1px)}\n  .result{margin-top:20px;padding:14px;background:#f7f4ee;border-radius:8px;font-size:.85rem;color:#78716c;display:none}\n  .result.show{display:block}\n</style>\n</head>\n<body>\n<div class="app">\n  <h1>✨ Demo App</h1>\n  <p>This is a sample output from the PromptMesh demo. Real runs generate actual working apps from your prompt.</p>\n  <input type="text" id="inp" placeholder="Type something...">\n  <button onclick="go()">Try it</button>\n  <div class="result" id="res"></div>\n</div>\n<script>\nfunction go(){\n  const v=document.getElementById('inp').value.trim();\n  if(!v)return;\n  const el=document.getElementById('res');\n  el.textContent='You typed: '+v+' — in a real run this would be a full working app!';\n  el.classList.add('show');\n}\n</script>\n</body>\n</html>`,
+
+  backend: `## Backend Architecture\n\n**Approach:** Client-side only (no server required)\n\n**Data Persistence**\n- \`localStorage\` for user data and settings\n- \`sessionStorage\` for temporary state\n- JSON serialization for structured data\n\n**State Management**\n\`\`\`js\nconst state = {\n  items: JSON.parse(localStorage.getItem('items') || '[]'),\n  save() { localStorage.setItem('items', JSON.stringify(this.items)); }\n};\n\`\`\`\n\n**Error Handling**\n- Wrap all localStorage access in try/catch (private browsing)\n- Validate user input before processing\n- Show user-friendly error messages`,
+
+  polish: `## Polish & Final Review\n\n**Accessibility**\n- ✓ Semantic HTML elements (main, nav, button, etc.)\n- ✓ Focus indicators on all interactive elements\n- ✓ Sufficient color contrast (4.5:1 minimum)\n- ✓ Keyboard navigable\n\n**Responsiveness**\n- ✓ Fluid layout using flexbox/grid\n- ✓ Mobile-first breakpoints at 480px and 768px\n- ✓ Touch targets minimum 44px\n\n**Performance**\n- ✓ No external dependencies\n- ✓ Minimal repaints (CSS transitions over JS)\n- ✓ Lazy evaluation of expensive operations\n\n**UX Improvements**\n- Added hover/focus feedback on all interactive elements\n- Smooth transitions (150–250ms)\n- Empty state messaging where applicable`
+};
+
+async function startDemoRun() {
+  const demoPrompts = [
+    'A to-do list app with drag-and-drop and local storage',
+    'A pomodoro timer with session tracking',
+    'A simple budget tracker with pie chart',
+    'A flashcard quiz app with spaced repetition',
+  ];
+  const prompt = demoPrompts[Math.floor(Math.random() * demoPrompts.length)];
+  document.getElementById('main-input').value = prompt;
+
+  const mode = 'full';
+  const stageIds = MODES[mode] || MODES.full;
+
+  initRunView(prompt, mode, stageIds);
+  // Don't consume credits in demo mode
+
+  addFeed('fi-system', 'DEMO', '✨ Demo mode — showing example pipeline output (no API key needed)');
+
+  for (let i = 0; i < stageIds.length; i++) {
+    if (runState.aborted) break;
+    const stageId = stageIds[i];
+    const s = STAGES_CONFIG[stageId];
+    const demoText = DEMO_RESULTS[stageId] || `Sample ${s.name} output for: ${prompt}`;
+
+    setStageStatus(stageId, 'working');
+    addFeed(s.feedType, s.name.toUpperCase(), `Starting — ${s.model}`);
+
+    await sleep(600 + Math.random() * 500);
+
+    const fakeTokens = Math.round(demoText.length / 3.5);
+    const fakeCost = fakeTokens * s.costPer1k / 1000;
+
+    runState.results[stageId] = demoText;
+    runState.totalCost += fakeCost;
+    runState.totalTokens += fakeTokens;
+    runState.stagesDone++;
+
+    setStageStatus(stageId, 'done', `${(0.8 + Math.random()).toFixed(1)}s`);
+    setStageOutput(stageId, demoText);
+    setConnectorDone(stageId);
+    addFeed(s.feedType, s.name.toUpperCase(), `✓ Demo · ${fakeTokens} tokens · ~$${fakeCost.toFixed(5)}`);
+
+    document.getElementById('rs-stages').textContent = `${runState.stagesDone}/${stageIds.length}`;
+    document.getElementById('rs-cost').textContent = `$${runState.totalCost.toFixed(5)}`;
+
+    updateFinalOutput(stageIds);
+    updateCostBreakdown(stageIds);
+  }
+
+  if (!runState.aborted) {
+    setStatusPill('done', 'DEMO DONE');
+    addFeed('fi-system', 'DEMO', `✨ Demo complete — use your own API key for real results`);
+    toast('Demo complete! Add your API key in Account to run real pipelines.', 'ok');
+    document.getElementById('save-btn').style.display = '';
+    if (runState.results['frontend']) { autoPreview(); }
+  }
+
+  clearInterval(runState.elapsedTimer);
+  runState.running = false;
+  updateCreditsDisplay();
+}
+
+// ══════════════════════════════════════════
 //  API CALL
 // ══════════════════════════════════════════
-async function callAPI(apiKey, stage, prompt) {
-  if (runState.aborted) throw new Error('ABORTED');
+function getKeys() {
+  return {
+    anthropic: sessionStorage.getItem('pm_key') || null,
+    openai:    sessionStorage.getItem('pm_openai_key') || null,
+    gemini:    sessionStorage.getItem('pm_gemini_key') || null
+  };
+}
 
+  const MAX_NET_RETRIES = 3;
   let resp;
-  try {
-    resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-request-when-unauthenticated': 'true'
-      },
-      body: JSON.stringify({
-        model: stage.model,
-        max_tokens: stage.tokenBudget,
-        system: `You are the ${stage.name} stage of PromptMesh, an AI pipeline tool. Your role: produce the best possible ${stage.name.toLowerCase()} output. Be concise, specific, and output exactly what's requested with no preamble.`,
-        messages: [{ role: 'user', content: prompt }]
-      })
-    });
-  } catch (networkErr) {
-    throw new Error(`Network error — check your internet connection. (${networkErr.message})`);
+  for (let attempt = 0; attempt < MAX_NET_RETRIES; attempt++) {
+    if (runState.aborted) throw new Error('ABORTED');
+    if (attempt > 0) await sleep(attempt * 1500); // 1.5s, 3s backoff
+    try {
+      resp = await fetch('/.netlify/functions/ai-proxy', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01'
+        },
+        body: JSON.stringify({
+          model: stage.model,
+          max_tokens: stage.tokenBudget,
+          system: stage.systemPrompt || `You are the ${stage.name} stage of PromptMesh. Produce the best possible output. Be concise, specific, and output exactly what's requested with no preamble.`,
+          messages: [{ role: 'user', content: prompt }]
+        })
+      });
+      break; // success — exit retry loop
+    } catch (networkErr) {
+      if (attempt === MAX_NET_RETRIES - 1) {
+        throw new Error(`Network error — check your internet connection. (${networkErr.message})`);
+      }
+      addFeed('fi-system', stage.name.toUpperCase(), `Network hiccup — retrying (${attempt + 1}/${MAX_NET_RETRIES - 1})…`);
+    }
   }
 
   if (!resp.ok) {
-    let errMsg = `HTTP ${resp.status}`;
+    let msg = `Anthropic HTTP ${resp.status}`;
     try {
-      const errData = await resp.json();
-      const detail = errData?.error?.message || errData?.message || '';
-      if (resp.status === 401) errMsg = 'Invalid API key — check it starts with sk-ant-api03- and is correct';
-      else if (resp.status === 429) errMsg = 'Rate limited — wait a few seconds and try again';
-      else if (resp.status === 400) errMsg = `Bad request: ${detail.substring(0, 120)}`;
-      else errMsg = `API error ${resp.status}: ${detail.substring(0, 120)}`;
+      const d = await resp.json();
+      const det = d?.error?.message || '';
+      if (resp.status === 401) msg = 'Invalid Anthropic API key — check it starts with sk-ant-';
+      else if (resp.status === 429) msg = 'Anthropic rate limited — wait and retry';
+      else if (det) msg = `Anthropic error: ${det.substring(0, 120)}`;
     } catch (_) {}
-    throw new Error(errMsg);
+    throw new Error(msg);
   }
-
-  let data;
-  try {
-    data = await resp.json();
-  } catch (_) {
-    throw new Error('Could not parse API response');
-  }
-
+  const data = await resp.json().catch(() => { throw new Error('Could not parse Anthropic response'); });
   const text = data.content?.[0]?.text || '';
-  const tokens = (data.usage?.input_tokens || 0) + (data.usage?.output_tokens || 0);
+  const inputTokens = data.usage?.input_tokens || 0;
+  const outputTokens = data.usage?.output_tokens || 0;
+  const tokens = inputTokens + outputTokens;
   const stopReason = data.stop_reason || '';
   if (!text) throw new Error('Empty response from API — model returned no content');
   // Return truncation flag so pipeline can retry with more tokens
-  return { text, tokens, truncated: stopReason === 'max_tokens' };
+  return { text, tokens, inputTokens, outputTokens, truncated: stopReason === 'max_tokens' };
+}
+
+// ══════════════════════════════════════════
+//  API CALL — multi-provider
+// ══════════════════════════════════════════
+async function callAPI(apiKey, stage, prompt) {
+  if (runState.aborted) throw new Error('ABORTED');
+  const pid = getSelectedProvider();
+  const p = LLM_PROVIDERS[pid];
+  if (!p) throw new Error('Unknown provider: ' + pid);
+  const key = getProviderKey(pid);
+  if (!key) throw new Error('No API key for ' + p.name + ' — save it in Account → API Keys');
+  const model = p.defaultModel;
+  const sysPrompt = `You are the ${stage.name} stage of PromptMesh, an AI pipeline tool. Your role: produce the best possible ${stage.name.toLowerCase()} output. Be concise, specific, and output exactly what's requested with no preamble.`;
+  try {
+    return await p.call(key, model, sysPrompt, prompt, stage.tokenBudget);
+  } catch (e) {
+    if (e.message && (e.message.toLowerCase().includes('failed to fetch') || e.message.toLowerCase().includes('networkerror'))) {
+      throw new Error('Network error — check your internet connection. (' + e.message + ')');
+    }
+    throw e;
+  }
 }
 
 // ══════════════════════════════════════════
@@ -1460,7 +1766,8 @@ async function iterate() {
   const check = canRun();
   if (!check.ok) { showUpgradeModal(check.reason); return; }
 
-  const apiKey = sessionStorage.getItem('pm_key') || promptForKey();
+  const _itPid = getSelectedProvider();
+  const apiKey = getProviderKey(_itPid) || promptForKey();
   if (!apiKey) return;
 
   runState.iterationCount++;
@@ -1479,7 +1786,7 @@ Apply these changes and improve the relevant parts. Output the updated version.`
 
   try {
     consumeRun();
-    const result = await callAPI(apiKey, STAGES_CONFIG.backend, iterPrompt);
+    const result = await callAPI(keys, STAGES_CONFIG.backend, iterPrompt);
     runState.results['iteration_' + runState.iterationCount] = result.text;
     addFeed('fi-system', 'ITERATE', `✓ Iteration complete · ${result.tokens} tokens`);
     const el = document.getElementById('final-output-scroll');
@@ -1746,66 +2053,154 @@ function setTier(tier) {
 //  BYOK
 // ══════════════════════════════════════════
 function saveByok() {
+  const pid = document.getElementById('byok-provider-select')?.value || 'anthropic';
   const key = document.getElementById('byok-input').value.trim();
   if (!key) { clearByok(); return; }
-  // Accept any key that looks plausible
   if (key.length < 20) { toast('Key too short — double check it', 'bad'); return; }
-  sessionStorage.setItem('pm_key', key);
+  setProviderKey(pid, key);
   document.getElementById('byok-input').value = '';
   updateByokStatus();
   updateCreditsDisplay();
-  toast('API key saved for this session ✓', 'ok');
+  toast((LLM_PROVIDERS[pid]?.name || 'API') + ' key saved for this session ✓', 'ok');
 }
 
 async function testApiKey() {
-  const key = sessionStorage.getItem('pm_key');
-  if (!key) { toast('No API key saved yet', 'bad'); return; }
+  const pid = document.getElementById('byok-provider-select')?.value || 'anthropic';
+  const p = LLM_PROVIDERS[pid];
+  const key = getProviderKey(pid);
+  if (!key) { toast('No ' + (p?.name || '') + ' key saved yet', 'bad'); return; }
   const btn = document.getElementById('test-key-btn');
   if (btn) { btn.textContent = 'Testing…'; btn.disabled = true; }
   try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': key,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-request-when-unauthenticated': 'true'
-      },
-      body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 10,
-        messages: [{ role: 'user', content: 'Reply with just the word OK' }]
-      })
-    });
-    if (resp.ok) {
-      toast('✓ API key works!', 'ok');
-      const el = document.getElementById('byok-status');
-      if (el) { el.textContent = '✓ Key verified and working'; el.style.color = 'var(--sage)'; }
-    } else {
-      const d = await resp.json().catch(() => ({}));
-      const msg = d?.error?.message || 'HTTP ' + resp.status;
-      toast('Key failed: ' + msg.substring(0, 60), 'bad');
-    }
+    await p.call(key, p.defaultModel, '', 'Reply with just the word OK', 10);
+    toast('✓ ' + p.name + ' key works!', 'ok');
+    const el = document.getElementById('byok-status');
+    if (el) { el.textContent = '✓ Key verified and working'; el.style.color = 'var(--sage)'; }
   } catch(e) {
-    toast('Network error: ' + e.message.substring(0, 60), 'bad');
+    toast('Key test failed: ' + e.message.substring(0, 60), 'bad');
   } finally {
     if (btn) { btn.textContent = 'Test Key'; btn.disabled = false; }
   }
 }
 
 function clearByok() {
-  sessionStorage.removeItem('pm_key');
+  const pid = document.getElementById('byok-provider-select')?.value || 'anthropic';
+  const p = LLM_PROVIDERS[pid];
+  if (p) sessionStorage.removeItem(p.keyStorage);
   document.getElementById('byok-input').value = '';
   updateByokStatus();
-  toast('API key cleared');
+  toast('Anthropic API key cleared');
 }
 
 function updateByokStatus() {
   const el = document.getElementById('byok-status');
+  const pid = document.getElementById('byok-provider-select')?.value || 'anthropic';
+  const p = LLM_PROVIDERS[pid];
+  const key = p ? sessionStorage.getItem(p.keyStorage) : null;
+  if (el) {
+    el.textContent = key ? `✓ Key saved (${key.substring(0, 12)}…)` : 'No key saved — enter one above.';
+    el.style.color = key ? 'var(--sage)' : 'var(--ink4)';
+  }
+  // Show all saved provider keys
+  const allEl = document.getElementById('all-keys-status');
+  if (allEl) {
+    allEl.innerHTML = Object.entries(LLM_PROVIDERS).map(([id, pr]) => {
+      const k = sessionStorage.getItem(pr.keyStorage);
+      return `<span style="font-size:.68rem;padding:3px 9px;border-radius:4px;background:${k?'var(--sage-tint)':'var(--rule)'};color:${k?'var(--sage)':'var(--ink4)'};border:1px solid ${k?'rgba(74,124,89,.2)':'transparent'}">${pr.icon} ${pr.name.split(' ')[0]}: ${k?'✓ saved':'—'}</span>`;
+    }).join('');
+  }
+}
+
+// ── OpenAI key ──
+function saveOpenAIKey() {
+  const key = document.getElementById('openai-key-input')?.value.trim();
+  if (!key) { clearOpenAIKey(); return; }
+  if (key.length < 20) { toast('Key too short', 'bad'); return; }
+  sessionStorage.setItem('pm_openai_key', key);
+  document.getElementById('openai-key-input').value = '';
+  updateOpenAIKeyStatus();
+  toast('OpenAI key saved ✓', 'ok');
+}
+
+function clearOpenAIKey() {
+  sessionStorage.removeItem('pm_openai_key');
+  if (document.getElementById('openai-key-input')) document.getElementById('openai-key-input').value = '';
+  updateOpenAIKeyStatus();
+  toast('OpenAI key cleared');
+}
+
+function updateOpenAIKeyStatus() {
+  const el = document.getElementById('openai-key-status');
   if (!el) return;
-  const key = sessionStorage.getItem('pm_key');
-  el.textContent = key ? `✓ Key saved (${key.substring(0, 12)}…)` : 'No key saved — will prompt when you run.';
+  const key = sessionStorage.getItem('pm_openai_key');
+  el.textContent = key ? `✓ Saved (${key.substring(0, 10)}…) — Final Polish will use GPT-4o-mini` : 'Not set — Final Polish falls back to Claude Haiku.';
   el.style.color = key ? 'var(--sage)' : 'var(--ink4)';
+}
+
+// ── Gemini key ──
+function saveGeminiKey() {
+  const key = document.getElementById('gemini-key-input')?.value.trim();
+  if (!key) { clearGeminiKey(); return; }
+  if (key.length < 20) { toast('Key too short', 'bad'); return; }
+  sessionStorage.setItem('pm_gemini_key', key);
+  document.getElementById('gemini-key-input').value = '';
+  updateGeminiKeyStatus();
+  toast('Gemini key saved ✓', 'ok');
+}
+
+function clearGeminiKey() {
+  sessionStorage.removeItem('pm_gemini_key');
+  if (document.getElementById('gemini-key-input')) document.getElementById('gemini-key-input').value = '';
+  updateGeminiKeyStatus();
+  toast('Gemini key cleared');
+}
+
+function updateGeminiKeyStatus() {
+  const el = document.getElementById('gemini-key-status');
+  if (!el) return;
+  const key = sessionStorage.getItem('pm_gemini_key');
+  el.textContent = key ? `✓ Saved (${key.substring(0, 10)}…) — Art & Design will use Gemini Flash` : 'Not set — Art & Design falls back to Claude Haiku.';
+  el.style.color = key ? 'var(--sage)' : 'var(--ink4)';
+}
+
+// ── Master Key Bundle ──
+function parseMasterBundle() {
+  const raw = document.getElementById('master-bundle-input')?.value || '';
+  const saved = [];
+
+  const anthropicMatch = raw.match(/sk-ant-[A-Za-z0-9_-]{20,}/);
+  // OpenAI keys: sk-proj-... (new) or sk-... (legacy, but not sk-ant-)
+  const openaiMatch = raw.match(/sk-proj-[A-Za-z0-9_-]{20,}/) || raw.match(/(?<!sk-ant-)\bsk-[A-Za-z0-9_-]{40,}/);
+  const geminiMatch = raw.match(/AIza[A-Za-z0-9_-]{30,}/);
+
+  if (anthropicMatch) { sessionStorage.setItem('pm_key', anthropicMatch[0]); saved.push('Anthropic'); }
+  if (openaiMatch)    { sessionStorage.setItem('pm_openai_key', openaiMatch[0]); saved.push('OpenAI'); }
+  if (geminiMatch)    { sessionStorage.setItem('pm_gemini_key', geminiMatch[0]); saved.push('Gemini'); }
+
+  if (!saved.length) { toast('No recognizable API keys found in that text', 'bad'); return; }
+
+  document.getElementById('master-bundle-input').value = '';
+  const statusEl = document.getElementById('bundle-status');
+  if (statusEl) {
+    statusEl.textContent = `✓ Saved: ${saved.join(', ')}${saved.length === 3 ? ' — All providers active! Try Fusion mode.' : ''}`;
+    statusEl.style.color = 'var(--sage)';
+  }
+  updateByokStatus(); updateOpenAIKeyStatus(); updateGeminiKeyStatus();
+  toast(`✓ Saved ${saved.length} key${saved.length > 1 ? 's' : ''}: ${saved.join(', ')}`, 'ok');
+}
+
+function clearAllProviderKeys() {
+  sessionStorage.removeItem('pm_key');
+  sessionStorage.removeItem('pm_openai_key');
+  sessionStorage.removeItem('pm_gemini_key');
+  ['byok-input','openai-key-input','gemini-key-input','master-bundle-input'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  const statusEl = document.getElementById('bundle-status');
+  if (statusEl) { statusEl.textContent = 'All keys cleared.'; statusEl.style.color = 'var(--ink4)'; }
+  updateByokStatus(); updateOpenAIKeyStatus(); updateGeminiKeyStatus();
+  toast('All API keys cleared');
 }
 
 // ══════════════════════════════════════════
@@ -1878,31 +2273,40 @@ function updateFinalOutput(stageIds) {
 
 function updateCostBreakdown(stageIds) {
   const el = document.getElementById('cost-breakdown');
+  const pid = getSelectedProvider();
+  const p = LLM_PROVIDERS[pid];
+  const modelLabel = p ? (p.models[p.defaultModel]?.label || p.defaultModel) : 'Claude Haiku 4.5';
+  const costPer1k = p ? (p.models[p.defaultModel]?.costPer1k || 0.00025) : 0.00025;
   const rows = stageIds.map(id => {
     const s = STAGES_CONFIG[id];
     const text = runState.results[id] || '';
     const tokens = Math.ceil(text.length / 3.5);
-    const cost = tokens * s.costPer1k / 1000;
+    const cost = tokens * costPer1k / 1000;
     return `<div class="cost-row-item">
       <div class="cri-left">
         <div class="cri-icon">${s.icon}</div>
-        <div><div class="cri-name">${s.name}</div><div class="cri-model">${s.model}</div></div>
+        <div><div class="cri-name">${s.name}</div><div class="cri-model">${modelLabel}</div></div>
       </div>
       <div class="cri-cost">${tokens ? `~$${cost.toFixed(5)}` : '—'}</div>
     </div>`;
   }).join('');
 
-  const withoutMesh = runState.totalCost * 22;
-  const savingsPct = Math.round((1 - runState.totalCost / withoutMesh) * 100);
+  // Realistic comparison: what the same token count would cost using GPT-4o ($0.005/1k input)
+  // PromptMesh uses cheaper specialized models (Haiku, Sonnet) for most stages
+  const gpt4oCost = (runState.totalTokens * 0.005) / 1000;
+  const savingsPct = gpt4oCost > 0 ? Math.round((1 - runState.totalCost / gpt4oCost) * 100) : 0;
+  const savingsLabel = savingsPct > 0
+    ? `~${savingsPct}% cheaper than GPT-4o at the same token count`
+    : 'Cost shown above';
 
   el.innerHTML = rows + `
     <div class="cost-total-card">
       <div class="ctc-label">Total cost</div>
       <div class="ctc-amount">$${runState.totalCost.toFixed(5)}</div>
-      <div class="ctc-saved">Saved ~${savingsPct}% vs sending full context to GPT-4</div>
+      <div class="ctc-saved">${savingsLabel}</div>
       <div class="ctc-breakdown">
         <div class="ctb-item"><div class="ctb-val">${runState.totalTokens.toLocaleString()}</div><div class="ctb-lab">Tokens used</div></div>
-        <div class="ctb-item"><div class="ctb-val">~$${withoutMesh.toFixed(3)}</div><div class="ctb-lab">Without routing</div></div>
+        <div class="ctb-item"><div class="ctb-val">~$${gpt4oCost.toFixed(4)}</div><div class="ctb-lab">GPT-4o equiv.</div></div>
         <div class="ctb-item"><div class="ctb-val">${stageIds.length}</div><div class="ctb-lab">Stages run</div></div>
         <div class="ctb-item"><div class="ctb-val">${runState.mode}</div><div class="ctb-lab">Mode</div></div>
       </div>
@@ -1952,6 +2356,8 @@ function updateAccountUI() {
   if (credEl) credEl.textContent = u.credits;
 
   updateByokStatus();
+  updateOpenAIKeyStatus();
+  updateGeminiKeyStatus();
   updateCreditsDisplay();
   renderUserBadge();
   renderStats();
@@ -1961,8 +2367,8 @@ function updateCreditsDisplay() {
   const el = document.getElementById('credits-display');
   if (!el) return;
   const u = getUser();
-  const key = sessionStorage.getItem('pm_key');
-  if (key) { el.textContent = 'BYOK mode · free'; el.style.color = 'var(--sage)'; return; }
+  const hasAnyKey = Object.values(LLM_PROVIDERS).some(p => sessionStorage.getItem(p.keyStorage));
+  if (hasAnyKey) { el.textContent = 'BYOK mode · free'; el.style.color = 'var(--sage)'; return; }
   const today = new Date().toDateString();
   const used = u.lastRunDate === today ? u.runsToday : 0;
   el.textContent = u.credits > 0 ? `${u.credits} credits` : `${getRunLimit() - used} runs left today`;
@@ -1987,7 +2393,7 @@ function closeModal(id) {
 function clearAllData() {
   if (!confirm('This will delete all your saved projects and reset your account. Are you sure?')) return;
   localStorage.clear();
-  sessionStorage.removeItem('pm_key');
+  Object.values(LLM_PROVIDERS).forEach(p => sessionStorage.removeItem(p.keyStorage));
   toast('All data cleared', 'ok');
   renderUserBadge();
   updateAccountUI();
@@ -2058,7 +2464,7 @@ function renderExamples() {
   const el = document.getElementById('examples-row');
   if (!el) return;
   el.innerHTML = EXAMPLES.map(e =>
-    `<div class="ex-chip" onclick="document.getElementById('main-input').value='+JSON.stringify(e)+'/g,"\\'")}';updateCostEst()">${escHtml(e)}</div>`
+    `<div class="ex-chip" onclick="document.getElementById('main-input').value=${JSON.stringify(e).replace(/"/g, '&quot;')};updateCostEst()">${escHtml(e)}</div>`
   ).join('');
 }
 
@@ -2073,11 +2479,12 @@ document.addEventListener('DOMContentLoaded', () => {
   updateByokStatus();
   document.getElementById('main-input').addEventListener('input', updateCostEstLive);
   document.getElementById('mode-select').addEventListener('change', updateCostEstLive);
+  document.getElementById('provider-select').addEventListener('change', updateCostEstLive);
 
   // Show a welcome hint for new users
   const u = getUser();
   if (!u.lastRunDate) {
-    setTimeout(() => toast('Enter your Anthropic key in Account to get started free', 'info'), 1500);
+    setTimeout(() => toast('Enter an API key in Account → API Keys to get started free', 'info'), 1500);
   }
 }, { once: true });
 
@@ -2331,15 +2738,20 @@ function renderStats() {
 function updateCostEstLive() {
   const prompt = document.getElementById('main-input')?.value || '';
   const mode = document.getElementById('mode-select')?.value || 'quick';
+  const pid = getSelectedProvider();
+  const p = LLM_PROVIDERS[pid];
+  const costPer1k = p ? (p.models[p.defaultModel]?.costPer1k || 0.00025) : 0.00025;
   const stageCounts = { quick: 3, full: 5, code: 3, design: 3 };
   const stages = stageCounts[mode] || 3;
-  // Cost increases slightly with longer prompts
   const promptTokens = Math.ceil(prompt.length / 4);
-  const baseCost = stages * 0.001;
-  const promptCost = promptTokens * 0.00025 / 1000 * stages;
+  // ~1000 output tokens per stage + proportional prompt cost
+  const baseCost = stages * costPer1k;
+  const promptCost = promptTokens * costPer1k / 1000 * stages;
   const total = baseCost + promptCost;
   const el = document.getElementById('cost-est');
-  if (el) el.textContent = '⚡ ~$' + total.toFixed(4) + ' est.';
+  if (!el) return;
+  const tag = isFusion ? '⚡' : '💰';
+  el.textContent = `${tag} ~$${total.toFixed(4)} est.`;
 }
 
 
