@@ -1421,6 +1421,7 @@ async function startRun() {
   initRunView(prompt, mode, stageIds);
   if (mode === 'fusion') addFeed('fi-system', 'SYSTEM', '⚡ Fusion mode — competing models per stage. Add OpenAI & Gemini keys in Account for maximum competition.');
   consumeRun();
+  const keys = getKeys();
   await executePipeline(keys, prompt, stageIds, mode);
 }
 
@@ -1674,8 +1675,11 @@ async function startDemoRun() {
 function getKeys() {
   return {
     anthropic: sessionStorage.getItem('pm_key') || null,
-    openai:    sessionStorage.getItem('pm_openai_key') || null,
-    gemini:    sessionStorage.getItem('pm_gemini_key') || null
+    openai:    sessionStorage.getItem('pm_key_openai') || null,
+    gemini:    sessionStorage.getItem('pm_key_gemini') || null,
+    mistral:   sessionStorage.getItem('pm_key_mistral') || null,
+    groq:      sessionStorage.getItem('pm_key_groq') || null,
+    cohere:    sessionStorage.getItem('pm_key_cohere') || null
   };
 }
 
@@ -1752,6 +1756,26 @@ async function callAPI(apiKey, stage, prompt) {
   }
 }
 
+async function callAPIFusion(keys, stage, prompt) {
+  // Use the stage's designated provider if its key is available; else fall back to selected/Anthropic
+  const preferredPid = stage.provider && LLM_PROVIDERS[stage.provider] && keys[stage.provider]
+    ? stage.provider : (getSelectedProvider() || 'anthropic');
+  const p = LLM_PROVIDERS[preferredPid] || LLM_PROVIDERS.anthropic;
+  const key = keys[preferredPid] || getProviderKey(preferredPid) || getProviderKey('anthropic');
+  if (!key) throw new Error('No API key for ' + p.name + ' — save it in Account → API Keys');
+  const sysPrompt = `You are the ${stage.name} stage of PromptMesh, an AI pipeline tool. Produce the best possible output. Be concise, specific, and output exactly what's requested with no preamble.`;
+  try {
+    return await p.call(key, p.defaultModel, sysPrompt, prompt, stage.tokenBudget);
+  } catch (e) {
+    // If designated provider fails, fall back to Anthropic
+    if (preferredPid !== 'anthropic' && keys.anthropic) {
+      addFeed('fi-system', stage.name.toUpperCase(), `${p.name} unavailable — falling back to Claude`);
+      return await LLM_PROVIDERS.anthropic.call(keys.anthropic, LLM_PROVIDERS.anthropic.defaultModel, sysPrompt, prompt, stage.tokenBudget);
+    }
+    throw e;
+  }
+}
+
 // ══════════════════════════════════════════
 //  ITERATE
 // ══════════════════════════════════════════
@@ -1786,6 +1810,7 @@ Apply these changes and improve the relevant parts. Output the updated version.`
 
   try {
     consumeRun();
+    const keys = getKeys();
     const result = await callAPI(keys, STAGES_CONFIG.backend, iterPrompt);
     runState.results['iteration_' + runState.iterationCount] = result.text;
     addFeed('fi-system', 'ITERATE', `✓ Iteration complete · ${result.tokens} tokens`);
@@ -2089,7 +2114,7 @@ function clearByok() {
   if (p) sessionStorage.removeItem(p.keyStorage);
   document.getElementById('byok-input').value = '';
   updateByokStatus();
-  toast('Anthropic API key cleared');
+  toast((p ? p.name.split(' ')[0] : 'API') + ' key cleared');
 }
 
 function updateByokStatus() {
@@ -2116,14 +2141,14 @@ function saveOpenAIKey() {
   const key = document.getElementById('openai-key-input')?.value.trim();
   if (!key) { clearOpenAIKey(); return; }
   if (key.length < 20) { toast('Key too short', 'bad'); return; }
-  sessionStorage.setItem('pm_openai_key', key);
+  sessionStorage.setItem('pm_key_openai', key);
   document.getElementById('openai-key-input').value = '';
   updateOpenAIKeyStatus();
   toast('OpenAI key saved ✓', 'ok');
 }
 
 function clearOpenAIKey() {
-  sessionStorage.removeItem('pm_openai_key');
+  sessionStorage.removeItem('pm_key_openai');
   if (document.getElementById('openai-key-input')) document.getElementById('openai-key-input').value = '';
   updateOpenAIKeyStatus();
   toast('OpenAI key cleared');
@@ -2132,7 +2157,7 @@ function clearOpenAIKey() {
 function updateOpenAIKeyStatus() {
   const el = document.getElementById('openai-key-status');
   if (!el) return;
-  const key = sessionStorage.getItem('pm_openai_key');
+  const key = sessionStorage.getItem('pm_key_openai');
   el.textContent = key ? `✓ Saved (${key.substring(0, 10)}…) — Final Polish will use GPT-4o-mini` : 'Not set — Final Polish falls back to Claude Haiku.';
   el.style.color = key ? 'var(--sage)' : 'var(--ink4)';
 }
@@ -2142,14 +2167,14 @@ function saveGeminiKey() {
   const key = document.getElementById('gemini-key-input')?.value.trim();
   if (!key) { clearGeminiKey(); return; }
   if (key.length < 20) { toast('Key too short', 'bad'); return; }
-  sessionStorage.setItem('pm_gemini_key', key);
+  sessionStorage.setItem('pm_key_gemini', key);
   document.getElementById('gemini-key-input').value = '';
   updateGeminiKeyStatus();
   toast('Gemini key saved ✓', 'ok');
 }
 
 function clearGeminiKey() {
-  sessionStorage.removeItem('pm_gemini_key');
+  sessionStorage.removeItem('pm_key_gemini');
   if (document.getElementById('gemini-key-input')) document.getElementById('gemini-key-input').value = '';
   updateGeminiKeyStatus();
   toast('Gemini key cleared');
@@ -2158,7 +2183,7 @@ function clearGeminiKey() {
 function updateGeminiKeyStatus() {
   const el = document.getElementById('gemini-key-status');
   if (!el) return;
-  const key = sessionStorage.getItem('pm_gemini_key');
+  const key = sessionStorage.getItem('pm_key_gemini');
   el.textContent = key ? `✓ Saved (${key.substring(0, 10)}…) — Art & Design will use Gemini Flash` : 'Not set — Art & Design falls back to Claude Haiku.';
   el.style.color = key ? 'var(--sage)' : 'var(--ink4)';
 }
@@ -2174,8 +2199,8 @@ function parseMasterBundle() {
   const geminiMatch = raw.match(/AIza[A-Za-z0-9_-]{30,}/);
 
   if (anthropicMatch) { sessionStorage.setItem('pm_key', anthropicMatch[0]); saved.push('Anthropic'); }
-  if (openaiMatch)    { sessionStorage.setItem('pm_openai_key', openaiMatch[0]); saved.push('OpenAI'); }
-  if (geminiMatch)    { sessionStorage.setItem('pm_gemini_key', geminiMatch[0]); saved.push('Gemini'); }
+  if (openaiMatch)    { sessionStorage.setItem('pm_key_openai', openaiMatch[0]); saved.push('OpenAI'); }
+  if (geminiMatch)    { sessionStorage.setItem('pm_key_gemini', geminiMatch[0]); saved.push('Gemini'); }
 
   if (!saved.length) { toast('No recognizable API keys found in that text', 'bad'); return; }
 
@@ -2190,9 +2215,7 @@ function parseMasterBundle() {
 }
 
 function clearAllProviderKeys() {
-  sessionStorage.removeItem('pm_key');
-  sessionStorage.removeItem('pm_openai_key');
-  sessionStorage.removeItem('pm_gemini_key');
+  Object.values(LLM_PROVIDERS).forEach(p => sessionStorage.removeItem(p.keyStorage));
   ['byok-input','openai-key-input','gemini-key-input','master-bundle-input'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
