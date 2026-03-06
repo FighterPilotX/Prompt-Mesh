@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://api.anthropic.com https://api.openai.com https://generativelanguage.googleapis.com https://api.mistral.ai https://api.groq.com https://api.cohere.com; frame-src 'none';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://api.anthropic.com https://api.openai.com https://generativelanguage.googleapis.com https://api.mistral.ai https://api.groq.com https://api.cohere.com; frame-src 'none';">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PromptMesh Studio — AI Pipeline Builder</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -978,24 +978,6 @@ body.dark .dark-toggle .icon-moon { display:block; }
 
 <script>
 'use strict';
-
-// Temporary error display for debugging (no DevTools needed)
-window.onerror = function(msg, src, line, col) {
-  var d = document.getElementById('_dbg');
-  if (!d) { d = document.createElement('div'); d.id = '_dbg';
-    d.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:#c00;color:#fff;font:12px monospace;padding:8px 12px;z-index:99999;white-space:pre-wrap;max-height:120px;overflow:auto';
-    document.body.appendChild(d); }
-  d.textContent += 'ERROR: ' + msg + ' (line ' + line + ')\n';
-  return false;
-};
-// Click diagnostic — shows what element was clicked
-document.addEventListener('click', function(e) {
-  var d = document.getElementById('_dbg');
-  if (!d) { d = document.createElement('div'); d.id = '_dbg';
-    d.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:#333;color:#fff;font:12px monospace;padding:8px 12px;z-index:99999;white-space:pre-wrap;max-height:120px;overflow:auto';
-    document.body.appendChild(d); }
-  d.textContent = 'CLICK: <' + e.target.tagName + '> id=' + (e.target.id||'none') + ' class=' + (e.target.className||'none') + ' onclick=' + (e.target.onclick ? 'yes' : 'no') + '\n';
-}, true);
 
 // ══════════════════════════════════════════
 //  LLM PROVIDERS — multi-provider support
@@ -2840,6 +2822,7 @@ function renderStats() {
 function updateCostEstLive() {
   const prompt = document.getElementById('main-input')?.value || '';
   const mode = document.getElementById('mode-select')?.value || 'quick';
+  const isFusion = mode === 'fusion';
   const pid = getSelectedProvider();
   const p = LLM_PROVIDERS[pid];
   const costPer1k = p ? (p.models[p.defaultModel]?.costPer1k || 0.00025) : 0.00025;
