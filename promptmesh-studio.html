@@ -1133,7 +1133,7 @@ Under 280 words total.`;
       return `${customSys ? 'CONTEXT: ' + customSys + '\n\n' : ''}Define the complete design system for this project.
 
 PROJECT: "${userPrompt}"
-SPEC: ${(prev.planning||'').substring(0,350)}
+SPEC: ${(prev.planning||'').substring(0,600)}
 
 Output EXACTLY this format — be very specific:
 ## Colors
@@ -1174,8 +1174,8 @@ Under 200 words.`;
       return `${customSys ? 'CONTEXT: ' + customSys + '\n\n' : ''}Write the main UI screen as a single complete HTML file.
 
 PROJECT: "${userPrompt}"
-DESIGN SYSTEM: ${(prev.design||'Generate a clean, modern design system appropriate to the project.').substring(0,400)}
-SPEC: ${(prev.planning||'').substring(0,300)}
+DESIGN SYSTEM: ${(prev.design||'Generate a clean, modern design system appropriate to the project.').substring(0,600)}
+SPEC: ${(prev.planning||'').substring(0,500)}
 
 Requirements:
 1. Google Fonts import matching the design system
@@ -1202,18 +1202,22 @@ Output: one \`\`\`html block only.`;
     badge: 'LOGIC', badgeColor: '#c47a2a',
     systemPrompt: 'You are a backend/logic engineer. Output only a single ```javascript block — no explanation before or after. Write working browser-compatible vanilla JS, not pseudocode.',
     buildPrompt(userPrompt, prev, customSys) {
+      const frontendExcerpt = (prev.frontend||'').substring(0,500);
       return `${customSys ? 'CONTEXT: ' + customSys + '\n\n' : ''}Write the core JavaScript logic module.
 
 PROJECT: "${userPrompt}"
-SPEC: ${(prev.planning||'').substring(0,400)}
+SPEC: ${(prev.planning||'').substring(0,500)}
+FRONTEND CODE (excerpt — your JS must integrate with this HTML/CSS):
+${frontendExcerpt}
 
-Write in a single \`\`\`javascript block:
+Write in a single \`\`\`javascript block that wires into the frontend above:
 
-1. STATE — complete initial state object with all fields and example values
+1. STATE — complete initial state object matching the data-* attributes and IDs in the frontend
 2. CORE FUNCTIONS — the 4-5 most important functions, FULLY implemented (not stubs)
+   - Reference real DOM element IDs from the frontend code above
    - Handle edge cases; include localStorage save/load where data must persist
 3. GAME LOOP or STATE MACHINE (if applicable) — the main tick/update cycle
-4. EVENT HANDLERS — the 2-3 key user interactions wired to DOM events
+4. EVENT HANDLERS — wired to the actual buttons/inputs from the frontend
 
 Format:
 \`\`\`javascript
@@ -1225,9 +1229,10 @@ function [name]([args]) { ... }
 
 // === INIT ===
 function init() { ... }
+document.addEventListener('DOMContentLoaded', init);
 \`\`\`
 
-Working code only. Vanilla JS, browser environment.`;
+Working code only. Vanilla JS, browser environment. Match the IDs/classes from the frontend exactly.`;
     }
   },
   polish: {
@@ -1241,8 +1246,8 @@ Working code only. Vanilla JS, browser environment.`;
       return `${customSys ? 'CONTEXT: ' + customSys + '\n\n' : ''}Final review for this project.
 
 PROJECT: "${userPrompt}"
-FRONTEND (excerpt): ${(prev.frontend||'').substring(0,320)}
-LOGIC (excerpt): ${(prev.backend||'').substring(0,320)}
+FRONTEND (excerpt): ${(prev.frontend||'').substring(0,500)}
+LOGIC (excerpt): ${(prev.backend||'').substring(0,500)}
 
 Write:
 
@@ -1273,7 +1278,7 @@ Under 280 words total.`;
 const MODES = {
   quick:  ['planning','frontend','backend'],
   full:   ['planning','design','frontend','backend','polish'],
-  code:   ['planning','backend','frontend'],
+  code:   ['planning','frontend','backend'],
   design: ['planning','design','frontend'],
   fusion: ['planning','design','frontend','backend','polish']
 };
@@ -1294,6 +1299,14 @@ const EXAMPLES = [
   'Simple chat app with message threads',
   'Portfolio site for a photographer',
   'Flashcard app for language learning',
+  'Habit tracker with streak calendar 🔥',
+  'Pomodoro timer with task queue',
+  'Pixel art editor with palette picker 🎨',
+  'Typing speed test with WPM stats',
+  'Wordle clone with custom word lists',
+  'Markdown editor with live preview',
+  'Expense splitter for group trips ✈️',
+  'Color palette generator from image',
 ];
 
 // Revenue-per-run math (for your info):
@@ -1360,7 +1373,7 @@ function consumeRun() {
 //  RUN STATE
 // ══════════════════════════════════════════
 let runState = {
-  running: false, aborted: false, prompt: '',
+  running: false, aborted: false, error: false, prompt: '',
   mode: 'quick', stages: [], results: {},
   totalCost: 0, totalTokens: 0,
   startTime: 0, stagesDone: 0,
@@ -1405,6 +1418,7 @@ function doCloseRun() {
 //  LAUNCH
 // ══════════════════════════════════════════
 async function startRun() {
+  if (runState.running) return;
   const prompt = document.getElementById('main-input').value.trim();
   if (!prompt) { toast('Tell me what to build first', 'bad'); return; }
 
@@ -1421,6 +1435,7 @@ async function startRun() {
   initRunView(prompt, mode, stageIds);
   if (mode === 'fusion') addFeed('fi-system', 'SYSTEM', '⚡ Fusion mode — competing models per stage. Add OpenAI & Gemini keys in Account for maximum competition.');
   consumeRun();
+  const keys = getKeys();
   await executePipeline(keys, prompt, stageIds, mode);
 }
 
@@ -1448,7 +1463,7 @@ function promptForKey() {
 // ══════════════════════════════════════════
 function initRunView(prompt, mode, stageIds) {
   runState = {
-    running: true, aborted: false, prompt, mode,
+    running: true, aborted: false, error: false, prompt, mode,
     stages: stageIds, results: {}, totalCost: 0, totalTokens: 0,
     startTime: Date.now(), stagesDone: 0, elapsedTimer: null, iterationCount: 0
   };
@@ -1563,6 +1578,7 @@ async function executePipeline(keys, prompt, stageIds, mode) {
 
     } catch (e) {
       if (e.message === 'ABORTED') { addFeed('fi-system', 'SYSTEM', 'Run aborted'); break; }
+      runState.error = true;
       setStageStatus(stageId, 'error');
       const errMsg = e.message || 'Unknown error';
       addFeed('fi-system', s.name.toUpperCase(), 'ERROR: ' + errMsg);
@@ -1575,7 +1591,7 @@ async function executePipeline(keys, prompt, stageIds, mode) {
     await sleep(250);
   }
 
-  if (!runState.aborted) {
+  if (!runState.aborted && !runState.error) {
     setStatusPill('done', 'COMPLETE');
     addFeed('fi-system', 'SYSTEM', `✓ Complete · Total: ~$${runState.totalCost.toFixed(5)} · ${runState.totalTokens.toLocaleString()} tokens`);
     toast(`Done! Cost: ~$${runState.totalCost.toFixed(5)}`, 'ok');
@@ -1584,6 +1600,10 @@ async function executePipeline(keys, prompt, stageIds, mode) {
     addToHistory(runState.prompt, runState.mode, runState.totalCost);
     updateStats(runState.totalCost, runState.totalTokens);
     if (runState.results['frontend']) { autoPreview(); }
+  } else if (runState.error && runState.stagesDone > 0) {
+    // Partial completion — still show save/iterate for stages that finished
+    document.getElementById('save-btn').style.display = '';
+    document.getElementById('iteration-bar').style.display = '';
   }
 
   clearInterval(runState.elapsedTimer);
@@ -1674,8 +1694,11 @@ async function startDemoRun() {
 function getKeys() {
   return {
     anthropic: sessionStorage.getItem('pm_key') || null,
-    openai:    sessionStorage.getItem('pm_openai_key') || null,
-    gemini:    sessionStorage.getItem('pm_gemini_key') || null
+    openai:    sessionStorage.getItem('pm_key_openai') || null,
+    gemini:    sessionStorage.getItem('pm_key_gemini') || null,
+    mistral:   sessionStorage.getItem('pm_key_mistral') || null,
+    groq:      sessionStorage.getItem('pm_key_groq') || null,
+    cohere:    sessionStorage.getItem('pm_key_cohere') || null
   };
 }
 
@@ -1741,7 +1764,7 @@ async function callAPI(apiKey, stage, prompt) {
   const key = getProviderKey(pid);
   if (!key) throw new Error('No API key for ' + p.name + ' — save it in Account → API Keys');
   const model = p.defaultModel;
-  const sysPrompt = `You are the ${stage.name} stage of PromptMesh, an AI pipeline tool. Your role: produce the best possible ${stage.name.toLowerCase()} output. Be concise, specific, and output exactly what's requested with no preamble.`;
+  const sysPrompt = stage.systemPrompt || `You are the ${stage.name} stage of PromptMesh, an AI pipeline tool. Produce the best possible output. Be concise and output exactly what's requested with no preamble.`;
   try {
     return await p.call(key, model, sysPrompt, prompt, stage.tokenBudget);
   } catch (e) {
@@ -1750,6 +1773,58 @@ async function callAPI(apiKey, stage, prompt) {
     }
     throw e;
   }
+}
+
+async function callAPIFusion(keys, stage, prompt) {
+  // Use the stage's designated provider if its key is available; else fall back to selected/Anthropic
+  const preferredPid = stage.provider && LLM_PROVIDERS[stage.provider] && keys[stage.provider]
+    ? stage.provider : (getSelectedProvider() || 'anthropic');
+  const p = LLM_PROVIDERS[preferredPid] || LLM_PROVIDERS.anthropic;
+  const key = keys[preferredPid] || getProviderKey(preferredPid) || getProviderKey('anthropic');
+  if (!key) throw new Error('No API key for ' + p.name + ' — save it in Account → API Keys');
+  const sysPrompt = stage.systemPrompt || `You are the ${stage.name} stage of PromptMesh, an AI pipeline tool. Produce the best possible output. Be concise and output exactly what's requested with no preamble.`;
+  try {
+    return await p.call(key, p.defaultModel, sysPrompt, prompt, stage.tokenBudget);
+  } catch (e) {
+    // If designated provider fails, fall back to Anthropic
+    if (preferredPid !== 'anthropic' && keys.anthropic) {
+      addFeed('fi-system', stage.name.toUpperCase(), `${p.name} unavailable — falling back to Claude`);
+      return await LLM_PROVIDERS.anthropic.call(keys.anthropic, LLM_PROVIDERS.anthropic.defaultModel, sysPrompt, prompt, stage.tokenBudget);
+    }
+    throw e;
+  }
+}
+
+// ══════════════════════════════════════════
+//  RETRY STAGE
+// ══════════════════════════════════════════
+async function retryStage(stageId) {
+  const s = STAGES_CONFIG[stageId];
+  if (!s) return;
+  if (runState.running) { toast('Wait for current run to finish', 'bad'); return; }
+  if (!runState.prompt) { toast('No active run to retry', 'bad'); return; }
+  const check = canRun();
+  if (!check.ok) { showUpgradeModal(check.reason); return; }
+  const customSys = document.getElementById('sys-prompt-input')?.value.trim() || '';
+  const userPrompt = s.buildPrompt(runState.prompt, runState.results, customSys);
+  setStageStatus(stageId, 'working', '');
+  runState.running = true;
+  runState.error = false;
+  try {
+    consumeRun();
+    const result = await callAPI(null, s, userPrompt);
+    runState.results[stageId] = result.text;
+    runState.totalTokens += result.tokens;
+    setStageStatus(stageId, 'done', '↻');
+    setStageOutput(stageId, result.text);
+    updateFinalOutput(runState.stages);
+    addFeed('fi-system', s.name.toUpperCase(), `↻ Retried · ${result.tokens} tokens`);
+    toast('↻ ' + s.name + ' retried', 'ok');
+  } catch(e) {
+    setStageStatus(stageId, 'error');
+    toast(e.message.substring(0, 60), 'bad');
+  }
+  runState.running = false;
 }
 
 // ══════════════════════════════════════════
@@ -1773,12 +1848,12 @@ async function iterate() {
   runState.iterationCount++;
   const iterPrompt = `Original request: "${runState.prompt}"
 
-Previous output context:
-${Object.entries(runState.results).map(([k, v]) => `${k.toUpperCase()}: ${v.substring(0, 200)}`).join('\n')}
+Current project output:
+${Object.entries(runState.results).filter(([k]) => !k.startsWith('iteration_')).map(([k, v]) => `--- ${k.toUpperCase()} ---\n${v.substring(0, 400)}`).join('\n\n')}
 
-User feedback / change request: "${input}"
+User change request: "${input}"
 
-Apply these changes and improve the relevant parts. Output the updated version.`;
+Apply the requested changes precisely. If the change affects the frontend, output a complete updated HTML file in a \`\`\`html block. If it affects logic/backend, output the updated JS in a \`\`\`javascript block. Focus only on what the user asked to change — do not rewrite unrelated parts.`;
 
   setStatusPill('running', 'ITERATING');
   document.getElementById('iteration-input').value = '';
@@ -1786,6 +1861,7 @@ Apply these changes and improve the relevant parts. Output the updated version.`
 
   try {
     consumeRun();
+    const keys = getKeys();
     const result = await callAPI(keys, STAGES_CONFIG.backend, iterPrompt);
     runState.results['iteration_' + runState.iterationCount] = result.text;
     addFeed('fi-system', 'ITERATE', `✓ Iteration complete · ${result.tokens} tokens`);
@@ -2089,7 +2165,7 @@ function clearByok() {
   if (p) sessionStorage.removeItem(p.keyStorage);
   document.getElementById('byok-input').value = '';
   updateByokStatus();
-  toast('Anthropic API key cleared');
+  toast((p ? p.name.split(' ')[0] : 'API') + ' key cleared');
 }
 
 function updateByokStatus() {
@@ -2116,14 +2192,14 @@ function saveOpenAIKey() {
   const key = document.getElementById('openai-key-input')?.value.trim();
   if (!key) { clearOpenAIKey(); return; }
   if (key.length < 20) { toast('Key too short', 'bad'); return; }
-  sessionStorage.setItem('pm_openai_key', key);
+  sessionStorage.setItem('pm_key_openai', key);
   document.getElementById('openai-key-input').value = '';
   updateOpenAIKeyStatus();
   toast('OpenAI key saved ✓', 'ok');
 }
 
 function clearOpenAIKey() {
-  sessionStorage.removeItem('pm_openai_key');
+  sessionStorage.removeItem('pm_key_openai');
   if (document.getElementById('openai-key-input')) document.getElementById('openai-key-input').value = '';
   updateOpenAIKeyStatus();
   toast('OpenAI key cleared');
@@ -2132,7 +2208,7 @@ function clearOpenAIKey() {
 function updateOpenAIKeyStatus() {
   const el = document.getElementById('openai-key-status');
   if (!el) return;
-  const key = sessionStorage.getItem('pm_openai_key');
+  const key = sessionStorage.getItem('pm_key_openai');
   el.textContent = key ? `✓ Saved (${key.substring(0, 10)}…) — Final Polish will use GPT-4o-mini` : 'Not set — Final Polish falls back to Claude Haiku.';
   el.style.color = key ? 'var(--sage)' : 'var(--ink4)';
 }
@@ -2142,14 +2218,14 @@ function saveGeminiKey() {
   const key = document.getElementById('gemini-key-input')?.value.trim();
   if (!key) { clearGeminiKey(); return; }
   if (key.length < 20) { toast('Key too short', 'bad'); return; }
-  sessionStorage.setItem('pm_gemini_key', key);
+  sessionStorage.setItem('pm_key_gemini', key);
   document.getElementById('gemini-key-input').value = '';
   updateGeminiKeyStatus();
   toast('Gemini key saved ✓', 'ok');
 }
 
 function clearGeminiKey() {
-  sessionStorage.removeItem('pm_gemini_key');
+  sessionStorage.removeItem('pm_key_gemini');
   if (document.getElementById('gemini-key-input')) document.getElementById('gemini-key-input').value = '';
   updateGeminiKeyStatus();
   toast('Gemini key cleared');
@@ -2158,7 +2234,7 @@ function clearGeminiKey() {
 function updateGeminiKeyStatus() {
   const el = document.getElementById('gemini-key-status');
   if (!el) return;
-  const key = sessionStorage.getItem('pm_gemini_key');
+  const key = sessionStorage.getItem('pm_key_gemini');
   el.textContent = key ? `✓ Saved (${key.substring(0, 10)}…) — Art & Design will use Gemini Flash` : 'Not set — Art & Design falls back to Claude Haiku.';
   el.style.color = key ? 'var(--sage)' : 'var(--ink4)';
 }
@@ -2174,8 +2250,8 @@ function parseMasterBundle() {
   const geminiMatch = raw.match(/AIza[A-Za-z0-9_-]{30,}/);
 
   if (anthropicMatch) { sessionStorage.setItem('pm_key', anthropicMatch[0]); saved.push('Anthropic'); }
-  if (openaiMatch)    { sessionStorage.setItem('pm_openai_key', openaiMatch[0]); saved.push('OpenAI'); }
-  if (geminiMatch)    { sessionStorage.setItem('pm_gemini_key', geminiMatch[0]); saved.push('Gemini'); }
+  if (openaiMatch)    { sessionStorage.setItem('pm_key_openai', openaiMatch[0]); saved.push('OpenAI'); }
+  if (geminiMatch)    { sessionStorage.setItem('pm_key_gemini', geminiMatch[0]); saved.push('Gemini'); }
 
   if (!saved.length) { toast('No recognizable API keys found in that text', 'bad'); return; }
 
@@ -2190,9 +2266,7 @@ function parseMasterBundle() {
 }
 
 function clearAllProviderKeys() {
-  sessionStorage.removeItem('pm_key');
-  sessionStorage.removeItem('pm_openai_key');
-  sessionStorage.removeItem('pm_gemini_key');
+  Object.values(LLM_PROVIDERS).forEach(p => sessionStorage.removeItem(p.keyStorage));
   ['byok-input','openai-key-input','gemini-key-input','master-bundle-input'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
@@ -2529,6 +2603,16 @@ const TEMPLATES = [
     prompt:'A music player UI with playlist, waveform visualizer using Canvas API, progress bar, volume slider, shuffle/repeat controls, and beautiful album art display' },
   { icon:'🗓️', name:'Calendar App', mode:'full', desc:'Monthly calendar with events',
     prompt:'A monthly calendar app with event creation/editing, drag to change dates, color-coded event categories, today highlight, and week/month view toggle' },
+  { icon:'🔥', name:'Habit Tracker', mode:'full', desc:'Daily habits with streak calendar',
+    prompt:'A habit tracker with daily check-in per habit, a GitHub-style contribution heatmap calendar, current and longest streak counters, and weekly completion percentages — all persisted in localStorage' },
+  { icon:'⏱️', name:'Pomodoro Timer', mode:'quick', desc:'Focus timer with task queue',
+    prompt:'A Pomodoro timer with 25/5/15 min cycles, a draggable task queue, desktop notifications, session history chart, and smooth circular progress animation' },
+  { icon:'🎨', name:'Pixel Art Editor', mode:'full', desc:'16×16 canvas pixel painter',
+    prompt:'A pixel art editor with a 16×16 grid canvas, color palette picker, fill bucket tool, undo/redo history, export to PNG, and a gallery of saved drawings in localStorage' },
+  { icon:'💬', name:'Typing Speed Test', mode:'quick', desc:'WPM test with accuracy stats',
+    prompt:'A typing speed test with randomized passages, live WPM calculation, accuracy percentage, mistake highlighting, personal best tracking, and a results screen with charts' },
+  { icon:'💱', name:'Expense Splitter', mode:'full', desc:'Split bills for group trips',
+    prompt:'A group expense splitter app where you add people and expenses (with custom splits), and it calculates the minimum set of payments to settle all debts — with a clean summary view' },
 ];
 
 function openTemplates() {

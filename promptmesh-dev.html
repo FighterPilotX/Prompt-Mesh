@@ -404,8 +404,9 @@ Your responses should be [style]."></textarea>
           <button class="btn btn-purple btn-w" style="margin-top:4px;padding:10px" onclick="runArena()" id="arena-btn">
             ⚡ Start Battle
           </button>
+          <div style="margin-top:5px;font-size:.68rem;color:var(--ink4)"><kbd style="font-family:var(--mono);background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:3px;padding:1px 5px">⌘ Enter</kbd> run</div>
 
-          <div style="margin-top:10px;background:var(--card2);border-radius:5px;padding:8px 10px;font-size:.7rem;color:var(--ink4)">
+          <div style="margin-top:8px;background:var(--card2);border-radius:5px;padding:8px 10px;font-size:.7rem;color:var(--ink4)">
             Winner gains ELO. Judged by a neutral Claude Haiku reviewer. Each battle costs ~$0.001–0.003.
           </div>
         </div>
@@ -826,6 +827,7 @@ function pickBot(slot,botId){
 }
 
 async function runArena(){
+  if(arenaState.running){return;}
   const botA=arenaState.slotA;
   const botB=arenaState.slotB;
   if(!botA||!botB){toast('Select two bots to compete','bad');return;}
