@@ -1322,10 +1322,10 @@ const EXAMPLES = [
 function getUser() {
   try {
     return JSON.parse(localStorage.getItem('pm_user') || 'null') || {
-      name: 'Guest', tier: 'free', credits: 3, runsToday: 0,
+      name: 'Guest', tier: 'free', credits: 5, runsToday: 0,
       lastRunDate: '', projectCount: 0
     };
-  } catch { return { name: 'Guest', tier: 'free', credits: 3, runsToday: 0, lastRunDate: '', projectCount: 0 }; }
+  } catch { return { name: 'Guest', tier: 'free', credits: 5, runsToday: 0, lastRunDate: '', projectCount: 0 }; }
 }
 
 function saveUser(u) {
@@ -1599,7 +1599,12 @@ async function executePipeline(keys, prompt, stageIds, mode) {
     document.getElementById('iteration-bar').style.display = '';
     addToHistory(runState.prompt, runState.mode, runState.totalCost);
     updateStats(runState.totalCost, runState.totalTokens);
-    if (runState.results['frontend']) { autoPreview(); }
+    if (runState.results['frontend']) {
+      autoPreview();
+      // Switch to Output tab automatically so user sees the result
+      const outBtn = document.querySelector('.ot[onclick*="output"]') || document.querySelectorAll('.ot')[1];
+      if (outBtn) outBtn.click();
+    }
   } else if (runState.error && runState.stagesDone > 0) {
     // Partial completion — still show save/iterate for stages that finished
     document.getElementById('save-btn').style.display = '';
@@ -1680,7 +1685,11 @@ async function startDemoRun() {
     addFeed('fi-system', 'DEMO', `✨ Demo complete — use your own API key for real results`);
     toast('Demo complete! Add your API key in Account to run real pipelines.', 'ok');
     document.getElementById('save-btn').style.display = '';
-    if (runState.results['frontend']) { autoPreview(); }
+    if (runState.results['frontend']) {
+      autoPreview();
+      const outBtn = document.querySelector('.ot[onclick*="output"]') || document.querySelectorAll('.ot')[1];
+      if (outBtn) outBtn.click();
+    }
   }
 
   clearInterval(runState.elapsedTimer);
@@ -1700,57 +1709,6 @@ function getKeys() {
     groq:      sessionStorage.getItem('pm_key_groq') || null,
     cohere:    sessionStorage.getItem('pm_key_cohere') || null
   };
-}
-
-  const MAX_NET_RETRIES = 3;
-  let resp;
-  for (let attempt = 0; attempt < MAX_NET_RETRIES; attempt++) {
-    if (runState.aborted) throw new Error('ABORTED');
-    if (attempt > 0) await sleep(attempt * 1500); // 1.5s, 3s backoff
-    try {
-      resp = await fetch('/.netlify/functions/ai-proxy', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01'
-        },
-        body: JSON.stringify({
-          model: stage.model,
-          max_tokens: stage.tokenBudget,
-          system: stage.systemPrompt || `You are the ${stage.name} stage of PromptMesh. Produce the best possible output. Be concise, specific, and output exactly what's requested with no preamble.`,
-          messages: [{ role: 'user', content: prompt }]
-        })
-      });
-      break; // success — exit retry loop
-    } catch (networkErr) {
-      if (attempt === MAX_NET_RETRIES - 1) {
-        throw new Error(`Network error — check your internet connection. (${networkErr.message})`);
-      }
-      addFeed('fi-system', stage.name.toUpperCase(), `Network hiccup — retrying (${attempt + 1}/${MAX_NET_RETRIES - 1})…`);
-    }
-  }
-
-  if (!resp.ok) {
-    let msg = `Anthropic HTTP ${resp.status}`;
-    try {
-      const d = await resp.json();
-      const det = d?.error?.message || '';
-      if (resp.status === 401) msg = 'Invalid Anthropic API key — check it starts with sk-ant-';
-      else if (resp.status === 429) msg = 'Anthropic rate limited — wait and retry';
-      else if (det) msg = `Anthropic error: ${det.substring(0, 120)}`;
-    } catch (_) {}
-    throw new Error(msg);
-  }
-  const data = await resp.json().catch(() => { throw new Error('Could not parse Anthropic response'); });
-  const text = data.content?.[0]?.text || '';
-  const inputTokens = data.usage?.input_tokens || 0;
-  const outputTokens = data.usage?.output_tokens || 0;
-  const tokens = inputTokens + outputTokens;
-  const stopReason = data.stop_reason || '';
-  if (!text) throw new Error('Empty response from API — model returned no content');
-  // Return truncation flag so pipeline can retry with more tokens
-  return { text, tokens, inputTokens, outputTokens, truncated: stopReason === 'max_tokens' };
 }
 
 // ══════════════════════════════════════════
@@ -1836,7 +1794,8 @@ async function iterate() {
   if (runState.running) { toast('Wait for current run to finish', 'bad'); return; }
 
   const u = getUser();
-  if (u.tier === 'free') { showUpgradeModal('Iteration requires Starter or Pro plan.'); return; }
+  const hasByok = Object.values(LLM_PROVIDERS).some(p => sessionStorage.getItem(p.keyStorage));
+  if (u.tier === 'free' && !hasByok) { showUpgradeModal('Iteration requires Starter or Pro plan — or add your own API key in Account.'); return; }
 
   const check = canRun();
   if (!check.ok) { showUpgradeModal(check.reason); return; }
@@ -1883,7 +1842,8 @@ Apply the requested changes precisely. If the change affects the frontend, outpu
 // ══════════════════════════════════════════
 function saveProject() {
   const u = getUser();
-  if (u.tier === 'free') { showUpgradeModal('Save projects with Starter ($9/mo) or Pro ($29/mo) plan.'); return; }
+  const hasByok = Object.values(LLM_PROVIDERS).some(p => sessionStorage.getItem(p.keyStorage));
+  if (u.tier === 'free' && !hasByok) { showUpgradeModal('Save projects with Starter ($9/mo) or Pro ($29/mo) plan — or add your own API key in Account.'); return; }
 
   const projects = getProjects();
   const stageIds = runState.stages;
@@ -1943,7 +1903,7 @@ function loadProject(id) {
   if (!p) return;
 
   runState = {
-    running: false, aborted: false, prompt: p.prompt, mode: p.mode,
+    running: false, aborted: false, error: false, prompt: p.prompt, mode: p.mode,
     stages: p.stages, results: p.results, totalCost: p.cost,
     totalTokens: p.tokens, startTime: 0, stagesDone: p.stages.length,
     elapsedTimer: null, iterationCount: 0
@@ -2120,7 +2080,7 @@ function simulatePurchase(amount, type) {
 function setTier(tier) {
   const u = getUser();
   u.tier = tier;
-  if (tier === 'free') { u.credits = 3; u.name = 'Guest'; }
+  if (tier === 'free') { u.credits = 5; u.name = 'Guest'; }
   saveUser(u);
   renderUserBadge();
 }
@@ -2316,7 +2276,7 @@ function setConnectorDone(id) {
 function addFeed(cls, from, msg) {
   const el = document.getElementById('run-feed');
   const d = new Date();
-  const ts = `${String(d.getHours()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
+  const ts = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
   const item = document.createElement('div');
   item.className = `feed-item ${cls}`;
   item.innerHTML = `<span class="fi-time">${ts}</span><span class="fi-from">${escHtml(from)}</span><span class="fi-msg">${escHtml(msg)}</span>`;
