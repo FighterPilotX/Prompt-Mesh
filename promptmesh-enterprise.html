@@ -575,11 +575,15 @@ const DEFAULT_RULES = [
 
 const QUICK_TASKS = [
   'Write a Python function to validate email addresses with regex',
-  'Summarize this in 3 bullet points: "The transformer architecture..."',
+  'Summarize this in 3 bullet points: "The transformer architecture revolutionized NLP by replacing recurrence with self-attention, enabling parallel training and capturing long-range dependencies more effectively than RNNs."',
   'What is the difference between TCP and UDP?',
   'Debug this code: for i in range(10) print(i)',
-  'Generate 5 creative names for a B2B SaaS company',
-  'Write a SQL query to find duplicate emails in a users table',
+  'Generate 5 creative names for a B2B SaaS company focused on AI workflow automation',
+  'Write a SQL query to find all users who signed up in the last 30 days but have never made a purchase',
+  'Analyze this data and find trends: Q1: $42k, Q2: $38k, Q3: $55k, Q4: $71k revenue',
+  'Write a TypeScript interface for a User object with name, email, role, and optional avatar fields',
+  'Explain the CAP theorem in simple terms with a real-world example',
+  'Refactor this function to be more readable: function calc(a,b,c){return a>b?a*c:b>c?b*a:c*b;}',
 ];
 
 function getAgents(){try{return JSON.parse(localStorage.getItem('ent_agents')||'null')||DEFAULT_AGENTS;}catch{return DEFAULT_AGENTS;}}
