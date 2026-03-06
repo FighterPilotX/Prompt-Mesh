@@ -118,6 +118,13 @@ h1,h2,h3{font-family:var(--display);line-height:1.1;letter-spacing:-0.01em;}
 .ex-chip{font-size:.74rem;padding:7px 14px;border:1px solid var(--rule2);border-radius:20px;cursor:pointer;color:var(--ink2);background:var(--surface);transition:all .12s;font-weight:500;}
 .ex-chip:hover{border-color:var(--coral);color:var(--coral);background:var(--coral-tint);}
 
+/* Bot selector chips */
+.bot-row{display:flex;gap:7px;flex-wrap:nowrap;overflow-x:auto;justify-content:center;max-width:700px;margin:0 auto 14px;padding:4px 2px;scrollbar-width:none;}
+.bot-row::-webkit-scrollbar{display:none;}
+.bot-chip{display:inline-flex;align-items:center;gap:5px;padding:6px 13px;border:1.5px solid var(--rule2);border-radius:20px;background:var(--surface);font-size:.73rem;font-weight:500;color:var(--ink2);cursor:pointer;white-space:nowrap;transition:all .15s;flex-shrink:0;font-family:var(--body);}
+.bot-chip:hover{border-color:var(--amber);color:var(--ink);background:var(--amber-tint);}
+.bot-chip.active{border-color:var(--amber);background:var(--amber-tint);color:var(--ink);font-weight:700;}
+
 /* How it works */
 .how-section{background:var(--surface);border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);padding:80px 24px;}
 .how-inner{max-width:900px;margin:0 auto;}
@@ -517,7 +524,20 @@ body.dark .dark-toggle .icon-moon { display:block; }
   <section class="hero">
     <div class="hero-eyebrow">Multi-model pipeline</div>
     <h1 class="hero-h1">One prompt.<br><em>The right AI</em> for each part.</h1>
-    <p class="hero-p">Type what you want to build. PromptMesh routes each piece — planning, design, code, polish — to the model that handles it cheapest and best.</p>
+    <p class="hero-p">Pick a bot below, type your goal, and watch the AI pipeline handle each step.</p>
+
+    <!-- Bot selector -->
+    <div class="bot-row" id="bot-row">
+      <button class="bot-chip active" data-bot="builder" onclick="onBotSelect('builder')">🏗️ App Builder</button>
+      <button class="bot-chip" data-bot="copywriter" onclick="onBotSelect('copywriter')">✍️ Copywriter</button>
+      <button class="bot-chip" data-bot="pythondev" onclick="onBotSelect('pythondev')">🐍 Python Dev</button>
+      <button class="bot-chip" data-bot="gamedesigner" onclick="onBotSelect('gamedesigner')">🎮 Game Designer</button>
+      <button class="bot-chip" data-bot="reviewer" onclick="onBotSelect('reviewer')">🔍 Code Reviewer</button>
+      <button class="bot-chip" data-bot="emailpro" onclick="onBotSelect('emailpro')">📧 Email Pro</button>
+      <button class="bot-chip" data-bot="dataanalyst" onclick="onBotSelect('dataanalyst')">📊 Data Analyst</button>
+      <button class="bot-chip" data-bot="resumecoach" onclick="onBotSelect('resumecoach')">📄 Resume Coach</button>
+      <button class="bot-chip" data-bot="seowriter" onclick="onBotSelect('seowriter')">🔎 SEO Writer</button>
+    </div>
 
     <div class="hero-input-wrap">
       <textarea class="hero-textarea" id="main-input" placeholder="Describe what you want to build…&#10;&#10;e.g. A geometry dash clone with dinosaurs, a landing page for my bakery, a todo app with drag-and-drop" onkeydown="if((event.ctrlKey||event.metaKey)&&event.key==='Enter'){event.preventDefault();startRun()}"></textarea>
@@ -1354,6 +1374,299 @@ const MODES = {
   fusion: ['planning','design','frontend','backend','polish'],  // 5 stages ~$0.004   ~45s
 };
 
+// ══════════════════════════════════════════
+//  BOT PRESETS — job-specific pipeline configs
+//  Each bot overrides stage names, icons, system prompts, and build prompts.
+//  The stage IDs (planning/design/frontend/backend/polish) stay the same
+//  so all existing infrastructure works unchanged.
+// ══════════════════════════════════════════
+const BOT_PRESETS = {
+
+  builder: {
+    id:'builder', name:'App Builder', icon:'🏗️',
+    desc:'Web apps & interactive tools',
+    defaultMode:'quick',
+    placeholder:'Describe what you want to build…\n\ne.g. A geometry dash clone, a kanban board, a budget tracker with charts',
+    stages: null  // uses default STAGES_CONFIG
+  },
+
+  copywriter: {
+    id:'copywriter', name:'Copywriter', icon:'✍️',
+    desc:'Landing pages, ad copy & emails',
+    defaultMode:'full',
+    placeholder:'What copy do you need?\n\ne.g. Landing page for a SaaS product, cold email for a dev tool, product description for Amazon',
+    stages: {
+      planning: {
+        name:'🎯 Research', icon:'🎯', badge:'RESEARCH',
+        systemPrompt:'You are a world-class copywriting strategist. Research the audience, pain points, and messaging angles. Be very specific — no generic advice.',
+        buildPrompt(p,prev,ctx){return`${ctx?'CONTEXT: '+ctx+'\n\n':''}Copywriting strategy for:\n"${p}"\n\n## Target Audience\n[Who exactly — job title, situation, key desire]\n\n## Core Pain Points\n- [pain 1 — specific]\n- [pain 2]\n- [pain 3]\n\n## Key Messaging Angles\n1. [angle — the hook]\n2. [angle — the benefit]\n3. [angle — the proof]\n\n## Tone & Voice\n[Describe tone. Reference 1-2 brands as examples.]\n\n## Call to Action\n[The exact CTA to use]\n\nUnder 200 words.`;}
+      },
+      design: {
+        name:'💡 Headlines', icon:'💡', badge:'HOOKS',
+        systemPrompt:'You are a headline and hook specialist. Write punchy, conversion-focused headlines. Output only what is asked — no filler.',
+        buildPrompt(p,prev,ctx){return`${ctx?'CONTEXT: '+ctx+'\n\n':''}Write 10 headline variations for:\n"${p}"\n\nSTRATEGY: ${(prev.planning||'').substring(0,400)}\n\n## Power Headlines (direct benefit)\n1-3 options\n\n## Question Headlines (curiosity)\n1-2 options\n\n## Social Proof Headlines\n1-2 options\n\n## Urgency Headlines\n1-2 options\n\n## ★ Best Pick\n[top recommendation + why]\n\nBe specific. No generic filler.`;}
+      },
+      frontend: {
+        name:'✍️ Draft', icon:'✍️', badge:'DRAFT',
+        systemPrompt:'You are an elite direct-response copywriter. Write compelling, conversion-focused copy. No clichés. Output only the copy — no meta commentary.',
+        buildPrompt(p,prev,ctx){return`${ctx?'CONTEXT: '+ctx+'\n\n':''}Write complete copy for:\n"${p}"\n\nSTRATEGY: ${(prev.planning||'').substring(0,400)}\nHEADLINE: ${(prev.design||'').substring(0,200)}\n\nWrite full copy:\n- Headline\n- Opening hook (2-3 sentences)\n- Body (benefits-driven, specific, no fluff)\n- Social proof / credibility element\n- CTA (clear and specific)\n\nTone: per strategy. Every sentence must earn its place.`;}
+      },
+      backend: {
+        name:'🔀 A/B Variants', icon:'🔀', badge:'A/B',
+        systemPrompt:'You are a conversion rate optimization specialist. Create real A/B test variants — different enough to actually test. Be specific.',
+        buildPrompt(p,prev,ctx){return`${ctx?'CONTEXT: '+ctx+'\n\n':''}Create A/B variants for the copy.\n\nORIGINAL: ${(prev.frontend||'').substring(0,600)}\n\n## Variant A — Emotional Angle\n[rewrite focused on desire/transformation]\n\n## Variant B — Logic/Data Angle\n[rewrite focused on facts, ROI, specifics]\n\n## Variant C — Fear of Missing Out\n[urgency and scarcity-focused]\n\n## ★ Test First\n[which variant to test first and why]\n\nKeep each variant distinct enough to be a real test.`;}
+      },
+      polish: {
+        name:'✅ Final Review', icon:'✅', badge:'POLISH',
+        systemPrompt:'You are a senior copy editor. Fix weak phrases, clichés, passive voice. Output the polished copy and a short edit summary.',
+        buildPrompt(p,prev,ctx){return`${ctx?'CONTEXT: '+ctx+'\n\n':''}Final polish pass.\n\nCOPY: ${(prev.frontend||prev.backend||'').substring(0,800)}\n\n## ✅ Polished Version\n[final improved copy]\n\n## Edits Made\n- [what changed and why]\n\n## Readability\n[Easy / Medium / Dense — and for what audience]\n\n## One Last Suggestion\n[one thing to A/B test]`;}
+      }
+    }
+  },
+
+  pythondev: {
+    id:'pythondev', name:'Python Dev', icon:'🐍',
+    desc:'Scripts, APIs & automation tools',
+    defaultMode:'full',
+    placeholder:'What Python tool do you need?\n\ne.g. Web scraper for job listings, CSV analyzer with charts, Discord bot, FastAPI REST API',
+    stages: {
+      planning: {
+        name:'📋 Spec', icon:'📋', badge:'SPEC',
+        systemPrompt:'You are a senior Python developer. Write a tight, specific technical spec. Be concrete about function signatures and data types.',
+        buildPrompt(p,prev,ctx){return`${ctx?'CONTEXT: '+ctx+'\n\n':''}Python project spec for:\n"${p}"\n\n## Summary\nOne sentence.\n\n## Core Functions\nList 4-6 with signatures:\n\`\`\`python\ndef function_name(param: type) -> return_type: ...\n\`\`\`\n\n## Dependencies\n\`pip install ...\` (only what's needed)\n\n## Data Structures\nMain classes/dicts with example shapes.\n\n## Edge Cases\n2-3 specific things to handle.\n\nUnder 250 words.`;}
+      },
+      design: {
+        name:'🏗️ Architecture', icon:'🏗️', badge:'ARCH',
+        systemPrompt:'You are a Python architect. Design clean module structure and patterns. Output only the architecture spec.',
+        buildPrompt(p,prev,ctx){return`${ctx?'CONTEXT: '+ctx+'\n\n':''}Architecture for:\n"${p}"\n\nSPEC: ${(prev.planning||'').substring(0,500)}\n\n## File Structure\n\`\`\`\nmain.py — [purpose]\nutils.py — [purpose]\n\`\`\`\n\n## Design Patterns\n[What patterns and why — dataclasses, context managers, generators, etc.]\n\n## Config & Constants\n[Settings to externalize]\n\n## Error Strategy\n[How to handle the most likely failures]\n\nUnder 200 words.`;}
+      },
+      frontend: {
+        name:'💻 Code', icon:'💻', badge:'CODE',
+        systemPrompt:'You are a senior Python engineer. Write clean, fully working Python. Output only a single ```python block. No stubs, no TODO comments.',
+        buildPrompt(p,prev,ctx){return`${ctx?'CONTEXT: '+ctx+'\n\n':''}Write the complete Python implementation for:\n"${p}"\n\nSPEC: ${(prev.planning||'').substring(0,400)}\nARCH: ${(prev.design||'').substring(0,300)}\n\nRequirements:\n- Fully working — no stubs or TODO\n- Type hints throughout\n- Docstrings on public functions\n- Error handling for likely failures\n- \`if __name__ == "__main__"\` block with example usage\n\nOutput: one \`\`\`python block only.`;}
+      },
+      backend: {
+        name:'🧪 Tests', icon:'🧪', badge:'TESTS',
+        systemPrompt:'You are a Python testing expert. Write thorough pytest tests. Output only the test file as a ```python block.',
+        buildPrompt(p,prev,ctx){return`${ctx?'CONTEXT: '+ctx+'\n\n':''}Write pytest tests for:\n"${p}"\n\nCODE: ${(prev.frontend||'').substring(0,600)}\n\nWrite:\n- Unit test per core function\n- At least one edge case per function\n- One integration test (full flow)\n- pytest fixtures where helpful\n\nOutput: one \`\`\`python block. Must be runnable.`;}
+      },
+      polish: {
+        name:'📝 Docs', icon:'📝', badge:'DOCS',
+        systemPrompt:'You are a technical writer for Python projects. Write clear, concise documentation. Output only what is requested.',
+        buildPrompt(p,prev,ctx){return`${ctx?'CONTEXT: '+ctx+'\n\n':''}Write documentation for:\n"${p}"\n\nCODE (excerpt): ${(prev.frontend||'').substring(0,500)}\n\n## README.md\n# [Project Name]\n> [one-liner]\n\n## Installation\n\`\`\`bash\npip install ...\n\`\`\`\n\n## Usage\n\`\`\`python\n# example\n\`\`\`\n\n## Functions Reference\n[Table: function | params | returns | description]\n\n## Known Limitations\n[1-2 honest limitations]\n\nUnder 250 words.`;}
+      }
+    }
+  },
+
+  gamedesigner: {
+    id:'gamedesigner', name:'Game Designer', icon:'🎮',
+    desc:'Design docs & playable HTML5 prototypes',
+    defaultMode:'full',
+    placeholder:'Describe your game idea…\n\ne.g. Tower defense with time-manipulation, roguelike card game about cooking, mobile puzzle with fluid physics',
+    stages: {
+      planning: {
+        name:'📋 Game Design Doc', icon:'📋', badge:'GDD',
+        systemPrompt:'You are a senior game designer. Write tight, specific game design documents — no fluff, concrete mechanics and real numbers.',
+        buildPrompt(p,prev,ctx){return`${ctx?'CONTEXT: '+ctx+'\n\n':''}Game design doc for:\n"${p}"\n\n## Elevator Pitch\nGenre + core mechanic + hook — one sentence.\n\n## Core Loop\n[Action → Reward → Repeat — be specific]\n\n## Player Fantasy\n[What does the player feel like?]\n\n## Core Mechanics\n1. [mechanic]: [how it works, specific numbers]\n2. [mechanic 2]\n3. [mechanic 3]\n\n## Win/Fail States\n[Exact conditions]\n\n## Progression\n[How difficulty/content scales — specific milestones]\n\n## Unique Selling Point\n[What makes this different from similar games?]\n\nUnder 280 words.`;}
+      },
+      design: {
+        name:'🎨 Visual Style', icon:'🎨', badge:'VISUAL',
+        systemPrompt:'You are a game art director. Define visual style, palette, and UI layout. Be specific — hex codes and reference games.',
+        buildPrompt(p,prev,ctx){return`${ctx?'CONTEXT: '+ctx+'\n\n':''}Visual style for:\n"${p}"\n\nGDD: ${(prev.planning||'').substring(0,400)}\n\n## Art Style\n[2-3 sentences. Reference comparable games or art movements.]\n\n## Color Palette\n--primary: #[hex] /* [use] */\n--accent:  #[hex]\n--bg:      #[hex]\n--ui:      #[hex]\n\n## HUD Layout (ASCII)\n[Sketch what's on screen during play]\n\n## Animation Feel\n[Snappy / floaty / weighty — describe 2 key animations]\n\n## Sound Direction\n[2 sentences on audio feel]\n\nUnder 200 words.`;}
+      },
+      frontend: {
+        name:'🕹️ Prototype', icon:'🕹️', badge:'GAME',
+        systemPrompt:'You are a game developer. Build a working, playable HTML5 prototype. Output only a single complete ```html block. Must be actually fun for 30 seconds.',
+        buildPrompt(p,prev,ctx){return`${ctx?'CONTEXT: '+ctx+'\n\n':''}Build a playable HTML5 game for:\n"${p}"\n\nGDD: ${(prev.planning||'').substring(0,400)}\nVISUAL: ${(prev.design||'').substring(0,300)}\n\nRequirements:\n1. Playable — implements the core loop from the GDD\n2. HTML5 Canvas or DOM rendering\n3. Keyboard / mouse / touch input\n4. Score or progress tracking\n5. Game over + restart\n\nVanilla JS only. No libraries.\n\nOutput: one \`\`\`html block. Must be playable.`;}
+      },
+      backend: {
+        name:'⚙️ Game Systems', icon:'⚙️', badge:'SYSTEMS',
+        systemPrompt:'You are a game systems engineer. Write advanced game systems — save/load, enemy AI, difficulty scaling, particles. Output a ```javascript block.',
+        buildPrompt(p,prev,ctx){return`${ctx?'CONTEXT: '+ctx+'\n\n':''}Advanced systems for:\n"${p}"\n\nPROTOTYPE (excerpt): ${(prev.frontend||'').substring(0,600)}\n\nWrite a \`\`\`javascript block adding:\n1. SAVE — localStorage high scores / progress\n2. ENEMY AI — 2 distinct behaviors\n3. DIFFICULTY — scales over time with formula\n4. PARTICLES — simple canvas particle system for key moments\n5. AUDIO — Web Audio API bleeps/bloops\n\nMatch existing variable/function names exactly.`;}
+      },
+      polish: {
+        name:'🏆 Game Review', icon:'🏆', badge:'REVIEW',
+        systemPrompt:'You are a game critic and QA tester. Give specific, actionable feedback as both a designer and a player.',
+        buildPrompt(p,prev,ctx){return`${ctx?'CONTEXT: '+ctx+'\n\n':''}Review the game:\n"${p}"\n\nCODE (excerpt): ${(prev.frontend||'').substring(0,500)}\n\n## Fun Factor: [X/10]\n[What makes it fun, what makes it frustrating]\n\n## Bugs Found\n1. [bug with repro steps]\n2. [bug 2]\n\n## Balance Issues\n[Too easy/hard? Where does pacing break?]\n\n## Top 3 Improvements\n1. [highest-impact game feel fix]\n2. [improvement 2]\n3. [improvement 3]\n\n## App Store Angle\n[Genre, comparable games, monetization idea]`;}
+      }
+    }
+  },
+
+  reviewer: {
+    id:'reviewer', name:'Code Reviewer', icon:'🔍',
+    desc:'Bug detection, code quality & fixes',
+    defaultMode:'code',
+    placeholder:'Paste your code or describe what to review…\n\ne.g. Review my React auth flow, find bugs in this Express API, audit this SQL query for security',
+    stages: {
+      planning: {
+        name:'🔍 Analysis', icon:'🔍', badge:'SCAN',
+        systemPrompt:'You are a senior code reviewer. Analyze systematically. Be specific — cite patterns, not vague advice. Think security, performance, correctness.',
+        buildPrompt(p,prev,ctx){return`${ctx?'CONTEXT: '+ctx+'\n\n':''}Analyze:\n"${p}"\n\n## 🔴 Critical Issues\nBugs, security holes, data loss risks. Must fix.\n\n## 🟡 Warnings\nPerformance, bad patterns, tech debt.\n\n## 🟢 What\'s Good\n2-3 specific things done well.\n\n## Complexity: [Low/Medium/High]\n[Brief reason]\n\n## Priority Fixes\n1. [most important with specific fix]\n2. [fix 2]\n3. [fix 3]\n\nCite specific patterns, not generic advice.`;}
+      },
+      frontend: {
+        name:'🛠️ Fixed Code', icon:'🛠️', badge:'FIX',
+        systemPrompt:'You are a senior engineer writing the corrected code. Output only a code block with the improved version. No partial fixes, no stubs.',
+        buildPrompt(p,prev,ctx){return`${ctx?'CONTEXT: '+ctx+'\n\n':''}Write the improved code.\n\nORIGINAL TASK/CODE: ${p}\nISSUES FOUND: ${(prev.planning||'').substring(0,500)}\n\nRequirements:\n- Fix all critical issues\n- Keep same public API / function names\n- Add comments where logic is non-obvious\n- Improve error handling\n\nOutput: one code block with the full corrected implementation.`;}
+      },
+      backend: {
+        name:'📋 Review Report', icon:'📋', badge:'REPORT',
+        systemPrompt:'You are a tech lead writing a code review report. Be specific, actionable, and constructive. Write like a helpful colleague.',
+        buildPrompt(p,prev,ctx){return`${ctx?'CONTEXT: '+ctx+'\n\n':''}Code review report for:\n"${p}"\n\nISSUES: ${(prev.planning||'').substring(0,400)}\nFIXED (excerpt): ${(prev.frontend||'').substring(0,400)}\n\n## Summary\n[2 sentences on overall quality]\n\n## Changes Made\n[Bullet list: what changed and why]\n\n## Security Checklist\n- [ ] Input validation\n- [ ] SQL / XSS safe\n- [ ] Auth / permissions correct\n- [ ] Secrets not hardcoded\n\n## Performance Notes\n[1-2 specific optimizations if applicable]\n\n## Next Steps\n1. [most impactful next improvement]\n2. [second improvement]\n\nUnder 280 words.`;}
+      }
+    }
+  },
+
+  emailpro: {
+    id:'emailpro', name:'Email Pro', icon:'📧',
+    desc:'Cold emails, sequences & newsletters',
+    defaultMode:'code',
+    placeholder:'Describe the email you need…\n\ne.g. Cold outreach to CTOs for a dev tool, follow-up sequence for SaaS trial users, weekly newsletter for a fitness blog',
+    stages: {
+      planning: {
+        name:'🎯 Strategy', icon:'🎯', badge:'STRATEGY',
+        systemPrompt:'You are an email marketing strategist. Define audience, hook, and sequence strategy. Be specific — no generic advice.',
+        buildPrompt(p,prev,ctx){return`${ctx?'CONTEXT: '+ctx+'\n\n':''}Email strategy for:\n"${p}"\n\n## Recipient Profile\n[Who exactly — title, situation, pain point]\n\n## The Hook\n[The single most compelling reason they\'ll open this]\n\n## Subject Line Options\n1. [direct]\n2. [curiosity / pattern-interrupt]\n3. [personalized]\n\n## Key Objections to Pre-empt\n- [objection 1]\n- [objection 2]\n\n## CTA Strategy\n[What action, how soft/hard, and why]\n\nUnder 200 words.`;}
+      },
+      frontend: {
+        name:'✉️ Email Draft', icon:'✉️', badge:'DRAFT',
+        systemPrompt:'You are a world-class email copywriter. Write emails that get replies. Short, human, no corporate-speak. Output only the email.',
+        buildPrompt(p,prev,ctx){return`${ctx?'CONTEXT: '+ctx+'\n\n':''}Write the email for:\n"${p}"\n\nSTRATEGY: ${(prev.planning||'').substring(0,400)}\n\n**Subject:** [subject line]\n\n[Body — short paragraphs, 1-3 sentences each. Sound like a human. Max 150 words for cold email, 250 for nurture. End with a specific, easy CTA.]\n\nP.S. [optional postscript]`;}
+      },
+      backend: {
+        name:'🔁 Follow-up Sequence', icon:'🔁', badge:'SEQUENCE',
+        systemPrompt:'You are a follow-up sequence specialist. Write a multi-email sequence. Each email must stand alone but build on the last.',
+        buildPrompt(p,prev,ctx){return`${ctx?'CONTEXT: '+ctx+'\n\n':''}Follow-up sequence for:\n"${p}"\n\nFIRST EMAIL: ${(prev.frontend||'').substring(0,300)}\n\n## Email 2 — Day 3\n**Subject:** ...\n[body — different angle, add value]\n\n## Email 3 — Day 7\n**Subject:** ...\n[body — case study or social proof]\n\n## Email 4 — Day 14 (Last)\n**Subject:** ...\n[body — close the loop, light urgency]\n\nUnder 100 words each. Every email must have a distinct angle.`;}
+      }
+    }
+  },
+
+  dataanalyst: {
+    id:'dataanalyst', name:'Data Analyst', icon:'📊',
+    desc:'SQL queries, Python analysis & reports',
+    defaultMode:'code',
+    placeholder:'What data problem needs solving?\n\ne.g. Analyze customer churn from a SQL DB, Python script to visualize sales trends, cohort analysis for user retention',
+    stages: {
+      planning: {
+        name:'🗂️ Analysis Plan', icon:'🗂️', badge:'PLAN',
+        systemPrompt:'You are a senior data analyst. Plan the analysis approach, identify data needs, and define metrics. Be specific.',
+        buildPrompt(p,prev,ctx){return`${ctx?'CONTEXT: '+ctx+'\n\n':''}Analysis plan for:\n"${p}"\n\n## Objective\n[What question are we answering?]\n\n## Data Requirements\n- Tables/sources: [list]\n- Key columns: [list]\n- Date range: [recommendation]\n\n## Metrics & KPIs\n- Primary: [name + formula]\n- Secondary: [metric 2]\n- Secondary: [metric 3]\n\n## Analysis Approach\n[Steps: 1. aggregate → 2. segment → 3. visualize]\n\n## Expected Output\n[What will the deliverable look like?]\n\n## Data Quality Issues to Watch\n[2 specific gotchas]\n\nUnder 220 words.`;}
+      },
+      frontend: {
+        name:'💻 Analysis Code', icon:'💻', badge:'CODE',
+        systemPrompt:'You are a senior data analyst. Write clean, working Python/SQL for data analysis. Include comments. No pseudocode.',
+        buildPrompt(p,prev,ctx){return`${ctx?'CONTEXT: '+ctx+'\n\n':''}Write the analysis code for:\n"${p}"\n\nPLAN: ${(prev.planning||'').substring(0,500)}\n\nWrite Python (pandas + matplotlib/plotly) or SQL or both.\n\nRequirements:\n- Working code, not pseudocode\n- Handle missing/null data\n- Include sample data generation if no real data available\n- At least one visualization if Python\n- Key steps commented\n\nOutput: one code block.`;}
+      },
+      backend: {
+        name:'📈 Report', icon:'📈', badge:'REPORT',
+        systemPrompt:'You are a data storyteller. Write a clear analytical report. Lead with the finding, not the method.',
+        buildPrompt(p,prev,ctx){return`${ctx?'CONTEXT: '+ctx+'\n\n':''}Analysis report for:\n"${p}"\n\nCODE (excerpt): ${(prev.frontend||'').substring(0,400)}\n\n## Executive Summary\n[2-3 sentences: what we found and what to do about it]\n\n## Key Findings\n1. [finding with specific number/stat]\n2. [finding 2]\n3. [finding 3]\n\n## Root Cause\n[Why is this happening? Be specific.]\n\n## Recommendations\n1. [action — Impact: H/M/L, Effort: H/M/L]\n2. [action 2]\n3. [action 3]\n\n## Next Steps\n[What to dig into next]\n\nUnder 280 words. Lead with insights.`;}
+      }
+    }
+  },
+
+  resumecoach: {
+    id:'resumecoach', name:'Resume Coach', icon:'📄',
+    desc:'Resumes, cover letters & LinkedIn bios',
+    defaultMode:'code',
+    placeholder:'What career document do you need?\n\ne.g. Resume for senior SWE targeting FAANG, cover letter for PM role at Stripe, LinkedIn bio for a freelance designer',
+    stages: {
+      planning: {
+        name:'🎯 Positioning', icon:'🎯', badge:'STRATEGY',
+        systemPrompt:'You are a career coach and ex-FAANG recruiter. Analyze the job target and build a positioning strategy. Be specific and honest.',
+        buildPrompt(p,prev,ctx){return`${ctx?'CONTEXT: '+ctx+'\n\n':''}Career strategy for:\n"${p}"\n\n## Target Role Analysis\n[What do top candidates for this role look like?]\n\n## Positioning Statement\n[The angle to stand out — specific, not "passionate developer"]\n\n## Skills to Emphasize\n- [skill 1 — why it matters here]\n- [skill 2]\n- [skill 3]\n\n## Gaps to Address\n[What\'s missing and how to frame it]\n\n## ATS Keywords\n[Key phrases specific to this role/industry]\n\n## Tone\n[Conservative / Modern / Creative — with reason]\n\nUnder 220 words.`;}
+      },
+      frontend: {
+        name:'📄 Document', icon:'📄', badge:'WRITE',
+        systemPrompt:'You are an elite resume writer. Write tight, achievement-focused content. Quantify everything possible. No clichés.',
+        buildPrompt(p,prev,ctx){return`${ctx?'CONTEXT: '+ctx+'\n\n':''}Write the document for:\n"${p}"\n\nSTRATEGY: ${(prev.planning||'').substring(0,400)}\n\nWrite the complete document:\n- Resume: Summary + Experience (bullets) + Skills + Education\n- Cover letter: Hook + Value + CTA (3 tight paragraphs)\n- LinkedIn bio: 220-char headline + 300-word About + 5 skills\n\nRules:\n- Lead with achievements, not responsibilities\n- Quantify: "increased X by Y%"\n- Start bullets with strong action verbs\n- No clichés (passionate, results-driven, synergy)\n- ATS-friendly format\n\nWrite the full document — don\'t truncate.`;}
+      },
+      backend: {
+        name:'💡 Honest Feedback', icon:'💡', badge:'FEEDBACK',
+        systemPrompt:'You are a brutally honest career coach. Give specific, actionable feedback. Say what a recruiter actually thinks (politely).',
+        buildPrompt(p,prev,ctx){return`${ctx?'CONTEXT: '+ctx+'\n\n':''}Critique the document for:\n"${p}"\n\nDOCUMENT: ${(prev.frontend||'').substring(0,600)}\n\n## Recruiter\'s 10-Second Reaction\n[Honest: would they read on or pass?]\n\n## ✅ Strong Points\n- [specific thing that works]\n- [another]\n\n## ⚠️ Must Fix\n1. [specific issue + how to fix it]\n2. [issue 2 + fix]\n3. [issue 3 + fix]\n\n## ATS Score: [X/10]\n[Missing keywords?]\n\n## Tailoring Tips\n[How to quickly adapt for 3 different roles]\n\nBe direct. Speak like a helpful friend who\'s also a recruiter.`;}
+      }
+    }
+  },
+
+  seowriter: {
+    id:'seowriter', name:'SEO Writer', icon:'🔎',
+    desc:'Blog posts, meta tags & SEO content',
+    defaultMode:'full',
+    placeholder:'What SEO content do you need?\n\ne.g. Blog post "how to learn Python" targeting beginners, product page for a standing desk, meta tags for an e-commerce site',
+    stages: {
+      planning: {
+        name:'🔑 Keyword Research', icon:'🔑', badge:'KEYWORDS',
+        systemPrompt:'You are an SEO strategist. Identify search intent, keyword clusters, and content structure. Be specific.',
+        buildPrompt(p,prev,ctx){return`${ctx?'CONTEXT: '+ctx+'\n\n':''}SEO research for:\n"${p}"\n\n## Search Intent\n[Informational / Commercial / Transactional — why]\n\n## Primary Keyword\n[exact phrase to optimize for]\n\n## Secondary Keywords (LSI)\n- [keyword 2]\n- [keyword 3]\n- [keyword 4]\n- [keyword 5]\n\n## People Also Ask\n1. [question 1]\n2. [question 2]\n3. [question 3]\n\n## Content Gap\n[What do ranking articles miss that we can cover?]\n\n## Structure\nH1: [title]\nH2: [section 1]\nH2: [section 2]\nH2: [section 3]\nConclusion\n\nUnder 220 words.`;}
+      },
+      design: {
+        name:'📰 Content Outline', icon:'📰', badge:'OUTLINE',
+        systemPrompt:'You are a content strategist. Create a detailed SEO-optimized outline. Each section must have a clear purpose.',
+        buildPrompt(p,prev,ctx){return`${ctx?'CONTEXT: '+ctx+'\n\n':''}Content outline for:\n"${p}"\n\nKEYWORDS: ${(prev.planning||'').substring(0,400)}\n\n**H1:** [title with primary keyword]\n**Meta Description:** [155 chars, includes keyword + CTA]\n**URL Slug:** /[slug]\n\n**Intro:** [hook idea + what reader learns]\n\n**H2: [Section 1]**\n- [key point]\n- [stat/example to include]\n\n**H2: [Section 2]**\n...\n\n**FAQ:**\nQ: [question 1]\nQ: [question 2]\nQ: [question 3]\n\n**Conclusion:** [CTA idea]`;}
+      },
+      frontend: {
+        name:'📝 Article', icon:'📝', badge:'CONTENT',
+        systemPrompt:'You are a senior SEO content writer. Write engaging, naturally keyword-rich content that ranks and converts. No stuffing.',
+        buildPrompt(p,prev,ctx){return`${ctx?'CONTEXT: '+ctx+'\n\n':''}Write the full SEO content for:\n"${p}"\n\nOUTLINE: ${(prev.design||'').substring(0,500)}\nKEYWORDS: ${(prev.planning||'').substring(0,300)}\n\nWrite the full article:\n- H1, H2, H3 as outlined\n- Primary keyword in H1, first paragraph, 2-3 H2s\n- Short paragraphs (2-4 sentences)\n- Bullet lists where useful\n- FAQ section (3 questions)\n- Conclusion with CTA\n\nTarget: 800-1200 words. Natural language. No stuffing.`;}
+      },
+      backend: {
+        name:'🔗 Technical SEO', icon:'🔗', badge:'SCHEMA',
+        systemPrompt:'You are an SEO technical specialist. Write schema markup, meta tags, and on-page optimization notes. Output valid JSON-LD.',
+        buildPrompt(p,prev,ctx){return`${ctx?'CONTEXT: '+ctx+'\n\n':''}Technical SEO for:\n"${p}"\n\nCONTENT (excerpt): ${(prev.frontend||'').substring(0,400)}\n\n## Meta Tags\n\`\`\`html\n<title>...</title>\n<meta name="description" content="...">\n<meta property="og:title" content="...">\n\`\`\`\n\n## JSON-LD Schema\n\`\`\`json\n{\n  "@context": "https://schema.org",\n  ...\n}\n\`\`\`\n\n## On-Page Checklist\n- [ ] Primary keyword in first 100 words\n- [ ] Alt text for images\n- [ ] Internal link opportunities: [suggest 2]\n- [ ] Image compression needed: [Y/N]`;}
+      },
+      polish: {
+        name:'✅ SEO Audit', icon:'✅', badge:'AUDIT',
+        systemPrompt:'You are an SEO auditor. Check content against best practices and give a score with specific improvements.',
+        buildPrompt(p,prev,ctx){return`${ctx?'CONTEXT: '+ctx+'\n\n':''}SEO audit for:\n"${p}"\n\nCONTENT (excerpt): ${(prev.frontend||'').substring(0,500)}\n\n## SEO Score: [X/10]\n\n## ✅ Strengths\n- [what\'s done well]\n\n## ⚠️ Improvements\n1. [fix with example]\n2. [fix 2]\n3. [fix 3]\n\n## Readability\n[Easy / Medium / Hard — for what audience]\n\n## Time to Rank Estimate\n[New site vs. established site]\n\n## Quick Wins\n[2-3 tweaks to improve rankings immediately]`;}
+      }
+    }
+  }
+
+};
+
+// ── Bot helpers ──────────────────────────────────────────────────────────────
+function getActiveBot() {
+  return BOT_PRESETS[sessionStorage.getItem('pm_active_bot') || 'builder'] || BOT_PRESETS.builder;
+}
+
+function getBotStage(stageId) {
+  const bot = getActiveBot();
+  if (!bot.stages || !bot.stages[stageId]) return STAGES_CONFIG[stageId];
+  return { ...STAGES_CONFIG[stageId], ...bot.stages[stageId] };
+}
+
+function onBotSelect(botId) {
+  const bot = BOT_PRESETS[botId];
+  if (!bot) return;
+  sessionStorage.setItem('pm_active_bot', botId);
+
+  // Update chip highlights
+  document.querySelectorAll('.bot-chip').forEach(c => {
+    c.classList.toggle('active', c.dataset.bot === botId);
+  });
+
+  // Update textarea placeholder
+  const input = document.getElementById('main-input');
+  if (input && bot.placeholder) input.placeholder = bot.placeholder;
+
+  // Set default mode for this bot
+  if (bot.defaultMode) {
+    const modeEl = document.getElementById('mode-select');
+    if (modeEl) { modeEl.value = bot.defaultMode; updateCostEst(); }
+  }
+
+  // Update launch button label
+  const launch = document.getElementById('launch-btn');
+  const labels = {
+    builder:'Build it →', copywriter:'Write it →', pythondev:'Code it →',
+    gamedesigner:'Build game →', reviewer:'Review it →', emailpro:'Write email →',
+    dataanalyst:'Analyze it →', resumecoach:'Write it →', seowriter:'Write it →'
+  };
+  if (launch) launch.textContent = labels[botId] || 'Run it →';
+
+  toast(bot.icon + ' ' + bot.name + ' bot selected', 'ok');
+}
+
 // Provider display metadata
 const PROVIDER_META = {
   claude: { label: 'Claude Haiku', color: '#c47a2a', bg: 'rgba(196,122,42,0.12)' },
@@ -1502,8 +1815,10 @@ async function startRun() {
 
   const mode = document.getElementById('mode-select').value;
   const stageIds = MODES[mode] || MODES.full;
+  const activeBot = getActiveBot();
 
   initRunView(prompt, mode, stageIds);
+  addFeed('fi-system', 'BOT', `${activeBot.icon} ${activeBot.name} — ${activeBot.desc}`);
   if (mode === 'fusion') addFeed('fi-system', 'SYSTEM', '⚡ Fusion mode — competing models per stage. Add OpenAI & Gemini keys in Account for maximum competition.');
   consumeRun();
   const keys = getKeys();
@@ -1560,7 +1875,7 @@ function initRunView(prompt, mode, stageIds) {
   // Build stage cards
   const scroll = document.getElementById('stages-scroll');
   scroll.innerHTML = stageIds.map((id, i) => {
-    const s = STAGES_CONFIG[id];
+    const s = getBotStage(id);
     return `
       <div class="stage-row">
         <div class="stage-card" id="sc-${id}">
@@ -1609,7 +1924,7 @@ async function executePipeline(keys, prompt, stageIds, mode) {
   for (let i = 0; i < stageIds.length; i++) {
     if (runState.aborted) break;
     const stageId = stageIds[i];
-    const s = STAGES_CONFIG[stageId];
+    const s = getBotStage(stageId);
 
     setStageStatus(stageId, 'working');
     const _p=LLM_PROVIDERS[pid];const _modelLabel=_p?((_p.models[_p.defaultModel]?.label)||_p.defaultModel):s.model;
@@ -1864,7 +2179,7 @@ async function callAPIFusion(keys, stage, prompt) {
 //  RETRY STAGE
 // ══════════════════════════════════════════
 async function retryStage(stageId) {
-  const s = STAGES_CONFIG[stageId];
+  const s = getBotStage(stageId);
   if (!s) return;
   if (runState.running) { toast('Wait for current run to finish', 'bad'); return; }
   if (!runState.prompt) { toast('No active run to retry', 'bad'); return; }
@@ -2750,6 +3065,10 @@ document.addEventListener('DOMContentLoaded', () => {
   initDark();
   renderExamples();
   renderUserBadge();
+
+  // Restore previously selected bot (persists across page loads via sessionStorage)
+  const savedBot = sessionStorage.getItem('pm_active_bot') || 'builder';
+  onBotSelect(savedBot);
   updateCreditsDisplay();
   updateByokStatus();
   updateCostEstLive(); // populate cost estimate immediately
