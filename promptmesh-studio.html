@@ -988,6 +988,14 @@ window.onerror = function(msg, src, line, col) {
   d.textContent += 'ERROR: ' + msg + ' (line ' + line + ')\n';
   return false;
 };
+// Click diagnostic — shows what element was clicked
+document.addEventListener('click', function(e) {
+  var d = document.getElementById('_dbg');
+  if (!d) { d = document.createElement('div'); d.id = '_dbg';
+    d.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:#333;color:#fff;font:12px monospace;padding:8px 12px;z-index:99999;white-space:pre-wrap;max-height:120px;overflow:auto';
+    document.body.appendChild(d); }
+  d.textContent = 'CLICK: <' + e.target.tagName + '> id=' + (e.target.id||'none') + ' class=' + (e.target.className||'none') + ' onclick=' + (e.target.onclick ? 'yes' : 'no') + '\n';
+}, true);
 
 // ══════════════════════════════════════════
 //  LLM PROVIDERS — multi-provider support
