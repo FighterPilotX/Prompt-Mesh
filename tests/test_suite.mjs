@@ -15,10 +15,11 @@
  * 10. All product pages link back to hub
  */
 
-import { readFileSync } from 'fs';
+import { readFileSync, writeFileSync, unlinkSync } from 'fs';
 import { Script } from 'vm';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { spawnSync } from 'child_process';
 
 const __dir = dirname(fileURLToPath(import.meta.url));
 const ROOT  = resolve(__dir, '..');
@@ -66,11 +67,18 @@ for (const [key, html] of Object.entries(contents)) {
 
   let fileOk = true;
   for (let i = 0; i < blocks.length; i++) {
+    // Use `node --check` via a temp file — supports async/await properly
+    const tmp = resolve(ROOT, `.tmp_syntax_check_${key}_${i}.js`);
     try {
-      new Script(blocks[i], { filename: `${FILES[key]}#block${i}` });
-    } catch (e) {
-      ko(`${FILES[key]} block ${i}: ${e.message.split('\n')[0]}`);
-      fileOk = false;
+      writeFileSync(tmp, blocks[i]);
+      const result = spawnSync(process.execPath, ['--check', tmp], { encoding: 'utf8' });
+      if (result.status !== 0) {
+        const msg = (result.stderr || result.stdout || '').split('\n')[0];
+        ko(`${FILES[key]} block ${i}: ${msg}`);
+        fileOk = false;
+      }
+    } finally {
+      try { unlinkSync(tmp); } catch { /* ignore */ }
     }
   }
   if (fileOk) ok(`${FILES[key]} — ${blocks.length} script block(s) parse cleanly`);

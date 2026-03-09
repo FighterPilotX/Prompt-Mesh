@@ -684,6 +684,7 @@ function importBot(){
     const raw=JSON.parse(json.trim());
     // Strict validation — only allow known safe fields
     if(typeof raw.name !== 'string' || typeof raw.sys !== 'string') throw new Error('Missing required fields: name and sys');
+    if(!raw.name.trim()) throw new Error('Name cannot be empty');
     if(raw.name.length > 80) throw new Error('Name too long (max 80)');
     if(raw.sys.length > 8000) throw new Error('System prompt too long (max 8000 chars)');
     const b = {
@@ -724,8 +725,8 @@ function renderBots(){
       '<div class="bot-elo-badge">ELO '+b.elo+'</div>'+
       '<div class="bot-avatar" style="background:var(--purple-tint)">'+b.emoji+'</div>'+
       '<div class="bot-name">'+escHtml(b.name)+'</div>'+
-      '<div class="bot-model">'+b.model+'</div>'+
-      '<div class="bot-spec">'+(b.desc||b.tags||'No description')+'</div>'+
+      '<div class="bot-model">'+escHtml(b.model)+'</div>'+
+      '<div class="bot-spec">'+escHtml(b.desc||b.tags||'No description')+'</div>'+
       '<div class="bot-stats"><span><strong>'+b.wins+'</strong> W</span><span><strong>'+b.losses+'</strong> L</span><span><strong>'+wr+'%</strong> WR</span><span><strong>$'+(b.totalCost||0).toFixed(4)+'</strong></span></div>'+
       '<div class="bot-actions">'+
         '<button class="btn btn-purple btn-xs" onclick="enterArena(\''+b.id+'\')">⚡ Arena</button>'+
