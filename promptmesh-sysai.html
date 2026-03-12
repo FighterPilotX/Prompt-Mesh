@@ -1021,7 +1021,7 @@ function runQuickScan(){
 
 function tryLocalAgent(){
   fetch('http://localhost:7842/snapshot', {signal: AbortSignal.timeout(3000)})
-    .then(function(r){ return r.json(); })
+    .then(function(r){ if(!r.ok) throw new Error('Agent returned '+r.status); return r.json(); })
     .then(function(d){
       // Enrich scanData with real values
       if(d.cpu){
