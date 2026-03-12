@@ -455,7 +455,6 @@ Your responses should be [style]."></textarea>
               <input type="checkbox" id="best-of-3" style="accent-color:var(--purple)">
               Best of 3 battles
             </label>
-            <span class="bo3-pill" id="bo3-record" style="display:none"></span>
           </div>
 
           <button class="btn btn-purple btn-w" style="margin-top:4px;padding:10px" onclick="runArena()" id="arena-btn">
@@ -847,8 +846,12 @@ function updateMyElo(){
 }
 
 // ══════════ ARENA ══════════
+function getFilteredChallenges(){
+  return currentChallengeFilter==='all'?CHALLENGES:CHALLENGES.filter(c=>c.cat===currentChallengeFilter);
+}
+
 function renderChallengeList(){
-  const pool=currentChallengeFilter==='all'?CHALLENGES:CHALLENGES.filter(c=>c.cat===currentChallengeFilter);
+  const pool=getFilteredChallenges();
   const shown=pool.slice(0,6);
   document.getElementById('challenge-list').innerHTML=shown.map(c=>
     '<div class="challenge-card'+(arenaState.selectedChallenge===c.id?' selected':'')+'" onclick="selectChallenge(\''+c.id+'\')" id="ch-card-'+c.id+'">'+
@@ -869,7 +872,7 @@ function filterChallengeList(cat,btn){
 }
 
 function randomChallenge(){
-  const pool=currentChallengeFilter==='all'?CHALLENGES:CHALLENGES.filter(c=>c.cat===currentChallengeFilter);
+  const pool=getFilteredChallenges();
   const c=pool[Math.floor(Math.random()*pool.length)];
   if(!c) return;
   selectChallenge(c.id);
@@ -973,7 +976,8 @@ async function runArena(){
   document.getElementById('arena-btn').disabled=true;
   document.getElementById('arena-feed').innerHTML='';
   document.getElementById('arena-result').innerHTML='';
-  document.getElementById('bo3-status').style.display='none';
+  const bo3StatusEl=document.getElementById('bo3-status');
+  bo3StatusEl.style.display='none';
   setProgress(0);
 
   const addArenaFeed=(who,msg,cls='af-sys')=>{
@@ -1005,9 +1009,8 @@ async function runArena(){
 
       document.getElementById('arena-status').textContent='Round '+(round+1)+roundLabel+'…';
       if(isBo3){
-        const bo3El=document.getElementById('bo3-status');
-        bo3El.style.display='';
-        bo3El.textContent=botA.emoji+' '+winsA+' – '+winsB+' '+botB.emoji;
+        bo3StatusEl.style.display='';
+        bo3StatusEl.textContent=botA.emoji+' '+winsA+' – '+winsB+' '+botB.emoji;
       }
       setProgress(Math.round((round/maxRounds)*40));
 
