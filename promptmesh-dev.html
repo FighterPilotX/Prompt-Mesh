@@ -144,7 +144,10 @@ body.light .dark-btn::after{left:15px;background:#fff;}
 .rr-bot{font-weight:700;font-size:.78rem;margin-bottom:5px;}
 .rr-score{font-family:var(--mono);font-size:1.2rem;font-weight:700;color:var(--purple);line-height:1;}
 .rr-meta{font-size:.65rem;color:var(--ink4);margin-top:4px;font-family:var(--mono);}
-.rr-text{font-size:.7rem;color:var(--ink2);line-height:1.5;margin-top:8px;white-space:pre-wrap;max-height:120px;overflow-y:auto;}
+.rr-text{font-size:.7rem;color:var(--ink2);line-height:1.5;margin-top:8px;white-space:pre-wrap;max-height:110px;overflow-y:hidden;cursor:pointer;position:relative;user-select:text;}
+.rr-text::after{content:'▼ show more';display:block;text-align:center;font-family:var(--mono);font-size:.54rem;color:var(--purple);background:linear-gradient(transparent,var(--card2) 75%);padding-top:22px;pointer-events:none;}
+.rr-text.expanded{max-height:none;overflow-y:visible;}
+.rr-text.expanded::after{display:none;}
 .win-badge{display:inline-block;font-family:var(--mono);font-size:.6rem;font-weight:700;padding:2px 8px;border-radius:3px;background:var(--purple);color:#fff;margin-left:6px;}
 
 /* LEADERBOARD */
@@ -188,7 +191,37 @@ body.light .dark-btn::after{left:15px;background:#fff;}
   .builder-left{border-right:none;border-bottom:1px solid var(--rule);max-height:260px;}
   .arena-setup{border-right:none;border-bottom:1px solid var(--rule);max-height:300px;}
 }
+
+/* ── TABS ─────────────────────────────────────────── */
+.tab-bar{display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-bottom:10px;}
+.tab{font-family:var(--mono);font-size:.57rem;font-weight:700;padding:3px 9px;border-radius:4px;cursor:pointer;border:1px solid transparent;color:var(--ink4);background:transparent;transition:all .12s;white-space:nowrap;}
+.tab:hover{background:var(--rule);color:var(--ink);}
+.tab.active{background:var(--purple-tint);color:var(--purple);border-color:rgba(139,92,246,.25);}
+
+/* ── PROGRESS BAR ─────────────────────────────────── */
+.progress-wrap{height:3px;background:var(--rule2);overflow:hidden;flex-shrink:0;}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--purple),var(--amber));width:0%;transition:width .45s ease;}
+
+/* ── HEAD-TO-HEAD BANNER ──────────────────────────── */
+.h2h-banner{background:var(--card2);border:1px solid var(--rule2);border-radius:6px;padding:7px 12px;font-family:var(--mono);font-size:.62rem;color:var(--ink3);text-align:center;margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:8px;min-height:30px;transition:border-color .2s;}
+.h2h-banner.has-record{border-color:rgba(139,92,246,.3);color:var(--ink);}
+
+/* ── BATTLE HISTORY ───────────────────────────────── */
+.hist-card{background:var(--card);border:1px solid var(--rule2);border-radius:8px;padding:12px 14px;margin-bottom:8px;cursor:pointer;transition:border-color .12s;}
+.hist-card:hover{border-color:var(--purple);}
+.hist-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;}
+.hist-winner-badge{font-family:var(--mono);font-size:.6rem;font-weight:700;background:var(--purple-tint);color:var(--purple);padding:2px 8px;border-radius:3px;}
+.hist-ts{font-family:var(--mono);font-size:.57rem;color:var(--ink4);margin-left:auto;}
+.hist-detail{display:none;margin-top:8px;padding-top:8px;border-top:1px solid var(--rule);font-size:.68rem;color:var(--ink2);line-height:1.55;white-space:pre-wrap;}
+.hist-card.open .hist-detail{display:block;}
+
+/* ── BO3 INDICATOR ────────────────────────────────── */
+.bo3-pill{font-family:var(--mono);font-size:.6rem;font-weight:700;padding:2px 8px;border-radius:3px;background:var(--amber-tint);color:var(--amber);border:1px solid rgba(245,158,11,.2);}
+
+/* ── RESULT ACTIONS ───────────────────────────────── */
+.result-actions{display:flex;gap:7px;padding:10px 14px;border-top:1px solid var(--rule);flex-wrap:wrap;}
 </style>
+
 </head>
 <body>
 <div id="app">
@@ -213,6 +246,7 @@ body.light .dark-btn::after{left:15px;background:#fff;}
   <div class="sb-item" onclick="showPanel('arena')" data-panel="arena"><span class="sb-icon">⚡</span> Arena</div>
   <div class="sb-item" onclick="showPanel('leaderboard')" data-panel="leaderboard"><span class="sb-icon">↑</span> Leaderboard</div>
   <div class="sb-item" onclick="showPanel('challenges')" data-panel="challenges"><span class="sb-icon">⊞</span> Challenges</div>
+  <div class="sb-item" onclick="showPanel('history')" data-panel="history"><span class="sb-icon">◷</span> History</div>
 
   <div class="sb-label" style="margin-top:8px">My Bots</div>
   <div class="sb-bot-list" id="sb-bot-list"></div>
@@ -391,14 +425,36 @@ Your responses should be [style]."></textarea>
             </div>
           </div>
 
+          <!-- H2H Banner -->
+          <div class="h2h-banner" id="h2h-banner">Select two bots to see their head-to-head record</div>
+
           <!-- Challenge selection -->
-          <div style="font-family:var(--mono);font-size:.6rem;font-weight:700;color:var(--ink4);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;margin-top:14px">Select Challenge</div>
+          <div style="font-family:var(--mono);font-size:.6rem;font-weight:700;color:var(--ink4);letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;margin-top:14px">Select Challenge</div>
+
+          <!-- Category filter tabs -->
+          <div class="tab-bar">
+            <button class="tab active" onclick="filterChallengeList('all',this)">All</button>
+            <button class="tab" onclick="filterChallengeList('Code',this)">Code</button>
+            <button class="tab" onclick="filterChallengeList('Reasoning',this)">Reasoning</button>
+            <button class="tab" onclick="filterChallengeList('Writing',this)">Writing</button>
+            <button class="tab" onclick="filterChallengeList('Math',this)">Math</button>
+            <button class="tab" onclick="filterChallengeList('Creative',this)">Creative</button>
+            <button class="btn btn-ghost btn-xs" onclick="randomChallenge()" title="Pick a random challenge" style="margin-left:auto">🎲 Random</button>
+          </div>
           <div id="challenge-list"></div>
 
           <!-- Custom challenge -->
           <div class="field" style="margin-top:10px">
             <label>Or write a custom challenge prompt</label>
             <textarea class="textarea" id="custom-challenge" rows="3" placeholder="Give both bots the same task and judge which responds better…"></textarea>
+          </div>
+
+          <!-- Best-of-3 toggle -->
+          <div style="display:flex;align-items:center;gap:10px;margin-top:8px;margin-bottom:4px">
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.72rem;color:var(--ink3);user-select:none">
+              <input type="checkbox" id="best-of-3" style="accent-color:var(--purple)">
+              Best of 3 battles
+            </label>
           </div>
 
           <button class="btn btn-purple btn-w" style="margin-top:4px;padding:10px" onclick="runArena()" id="arena-btn">
@@ -415,10 +471,12 @@ Your responses should be [style]."></textarea>
       <div class="arena-results">
         <div style="padding:10px 16px;border-bottom:1px solid var(--rule);display:flex;align-items:center;gap:10px;background:var(--paper)">
           <span id="arena-status" style="font-family:var(--mono);font-size:.62rem;color:var(--ink4)">Ready</span>
+          <span id="bo3-status" style="font-family:var(--mono);font-size:.6rem;color:var(--amber);display:none"></span>
           <div style="flex:1"></div>
           <button class="btn btn-ghost btn-xs" onclick="clearArena()">Clear</button>
         </div>
-        <div id="arena-feed" class="arena-feed" style="max-height:200px;border-bottom:1px solid var(--rule)"></div>
+        <div class="progress-wrap"><div class="progress-fill" id="progress-fill"></div></div>
+        <div id="arena-feed" class="arena-feed" style="max-height:180px;border-bottom:1px solid var(--rule)"></div>
         <div id="arena-result" style="flex:1;overflow-y:auto"></div>
       </div>
     </div>
@@ -451,9 +509,28 @@ Your responses should be [style]."></textarea>
     <div class="view-header">
       <h2>Challenge Library</h2>
       <p>Browse all available challenges. Click any to run it in the Arena.</p>
+      <div class="vh-actions">
+        <input class="input" id="ch-search" placeholder="Search challenges…" oninput="renderChallengesFull()" style="max-width:220px">
+      </div>
     </div>
     <div class="bots-scroll">
       <div id="challenges-full-list"></div>
+    </div>
+  </div>
+
+  <!-- BATTLE HISTORY -->
+  <div class="view-panel" id="panel-history">
+    <div class="view-header">
+      <h2>Battle History</h2>
+      <p>Every arena battle — click a card to see the judge's full verdict.</p>
+      <div class="vh-actions">
+        <input class="input" id="hist-search" placeholder="Filter by bot or challenge…" oninput="renderHistory()" style="max-width:220px">
+        <button class="btn btn-ghost btn-sm" onclick="clearBattleHistory()">🗑 Clear All</button>
+        <button class="btn btn-ghost btn-sm" onclick="renderHistory()">↻</button>
+      </div>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:16px 22px" id="history-list">
+      <div style="padding:30px;color:var(--ink4);font-size:.78rem;text-align:center">No battles yet. Run some arena battles to see history here.</div>
     </div>
   </div>
 
@@ -575,6 +652,7 @@ function saveBattles(b){localStorage.setItem('dev_battles',JSON.stringify(b));}
 
 let arenaState={running:false,aborted:false,slotA:null,slotB:null,selectedChallenge:null};
 let editingBotId=null;
+let currentChallengeFilter='all';
 
 // ══════════ NAVIGATION ══════════
 function showPanel(id){
@@ -586,6 +664,7 @@ function showPanel(id){
   if(id==='leaderboard') renderLeaderboard();
   if(id==='challenges') renderChallengesFull();
   if(id==='arena') renderChallengeList();
+  if(id==='history') renderHistory();
 }
 
 // ══════════ BOT BUILDER ══════════
@@ -684,6 +763,7 @@ function importBot(){
     const raw=JSON.parse(json.trim());
     // Strict validation — only allow known safe fields
     if(typeof raw.name !== 'string' || typeof raw.sys !== 'string') throw new Error('Missing required fields: name and sys');
+    if(!raw.name.trim()) throw new Error('Name cannot be empty');
     if(raw.name.length > 80) throw new Error('Name too long (max 80)');
     if(raw.sys.length > 8000) throw new Error('System prompt too long (max 8000 chars)');
     const b = {
@@ -724,8 +804,8 @@ function renderBots(){
       '<div class="bot-elo-badge">ELO '+b.elo+'</div>'+
       '<div class="bot-avatar" style="background:var(--purple-tint)">'+b.emoji+'</div>'+
       '<div class="bot-name">'+escHtml(b.name)+'</div>'+
-      '<div class="bot-model">'+b.model+'</div>'+
-      '<div class="bot-spec">'+(b.desc||b.tags||'No description')+'</div>'+
+      '<div class="bot-model">'+escHtml(b.model)+'</div>'+
+      '<div class="bot-spec">'+escHtml(b.desc||b.tags||'No description')+'</div>'+
       '<div class="bot-stats"><span><strong>'+b.wins+'</strong> W</span><span><strong>'+b.losses+'</strong> L</span><span><strong>'+wr+'%</strong> WR</span><span><strong>$'+(b.totalCost||0).toFixed(4)+'</strong></span></div>'+
       '<div class="bot-actions">'+
         '<button class="btn btn-purple btn-xs" onclick="enterArena(\''+b.id+'\')">⚡ Arena</button>'+
@@ -756,6 +836,7 @@ function enterArena(botId){
     document.getElementById('slot-a').classList.add('filled');
   }
   showPanel('arena');
+  updateH2H();
 }
 
 function updateMyElo(){
@@ -765,28 +846,61 @@ function updateMyElo(){
 }
 
 // ══════════ ARENA ══════════
+function getFilteredChallenges(){
+  return currentChallengeFilter==='all'?CHALLENGES:CHALLENGES.filter(c=>c.cat===currentChallengeFilter);
+}
+
 function renderChallengeList(){
-  document.getElementById('challenge-list').innerHTML=CHALLENGES.slice(0,6).map(c=>
+  const pool=getFilteredChallenges();
+  const shown=pool.slice(0,6);
+  document.getElementById('challenge-list').innerHTML=shown.map(c=>
     '<div class="challenge-card'+(arenaState.selectedChallenge===c.id?' selected':'')+'" onclick="selectChallenge(\''+c.id+'\')" id="ch-card-'+c.id+'">'+
       '<div class="ch-category">'+c.cat+'</div>'+
       '<div class="ch-title">'+c.title+'</div>'+
       '<div class="ch-desc">'+c.desc+'</div>'+
       '<span class="ch-diff diff-'+c.diff+'">'+c.diff+'</span>'+
     '</div>'
-  ).join('')+'<button class="btn btn-ghost btn-sm btn-w" style="margin-top:6px" onclick="showPanel(\'challenges\')">See all '+CHALLENGES.length+' challenges →</button>';
+  ).join('')+
+  (pool.length>6?'<button class="btn btn-ghost btn-sm btn-w" style="margin-top:6px" onclick="showPanel(\'challenges\')">See all '+pool.length+(currentChallengeFilter!=='all'?' '+currentChallengeFilter:'')+' challenges →</button>':'');
+}
+
+function filterChallengeList(cat,btn){
+  currentChallengeFilter=cat;
+  document.querySelectorAll('.tab-bar .tab').forEach(t=>t.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  renderChallengeList();
+}
+
+function randomChallenge(){
+  const pool=getFilteredChallenges();
+  const c=pool[Math.floor(Math.random()*pool.length)];
+  if(!c) return;
+  selectChallenge(c.id);
+  // Scroll challenge into view
+  const el=document.getElementById('ch-card-'+c.id);
+  if(!el){renderChallengeList();setTimeout(()=>document.getElementById('ch-card-'+c.id)?.scrollIntoView({block:'nearest'}),50);}
+  else el.scrollIntoView({block:'nearest'});
+  toast('Challenge: '+c.title,'info');
 }
 
 function renderChallengesFull(){
-  const cats=[...new Set(CHALLENGES.map(c=>c.cat))];
+  const q=(document.getElementById('ch-search')?.value||'').toLowerCase().trim();
+  let pool=CHALLENGES;
+  if(q) pool=CHALLENGES.filter(c=>c.title.toLowerCase().includes(q)||c.desc.toLowerCase().includes(q)||c.cat.toLowerCase().includes(q));
+  if(!pool.length){
+    document.getElementById('challenges-full-list').innerHTML='<div style="padding:30px;text-align:center;color:var(--ink4)">No challenges match "'+escHtml(q)+'"</div>';
+    return;
+  }
+  const cats=[...new Set(pool.map(c=>c.cat))];
   document.getElementById('challenges-full-list').innerHTML=cats.map(cat=>{
-    const chs=CHALLENGES.filter(c=>c.cat===cat);
+    const chs=pool.filter(c=>c.cat===cat);
     return '<div style="margin-bottom:24px">'+
       '<div style="font-family:var(--mono);font-size:.62rem;font-weight:700;color:var(--ink4);letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px;padding:0 4px">'+cat+'</div>'+
       '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px">'+
-        chs.map(c=>'<div class="challenge-card" onclick="showPanel(\'arena\');setTimeout(()=>selectChallenge(\''+c.id+'\'),100)">'+
+        chs.map(c=>'<div class="challenge-card" onclick="filterChallengeList(\''+c.cat+'\',null);showPanel(\'arena\');setTimeout(()=>selectChallenge(\''+c.id+'\'),100)">'+
           '<div class="ch-category">'+c.cat+'</div>'+
-          '<div class="ch-title">'+c.title+'</div>'+
-          '<div class="ch-desc">'+c.desc+'</div>'+
+          '<div class="ch-title">'+escHtml(c.title)+'</div>'+
+          '<div class="ch-desc">'+escHtml(c.desc)+'</div>'+
           '<span class="ch-diff diff-'+c.diff+'">'+c.diff+'</span>'+
         '</div>').join('')+
       '</div></div>';
@@ -824,7 +938,11 @@ function pickBot(slot,botId){
   document.getElementById('slot-'+slot+'-name').textContent=bot.name;
   document.getElementById('slot-'+slot).classList.add('filled');
   closeModal('bot-picker-modal');
+  updateH2H();
 }
+
+// ── Progress bar helper ──
+function setProgress(pct){const el=document.getElementById('progress-fill');if(el)el.style.width=pct+'%';}
 
 async function runArena(){
   if(arenaState.running){return;}
@@ -833,36 +951,39 @@ async function runArena(){
   if(!botA||!botB){toast('Select two bots to compete','bad');return;}
   if(botA.id===botB.id){toast('Pick two different bots','bad');return;}
 
-  // Check that keys are available for both bots' providers
   const{p:pA}=getProviderForModel(botA.model);
   const{p:pB}=getProviderForModel(botB.model);
   const keyA=sessionStorage.getItem(pA.keyStorage);
   const keyB=sessionStorage.getItem(pB.keyStorage);
   if(!keyA){toast('No API key for '+pA.name+' (Bot A) — add it in sidebar','bad');return;}
   if(!keyB){toast('No API key for '+pB.name+' (Bot B) — add it in sidebar','bad');return;}
-  const key=keyA; // legacy compat var (used for judge)
+  const key=keyA;
 
   let taskPrompt=document.getElementById('custom-challenge').value.trim();
   let challengeTitle='Custom Challenge';
   let judgeHint='overall quality';
-
   if(!taskPrompt&&arenaState.selectedChallenge){
     const ch=CHALLENGES.find(c=>c.id===arenaState.selectedChallenge);
     if(ch){taskPrompt=ch.desc;challengeTitle=ch.title;judgeHint=ch.judge;}
   }
-
   if(!taskPrompt){toast('Select a challenge or write a custom prompt','bad');return;}
+
+  const isBo3=document.getElementById('best-of-3')?.checked;
+  const maxRounds=isBo3?3:1;
+  let winsA=0,winsB=0,draws=0;
 
   arenaState.running=true;
   document.getElementById('arena-btn').disabled=true;
-  document.getElementById('arena-status').textContent='Battle in progress…';
   document.getElementById('arena-feed').innerHTML='';
   document.getElementById('arena-result').innerHTML='';
+  const bo3StatusEl=document.getElementById('bo3-status');
+  bo3StatusEl.style.display='none';
+  setProgress(0);
 
   const addArenaFeed=(who,msg,cls='af-sys')=>{
     const el=document.getElementById('arena-feed');
     const d=new Date();
-    const ts=d.getHours().toString().padStart(2,'0')+':'+d.getSeconds().toString().padStart(2,'0');
+    const ts=d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0');
     const item=document.createElement('div');
     item.className='af-item';
     item.innerHTML='<span class="af-ts">'+ts+'</span><span class="af-who '+cls+'">'+escHtml(who)+'</span><span class="af-msg">'+escHtml(msg)+'</span>';
@@ -870,102 +991,145 @@ async function runArena(){
     el.scrollTop=el.scrollHeight;
   };
 
+  const allRoundResults=[];
+  let finalEloA=botA.elo,finalEloB=botB.elo;
+
   try{
-    addArenaFeed('ARENA','Challenge: "'+challengeTitle+'"');
-    addArenaFeed('ARENA','Task: '+taskPrompt.substring(0,80)+'…');
+    for(let round=0;round<maxRounds;round++){
+      // In Bo3, stop early once someone has 2 wins
+      if(isBo3&&(winsA>=2||winsB>=2)) break;
 
-    // Run both bots
-    addArenaFeed(botA.name,'Generating response…','af-a');
-    const t0=Date.now();
-    const [respA,respB]=await Promise.allSettled([
-      runBot(key,botA,taskPrompt),
-      runBot(key,botB,taskPrompt),
-    ]);
-    const msA=Date.now()-t0;
+      const roundLabel=isBo3?' (Round '+(round+1)+'/'+maxRounds+')':'';
+      if(round===0){
+        addArenaFeed('ARENA','Challenge: "'+challengeTitle+'"');
+        addArenaFeed('ARENA','Task: '+taskPrompt.substring(0,80)+'…');
+      } else {
+        addArenaFeed('ARENA','─── Round '+(round+1)+' ───');
+      }
 
-    if(respA.status==='rejected') throw new Error(botA.name+' failed: '+respA.reason?.message);
-    if(respB.status==='rejected') throw new Error(botB.name+' failed: '+respB.reason?.message);
+      document.getElementById('arena-status').textContent='Round '+(round+1)+roundLabel+'…';
+      if(isBo3){
+        bo3StatusEl.style.display='';
+        bo3StatusEl.textContent=botA.emoji+' '+winsA+' – '+winsB+' '+botB.emoji;
+      }
+      setProgress(Math.round((round/maxRounds)*40));
 
-    const rA=respA.value, rB=respB.value;
-    addArenaFeed(botA.name,'Response ready ('+rA.tokens+' tokens, $'+rA.cost.toFixed(5)+')','af-a');
-    addArenaFeed(botB.name,'Response ready ('+rB.tokens+' tokens, $'+rB.cost.toFixed(5)+')','af-b');
-    addArenaFeed('JUDGE','Evaluating responses…');
+      addArenaFeed(botA.name,'Generating response…','af-a');
+      addArenaFeed(botB.name,'Generating response…','af-b');
 
-    // Judge
-    const judgment=await judge(key,taskPrompt,rA.text,rB.text,judgeHint,botA.name,botB.name);
-    addArenaFeed('JUDGE','Verdict: '+judgment.winner+' wins (score: '+judgment.scoreA+' vs '+judgment.scoreB+')');
+      const[respA,respB]=await Promise.allSettled([
+        runBot(key,botA,taskPrompt),
+        runBot(key,botB,taskPrompt),
+      ]);
+      setProgress(Math.round(((round+0.5)/maxRounds)*80));
 
-    // Update ELO
-    const kFactor=32;
-    const eloA=botA.elo,eloB=botB.elo;
-    const expA=1/(1+Math.pow(10,(eloB-eloA)/400));
-    const expB=1-expA;
-    let newEloA=eloA,newEloB=eloB;
-    let result='';
+      if(respA.status==='rejected') throw new Error(botA.name+' failed: '+respA.reason?.message);
+      if(respB.status==='rejected') throw new Error(botB.name+' failed: '+respB.reason?.message);
 
-    if(judgment.winner===botA.name){
-      newEloA=Math.round(eloA+kFactor*(1-expA));
-      newEloB=Math.round(eloB+kFactor*(0-expB));
-      result='A';
-    } else if(judgment.winner===botB.name){
-      newEloA=Math.round(eloA+kFactor*(0-expA));
-      newEloB=Math.round(eloB+kFactor*(1-expB));
-      result='B';
-    } else {
-      newEloA=Math.round(eloA+kFactor*(.5-expA));
-      newEloB=Math.round(eloB+kFactor*(.5-expB));
-      result='D';
+      const rA=respA.value, rB=respB.value;
+      addArenaFeed(botA.name,'Done ('+rA.tokens+' tokens, $'+rA.cost.toFixed(5)+')','af-a');
+      addArenaFeed(botB.name,'Done ('+rB.tokens+' tokens, $'+rB.cost.toFixed(5)+')','af-b');
+      addArenaFeed('JUDGE','Evaluating…');
+
+      const judgment=await judge(key,taskPrompt,rA.text,rB.text,judgeHint,botA.name,botB.name);
+      setProgress(Math.round(((round+0.9)/maxRounds)*95));
+      addArenaFeed('JUDGE','Round '+(round+1)+' verdict: '+judgment.winner+' ('+judgment.scoreA+' vs '+judgment.scoreB+')');
+
+      // ELO for this round
+      const kFactor=isBo3?16:32;
+      const eloA=finalEloA,eloB=finalEloB;
+      const expA=1/(1+Math.pow(10,(eloB-eloA)/400));
+      const expB=1-expA;
+      let rndResult='D';
+      if(judgment.winner===botA.name){
+        finalEloA=Math.round(eloA+kFactor*(1-expA));
+        finalEloB=Math.round(eloB+kFactor*(0-expB));
+        rndResult='A'; winsA++;
+      } else if(judgment.winner===botB.name){
+        finalEloA=Math.round(eloA+kFactor*(0-expA));
+        finalEloB=Math.round(eloB+kFactor*(1-expB));
+        rndResult='B'; winsB++;
+      } else {
+        finalEloA=Math.round(eloA+kFactor*(.5-expA));
+        finalEloB=Math.round(eloB+kFactor*(.5-expB));
+        draws++;
+      }
+      allRoundResults.push({round:round+1,rA,rB,judgment,rndResult,eloA,eloB,newEloA:finalEloA,newEloB:finalEloB});
     }
 
-    // Save results
+    // Determine series winner
+    const seriesWinner=winsA>winsB?botA.name:winsB>winsA?botB.name:'Draw';
+    const isATie=seriesWinner==='Draw';
+    const seriesResult=winsA>winsB?'A':winsB>winsA?'B':'D';
+
+    // Persist stats using final ELO after all rounds
     const bots=getBots();
     const updateBot=(id,elo,isWin,isLoss,cost)=>{
       const i=bots.findIndex(b=>b.id===id);
       if(i>-1){bots[i].elo=elo;bots[i].battles++;if(isWin)bots[i].wins++;else if(isLoss)bots[i].losses++;else bots[i].draws++;bots[i].totalCost=(bots[i].totalCost||0)+cost;}
     };
-    updateBot(botA.id,newEloA,result==='A',result==='B',rA.cost);
-    updateBot(botB.id,newEloB,result==='B',result==='A',rB.cost);
+    const totalCostA=allRoundResults.reduce((s,r)=>s+r.rA.cost,0);
+    const totalCostB=allRoundResults.reduce((s,r)=>s+r.rB.cost,0);
+    const totalJudgeCost=allRoundResults.reduce((s,r)=>s+(r.judgment.cost||0),0);
+    updateBot(botA.id,finalEloA,seriesResult==='A',seriesResult==='B',totalCostA);
+    updateBot(botB.id,finalEloB,seriesResult==='B',seriesResult==='A',totalCostB);
     saveBots(bots);
 
-    const battle={id:'b_'+Date.now(),ts:Date.now(),challenge:challengeTitle,task:taskPrompt.substring(0,100),botA:botA.name,botB:botB.name,winner:judgment.winner,scoreA:judgment.scoreA,scoreB:judgment.scoreB,judgeNote:judgment.note,eloChangeA:newEloA-eloA,eloChangeB:newEloB-eloB,totalCost:rA.cost+rB.cost+(judgment.cost||0)};
-    const battles=getBattles();battles.unshift(battle);if(battles.length>100)battles.splice(100);saveBattles(battles);
+    const lastJ=allRoundResults[allRoundResults.length-1].judgment;
+    const totalCost=totalCostA+totalCostB+totalJudgeCost;
+    const battle={id:'b_'+Date.now(),ts:Date.now(),challenge:challengeTitle,task:taskPrompt.substring(0,100),botA:botA.name,botB:botB.name,winner:seriesWinner,scoreA:lastJ.scoreA,scoreB:lastJ.scoreB,judgeNote:lastJ.note,eloChangeA:finalEloA-botA.elo,eloChangeB:finalEloB-botB.elo,totalCost,rounds:allRoundResults.length,winsA,winsB,draws,textA:allRoundResults[allRoundResults.length-1].rA.text,textB:allRoundResults[allRoundResults.length-1].rB.text};
+    const battles=getBattles();battles.unshift(battle);if(battles.length>200)battles.splice(200);saveBattles(battles);
 
-    addArenaFeed('ARENA','ELO updated: '+botA.name+' '+(newEloA-eloA>=0?'+':'')+(newEloA-eloA)+' | '+botB.name+' '+(newEloB-eloB>=0?'+':'')+(newEloB-eloB));
+    addArenaFeed('ARENA','ELO: '+botA.name+' '+(finalEloA-botA.elo>=0?'+':'')+(finalEloA-botA.elo)+' | '+botB.name+' '+(finalEloB-botB.elo>=0?'+':'')+(finalEloB-botB.elo));
+    if(isBo3) addArenaFeed('ARENA','Series: '+botA.name+' '+winsA+' – '+winsB+' '+botB.name+(draws?' ('+draws+' draws)':''));
+    setProgress(100);
 
-    // Render result
-    const winnerName=judgment.winner;
-    const isATie=judgment.winner==='Tie'||judgment.winner==='Draw';
+    // Build result card — use last round's data for responses
+    const lastR=allRoundResults[allRoundResults.length-1];
+    const eloAOrig=botA.elo, eloBOrig=botB.elo;
+    const eloChangeA=finalEloA-eloAOrig, eloChangeB=finalEloB-eloBOrig;
+    const bo3Header=isBo3?'<div style="text-align:center;font-family:var(--mono);font-size:.7rem;margin-bottom:8px;color:var(--ink3)">Series: <strong>'+winsA+'</strong> – <strong>'+winsB+'</strong>'+(draws?' ('+draws+' draws)':'')+'</div>':'';
+
     document.getElementById('arena-result').innerHTML=
       '<div class="result-card">'+
         '<div class="rc-head">'+
           '<span style="font-size:1.2rem">⚡</span>'+
-          '<span class="rc-winner">'+(isATie?'TIE — Both Bots Draw':winnerName+' WINS')+'</span>'+
-          '<span style="margin-left:auto;font-family:var(--mono);font-size:.62rem;color:var(--ink4)">~$'+(rA.cost+rB.cost+(judgment.cost||0)).toFixed(5)+'</span>'+
+          '<span class="rc-winner">'+(isATie?(isBo3?'SERIES TIED':'TIE — Draw'):(seriesWinner+(isBo3?' WINS SERIES':' WINS')))+'</span>'+
+          '<span style="margin-left:auto;font-family:var(--mono);font-size:.62rem;color:var(--ink4)">~$'+totalCost.toFixed(5)+'</span>'+
         '</div>'+
+        bo3Header+
         '<div style="padding:10px 14px;font-size:.73rem;color:var(--ink2);border-bottom:1px solid var(--rule);line-height:1.5">'+
-          '<strong>Judge\'s note:</strong> '+escHtml(judgment.note||'See scores below.')+'</div>'+
+          '<strong>Judge\'s note:</strong> '+escHtml(lastJ.note||'See scores below.')+'</div>'+
         '<div class="rc-body">'+
           '<div class="rr-panel">'+
-            '<div class="rr-bot">'+botA.emoji+' '+escHtml(botA.name)+(result==='A'?'<span class="win-badge">WINNER</span>':result==='D'?'<span style="font-size:.62rem;margin-left:6px;color:var(--ink4)">DRAW</span>':'')+'</div>'+
-            '<div class="rr-score">'+judgment.scoreA+'<span style="font-size:.8rem;font-weight:400;color:var(--ink4)">/10</span></div>'+
-            '<div class="rr-meta">ELO: '+eloA+' → '+newEloA+' ('+(newEloA-eloA>=0?'+':'')+(newEloA-eloA)+')</div>'+
-            '<div class="rr-text">'+escHtml(rA.text)+'</div>'+
+            '<div class="rr-bot">'+botA.emoji+' '+escHtml(botA.name)+(seriesResult==='A'?'<span class="win-badge">WINNER</span>':seriesResult==='D'?'<span style="font-size:.62rem;margin-left:6px;color:var(--ink4)">DRAW</span>':'')+'</div>'+
+            '<div class="rr-score">'+lastR.judgment.scoreA+'<span style="font-size:.8rem;font-weight:400;color:var(--ink4)">/10</span></div>'+
+            '<div class="rr-meta">ELO: '+eloAOrig+' → '+finalEloA+' ('+(eloChangeA>=0?'+':'')+eloChangeA+')</div>'+
+            '<div class="rr-text" onclick="this.classList.toggle(\'expanded\')" title="Click to expand">'+escHtml(lastR.rA.text)+'</div>'+
           '</div>'+
           '<div class="rr-panel">'+
-            '<div class="rr-bot">'+botB.emoji+' '+escHtml(botB.name)+(result==='B'?'<span class="win-badge">WINNER</span>':result==='D'?'<span style="font-size:.62rem;margin-left:6px;color:var(--ink4)">DRAW</span>':'')+'</div>'+
-            '<div class="rr-score">'+judgment.scoreB+'<span style="font-size:.8rem;font-weight:400;color:var(--ink4)">/10</span></div>'+
-            '<div class="rr-meta">ELO: '+eloB+' → '+newEloB+' ('+(newEloB-eloB>=0?'+':'')+(newEloB-eloB)+')</div>'+
-            '<div class="rr-text">'+escHtml(rB.text)+'</div>'+
+            '<div class="rr-bot">'+botB.emoji+' '+escHtml(botB.name)+(seriesResult==='B'?'<span class="win-badge">WINNER</span>':seriesResult==='D'?'<span style="font-size:.62rem;margin-left:6px;color:var(--ink4)">DRAW</span>':'')+'</div>'+
+            '<div class="rr-score">'+lastR.judgment.scoreB+'<span style="font-size:.8rem;font-weight:400;color:var(--ink4)">/10</span></div>'+
+            '<div class="rr-meta">ELO: '+eloBOrig+' → '+finalEloB+' ('+(eloChangeB>=0?'+':'')+eloChangeB+')</div>'+
+            '<div class="rr-text" onclick="this.classList.toggle(\'expanded\')" title="Click to expand">'+escHtml(lastR.rB.text)+'</div>'+
           '</div>'+
+        '</div>'+
+        '<div class="result-actions">'+
+          '<button class="btn btn-purple btn-sm" onclick="runArena()">⚡ Rematch</button>'+
+          '<button class="btn btn-outline btn-sm" onclick="randomChallenge();runArena()">🎲 Random + Battle</button>'+
+          '<button class="btn btn-ghost btn-sm" onclick="showPanel(\'history\')">📋 View History</button>'+
         '</div>'+
       '</div>';
 
-    document.getElementById('arena-status').textContent='Battle complete';
+    document.getElementById('arena-status').textContent='Battle complete'+(isBo3?' ('+allRoundResults.length+' rounds)':'');
+    if(isBo3){const b=document.getElementById('bo3-status');b.textContent=botA.emoji+' '+winsA+' – '+winsB+' '+botB.emoji;}
     renderSbBots();
     updateMyElo();
-    toast('Battle complete! '+winnerName+(isATie?'':' wins'),'ok');
+    updateH2H();
+    toast((isATie?'Draw!':seriesWinner+' wins!')+(isBo3?' ('+winsA+'-'+winsB+')':''),'ok');
 
   }catch(e){
+    setProgress(0);
     document.getElementById('arena-status').textContent='Error: '+e.message.substring(0,50);
     addArenaFeed('ERROR',e.message,'af-sys');
     toast(e.message.substring(0,60),'bad');
@@ -985,32 +1149,37 @@ async function runBot(key,bot,task){
   return{text:result.text,tokens:result.tokens,cost};
 }
 async function judge(key,task,textA,textB,hint,nameA,nameB){
-  const prompt=`You are an objective judge evaluating two AI responses to the same task.
+  const prompt=`You are an impartial judge evaluating two AI responses to the same task.
 
-TASK: ${task.substring(0,400)}
+TASK: ${task.substring(0,500)}
 
-BOT A (${nameA}):
-${textA.substring(0,600)}
+=== BOT A (${nameA}) ===
+${textA.substring(0,800)}
 
-BOT B (${nameB}):
-${textB.substring(0,600)}
+=== BOT B (${nameB}) ===
+${textB.substring(0,800)}
 
-Judge based on: ${hint}. Score each /10. Declare a winner or "Draw" if very close.
+Evaluation criteria: ${hint}
 
-Respond in JSON only:
-{"winner":"${nameA}" or "${nameB}" or "Draw","scoreA":8,"scoreB":7,"note":"One sentence explaining the decision"}`;
+Score each response out of 10. Award the win to the clearly better response, or "Draw" if scores are within 1 point of each other.
 
-  // Use Anthropic (Haiku) as judge — get any available key
-  const judgeKey = sessionStorage.getItem(LLM_PROVIDERS.anthropic.keyStorage) || key;
-  if(!judgeKey) throw new Error('No Anthropic key for judge — add it in Settings');
+Respond with valid JSON only — no markdown, no preamble:
+{"winner":"${nameA}","scoreA":8,"scoreB":6,"note":"One concise sentence explaining the decision."}`;
+
+  const judgeKey=sessionStorage.getItem(LLM_PROVIDERS.anthropic.keyStorage)||key;
+  if(!judgeKey) throw new Error('No Anthropic key for judge — add it in sidebar');
   try{
-    const result = await LLM_PROVIDERS.anthropic.call(judgeKey,'claude-haiku-4-5-20251001','',prompt,150);
+    const result=await LLM_PROVIDERS.anthropic.call(judgeKey,'claude-haiku-4-5-20251001','',prompt,300);
     const cost=result.tokens*0.00025/1000;
     try{
       const j=JSON.parse(result.text.replace(/```json|```/g,'').trim());
+      // Normalise winner name — sometimes the model returns a partial match
+      if(j.winner&&j.winner!==nameA&&j.winner!==nameB&&j.winner!=='Draw'){
+        j.winner=j.winner.toLowerCase().includes(nameA.toLowerCase())?nameA:j.winner.toLowerCase().includes(nameB.toLowerCase())?nameB:'Draw';
+      }
       return{...j,cost};
     }catch{
-      return{winner:'Draw',scoreA:5,scoreB:5,note:'Could not parse judge response',cost};
+      return{winner:'Draw',scoreA:5,scoreB:5,note:'Judge response could not be parsed.',cost};
     }
   }catch(e){throw new Error('Judge error: '+e.message);}
 }
@@ -1074,6 +1243,104 @@ function clearArena(){
   document.getElementById('arena-feed').innerHTML='';
   document.getElementById('arena-result').innerHTML='';
   document.getElementById('arena-status').textContent='Ready';
+  document.getElementById('bo3-status').style.display='none';
+  setProgress(0);
+}
+
+// ══════════ HEAD-TO-HEAD ══════════
+function getH2HRecord(nameA,nameB){
+  const battles=getBattles();
+  const relevant=battles.filter(b=>(b.botA===nameA&&b.botB===nameB)||(b.botA===nameB&&b.botB===nameA));
+  let wA=0,wB=0,d=0;
+  relevant.forEach(b=>{
+    if(b.winner===nameA)wA++;
+    else if(b.winner===nameB)wB++;
+    else d++;
+  });
+  return{total:relevant.length,wA,wB,d};
+}
+
+function updateH2H(){
+  const banner=document.getElementById('h2h-banner');
+  if(!banner)return;
+  const a=arenaState.slotA,b=arenaState.slotB;
+  if(!a&&!b){banner.textContent='Select two bots to see their head-to-head record';banner.classList.remove('has-record');return;}
+  if(!a||!b){banner.textContent=(a||b).name+' selected — pick an opponent';banner.classList.remove('has-record');return;}
+  const rec=getH2HRecord(a.name,b.name);
+  if(rec.total===0){
+    banner.innerHTML=a.emoji+' <strong>'+escHtml(a.name)+'</strong> vs '+b.emoji+' <strong>'+escHtml(b.name)+'</strong> — first meeting';
+    banner.classList.remove('has-record');
+  } else {
+    banner.innerHTML=
+      a.emoji+' <strong>'+escHtml(a.name)+'</strong>'+
+      '<span style="margin:0 8px;color:var(--purple);font-weight:700">'+rec.wA+' – '+rec.wB+'</span>'+
+      '<strong>'+escHtml(b.name)+'</strong> '+b.emoji+
+      '<span style="margin-left:8px;color:var(--ink4)">('+rec.total+' battles'+(rec.d?' · '+rec.d+' draw':'')+')</span>';
+    banner.classList.add('has-record');
+  }
+}
+
+// ══════════ BATTLE HISTORY ══════════
+function renderHistory(){
+  const q=(document.getElementById('hist-search')?.value||'').toLowerCase().trim();
+  let battles=getBattles();
+  if(q) battles=battles.filter(b=>b.botA.toLowerCase().includes(q)||b.botB.toLowerCase().includes(q)||b.challenge.toLowerCase().includes(q)||b.winner.toLowerCase().includes(q));
+  const el=document.getElementById('history-list');
+  if(!battles.length){
+    el.innerHTML='<div style="padding:30px;color:var(--ink4);font-size:.78rem;text-align:center">'+(q?'No battles match "'+escHtml(q)+'"':'No battles yet. Run some arena battles first!')+'</div>';
+    return;
+  }
+  el.innerHTML=battles.map((b,i)=>{
+    const date=new Date(b.ts);
+    const dateStr=date.toLocaleDateString()+' '+date.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'});
+    const isDraw=b.winner==='Draw'||b.winner==='Tie';
+    const eloA=(b.eloChangeA>=0?'+':'')+b.eloChangeA;
+    const eloB=(b.eloChangeB>=0?'+':'')+b.eloChangeB;
+    const roundsStr=b.rounds>1?' · '+b.rounds+' rounds':'';
+    return '<div class="hist-card" onclick="this.classList.toggle(\'open\')" id="hist-'+i+'">'+
+      '<div class="hist-meta">'+
+        '<span style="font-size:.82rem;font-weight:700">'+escHtml(b.challenge)+'</span>'+
+        (isDraw?'<span class="hist-winner-badge" style="background:var(--card2);color:var(--ink3)">DRAW</span>':'<span class="hist-winner-badge">'+escHtml(b.winner)+'</span>')+
+        '<span class="hist-ts">'+dateStr+roundsStr+'</span>'+
+      '</div>'+
+      '<div style="font-size:.7rem;color:var(--ink3)">'+escHtml(b.botA)+' <span style="font-family:var(--mono);font-size:.65rem;color:'+(b.eloChangeA>=0?'var(--green)':'var(--red)')+'">'+eloA+'</span> vs '+escHtml(b.botB)+' <span style="font-family:var(--mono);font-size:.65rem;color:'+(b.eloChangeB>=0?'var(--green)':'var(--red)')+'">'+eloB+'</span></div>'+
+      '<div style="font-family:var(--mono);font-size:.6rem;color:var(--ink4);margin-top:3px">Score: '+b.scoreA+'/10 vs '+b.scoreB+'/10 · $'+b.totalCost.toFixed(5)+'</div>'+
+      '<div class="hist-detail">'+
+        '<div style="margin-bottom:6px"><strong>Task:</strong> '+escHtml(b.task)+'</div>'+
+        '<div style="margin-bottom:6px"><strong>Judge\'s note:</strong> '+escHtml(b.judgeNote||'—')+'</div>'+
+        (b.textA?'<div style="margin-bottom:4px;font-weight:700;font-size:.65rem">'+escHtml(b.botA)+':</div><div style="font-size:.68rem;color:var(--ink3);line-height:1.5;margin-bottom:8px">'+escHtml(b.textA.substring(0,400))+(b.textA.length>400?'…':'')+'</div>':'')+
+        (b.textB?'<div style="margin-bottom:4px;font-weight:700;font-size:.65rem">'+escHtml(b.botB)+':</div><div style="font-size:.68rem;color:var(--ink3);line-height:1.5">'+escHtml(b.textB.substring(0,400))+(b.textB.length>400?'…':'')+'</div>':'')+
+        '<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">'+
+          '<button class="btn btn-ghost btn-xs" onclick="event.stopPropagation();replayBattle(\''+b.botA+'\',\''+b.botB+'\')">⚡ Rematch</button>'+
+        '</div>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+
+function clearBattleHistory(){
+  if(!confirm('Clear all battle history? Bot ELO scores will NOT be reset.')) return;
+  saveBattles([]);
+  renderHistory();
+  toast('Battle history cleared');
+}
+
+function replayBattle(nameA,nameB){
+  const bots=getBots();
+  const botA=bots.find(b=>b.name===nameA);
+  const botB=bots.find(b=>b.name===nameB);
+  if(!botA||!botB){toast('One or both bots no longer exist','bad');return;}
+  arenaState.slotA=botA;
+  arenaState.slotB=botB;
+  document.getElementById('slot-a-emoji').textContent=botA.emoji;
+  document.getElementById('slot-a-name').textContent=botA.name;
+  document.getElementById('slot-a').classList.add('filled');
+  document.getElementById('slot-b-emoji').textContent=botB.emoji;
+  document.getElementById('slot-b-name').textContent=botB.name;
+  document.getElementById('slot-b').classList.add('filled');
+  showPanel('arena');
+  updateH2H();
+  toast('Bots loaded — pick a challenge and start!','info');
 }
 
 // ══════════ UTILS ══════════
@@ -1088,7 +1355,11 @@ function toggleDark(){document.body.classList.toggle('light');localStorage.setIt
 document.addEventListener('DOMContentLoaded',()=>{
   if(localStorage.getItem('pm_dark')==='0') document.body.classList.add('light');
   renderBots();renderSbBots();renderChallengeList();renderLeaderboard();updateMyElo();updateCostEst();
-  updateDevKeyStatus();
+  updateDevKeyStatus();updateH2H();
+  // Restore best-of-3 preference
+  const bo3=document.getElementById('best-of-3');
+  if(bo3) bo3.checked=localStorage.getItem('dev_bo3')==='1';
+  bo3?.addEventListener('change',()=>localStorage.setItem('dev_bo3',bo3.checked?'1':'0'));
   document.addEventListener('keydown',e=>{
     if(e.key==='Escape') document.querySelectorAll('.modal-bg').forEach(m=>m.style.display='none');
     if((e.ctrlKey||e.metaKey)&&e.key==='Enter') runArena();

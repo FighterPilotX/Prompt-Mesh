@@ -19,15 +19,19 @@ CORS(app, origins=["null", "file://", "http://localhost", "http://127.0.0.1"])
 # ── helpers ──────────────────────────────────────────────────────────────────
 
 def _run_ps(cmd):
-    """Run a PowerShell command and return stripped stdout."""
+    """Run a PowerShell command and return stripped stdout, or '' on failure."""
     try:
         result = subprocess.run(
             ["powershell", "-NoProfile", "-NonInteractive", "-Command", cmd],
             capture_output=True, text=True, timeout=10
         )
         return result.stdout.strip()
+    except subprocess.TimeoutExpired:
+        print(f"[agent] PowerShell timeout: {cmd[:80]}", file=sys.stderr)
+        return ""
     except Exception as e:
-        return str(e)
+        print(f"[agent] PowerShell error: {e}", file=sys.stderr)
+        return ""
 
 # ── routes ───────────────────────────────────────────────────────────────────
 

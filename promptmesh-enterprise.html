@@ -601,8 +601,10 @@ let lastTrace=null;
 function showPanel(id){
   document.querySelectorAll('.view-panel').forEach(v=>v.classList.remove('active'));
   document.querySelectorAll('.sb-item').forEach(s=>s.classList.remove('active'));
-  document.getElementById('panel-'+id).classList.add('active');
-  document.querySelector('[data-panel="'+id+'"]').classList.add('active');
+  const panel=document.getElementById('panel-'+id);
+  if(panel) panel.classList.add('active');
+  const sbItem=document.querySelector('[data-panel="'+id+'"]');
+  if(sbItem) sbItem.classList.add('active');
   if(id==='agents') renderAgents();
   if(id==='analytics') renderAnalytics();
   if(id==='rules') renderRules();
@@ -1214,7 +1216,7 @@ function toast(msg,type=''){
 }
 
 function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-function toggleDark(){document.body.classList.toggle('dark');localStorage.setItem('pm_dark',document.body.classList.contains('dark')?'1':'0');renderMap();}
+function toggleDark(){document.body.classList.toggle('dark');localStorage.setItem('pm_dark',document.body.classList.contains('dark')?'1':'0');if(document.getElementById('panel-map')?.classList.contains('active'))renderMap();}
 
 function updateRouteEstimate(){
   const task=document.getElementById('task-input').value;

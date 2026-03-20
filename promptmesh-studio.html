@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://api.anthropic.com https://api.openai.com https://generativelanguage.googleapis.com https://api.mistral.ai https://api.groq.com https://api.cohere.com; frame-src 'none';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://api.anthropic.com https://api.openai.com https://generativelanguage.googleapis.com https://api.mistral.ai https://api.groq.com https://api.cohere.com; frame-src 'none';">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PromptMesh Studio — AI Pipeline Builder</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -979,24 +979,6 @@ body.dark .dark-toggle .icon-moon { display:block; }
 <script>
 'use strict';
 
-// Temporary error display for debugging (no DevTools needed)
-window.onerror = function(msg, src, line, col) {
-  var d = document.getElementById('_dbg');
-  if (!d) { d = document.createElement('div'); d.id = '_dbg';
-    d.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:#c00;color:#fff;font:12px monospace;padding:8px 12px;z-index:99999;white-space:pre-wrap;max-height:120px;overflow:auto';
-    document.body.appendChild(d); }
-  d.textContent += 'ERROR: ' + msg + ' (line ' + line + ')\n';
-  return false;
-};
-// Click diagnostic — shows what element was clicked
-document.addEventListener('click', function(e) {
-  var d = document.getElementById('_dbg');
-  if (!d) { d = document.createElement('div'); d.id = '_dbg';
-    d.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:#333;color:#fff;font:12px monospace;padding:8px 12px;z-index:99999;white-space:pre-wrap;max-height:120px;overflow:auto';
-    document.body.appendChild(d); }
-  d.textContent = 'CLICK: <' + e.target.tagName + '> id=' + (e.target.id||'none') + ' class=' + (e.target.className||'none') + ' onclick=' + (e.target.onclick ? 'yes' : 'no') + '\n';
-}, true);
-
 // ══════════════════════════════════════════
 //  LLM PROVIDERS — multi-provider support
 // ══════════════════════════════════════════
@@ -1105,7 +1087,7 @@ const STAGES_CONFIG = {
   planning: {
     id: 'planning', name: 'Planning Council', icon: '🧠',
     color: '#4a5568', bg: 'rgba(74,85,104,0.1)',
-    model: 'claude-haiku-4-5-20251001', provider: 'claude', tokenBudget: 450,
+    model: 'claude-haiku-4-5-20251001', provider: 'anthropic', tokenBudget: 450,
     costPer1k: 0.00025, feedType: 'fi-plan',
     badge: 'PLAN', badgeColor: '#4a5568',
     systemPrompt: 'You are a senior software architect. Output only the requested specification format — no preamble, no commentary, no markdown outside the template. Every word must add value.',
@@ -1303,7 +1285,7 @@ const MODES = {
 
 // Provider display metadata
 const PROVIDER_META = {
-  claude: { label: 'Claude Haiku', color: '#c47a2a', bg: 'rgba(196,122,42,0.12)' },
+  anthropic: { label: 'Claude Haiku', color: '#c47a2a', bg: 'rgba(196,122,42,0.12)' },
   gemini: { label: 'Gemini Flash', color: '#7c5cbf', bg: 'rgba(124,92,191,0.12)' },
   openai: { label: 'GPT-4o-mini',  color: '#4a7c59', bg: 'rgba(74,124,89,0.12)' }
 };
@@ -1511,7 +1493,7 @@ function initRunView(prompt, mode, stageIds) {
             <div class="sc-icon-wrap" style="background:${s.bg}">${s.icon}</div>
             <div class="sc-info">
               <div class="sc-name">${s.name}</div>
-              <div class="sc-sub" id="scsub-${id}">${(() => { const pm = PROVIDER_META[s.provider] || PROVIDER_META.claude; return `<span style="font-size:.6rem;font-weight:700;padding:1px 6px;border-radius:3px;background:${pm.bg};color:${pm.color};margin-right:5px">${pm.label}</span>${s.tokenBudget} max tokens`; })()}</div>
+              <div class="sc-sub" id="scsub-${id}">${(() => { const pm = PROVIDER_META[s.provider] || PROVIDER_META.anthropic; return `<span style="font-size:.6rem;font-weight:700;padding:1px 6px;border-radius:3px;background:${pm.bg};color:${pm.color};margin-right:5px">${pm.label}</span>${s.tokenBudget} max tokens`; })()}</div>
             </div>
             <div class="sc-timing" id="sct-${id}"></div>
             <div class="sc-status-icon idle" id="sci-${id}">○</div>
@@ -1561,8 +1543,8 @@ async function executePipeline(keys, prompt, stageIds, mode) {
     const userPrompt = s.buildPrompt(prompt, runState.results, customSys);
 
     try {
-      // Fusion races models for non-claude stages; standard routing otherwise
-      let result = (isFusion && s.provider !== 'claude')
+      // Fusion uses callAPIFusion for all stages; standard routing otherwise
+      let result = (isFusion)
         ? await callAPIFusion(keys, s, userPrompt)
         : await callAPI(keys, s, userPrompt);
 
@@ -1633,7 +1615,7 @@ async function executePipeline(keys, prompt, stageIds, mode) {
 //  DEMO MODE (no API key or credits needed)
 // ══════════════════════════════════════════
 const DEMO_RESULTS = {
-  plan: `## Project Plan\n\n**Goal:** Build a fully interactive browser-based app with clean UX.\n\n### Phases\n1. **Architecture** — Define component structure, state model, and data flow\n2. **UI Design** — Layout, color palette, typography, spacing system\n3. **Core Logic** — Business logic, interactivity, event handling\n4. **Polish** — Animations, responsiveness, edge-case handling\n5. **Delivery** — Self-contained HTML/CSS/JS, no dependencies\n\n### Constraints\n- Single file output (HTML + embedded CSS/JS)\n- Works in any modern browser offline\n- Accessible and mobile-friendly`,
+  planning: `## Project Plan\n\n**Goal:** Build a fully interactive browser-based app with clean UX.\n\n### Phases\n1. **Architecture** — Define component structure, state model, and data flow\n2. **UI Design** — Layout, color palette, typography, spacing system\n3. **Core Logic** — Business logic, interactivity, event handling\n4. **Polish** — Animations, responsiveness, edge-case handling\n5. **Delivery** — Self-contained HTML/CSS/JS, no dependencies\n\n### Constraints\n- Single file output (HTML + embedded CSS/JS)\n- Works in any modern browser offline\n- Accessible and mobile-friendly`,
 
   design: `## Design System\n\n**Color Palette**\n- Primary: \`#e85d3a\` (coral) for CTAs and accents\n- Background: \`#f7f4ee\` (warm cream)\n- Surface: \`#ffffff\`\n- Text: \`#1c1917\` / \`#78716c\` (secondary)\n\n**Typography**\n- Headings: Georgia or serif stack, weights 700–900\n- Body: system-ui / sans-serif stack, 16px base\n- Code: monospace stack, 13px\n\n**Spacing** — 4px base unit, 8/12/16/24/32/48px scale\n\n**Components**\n- Cards with 1px border, 10px radius, subtle shadow\n- Buttons: filled primary, outlined secondary, ghost tertiary\n- Inputs: 1.5px border, coral focus ring\n- Transitions: 150ms ease for hover states`,
 
@@ -1720,56 +1702,6 @@ function getKeys() {
   };
 }
 
-  const MAX_NET_RETRIES = 3;
-  let resp;
-  for (let attempt = 0; attempt < MAX_NET_RETRIES; attempt++) {
-    if (runState.aborted) throw new Error('ABORTED');
-    if (attempt > 0) await sleep(attempt * 1500); // 1.5s, 3s backoff
-    try {
-      resp = await fetch('/.netlify/functions/ai-proxy', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01'
-        },
-        body: JSON.stringify({
-          model: stage.model,
-          max_tokens: stage.tokenBudget,
-          system: stage.systemPrompt || `You are the ${stage.name} stage of PromptMesh. Produce the best possible output. Be concise, specific, and output exactly what's requested with no preamble.`,
-          messages: [{ role: 'user', content: prompt }]
-        })
-      });
-      break; // success — exit retry loop
-    } catch (networkErr) {
-      if (attempt === MAX_NET_RETRIES - 1) {
-        throw new Error(`Network error — check your internet connection. (${networkErr.message})`);
-      }
-      addFeed('fi-system', stage.name.toUpperCase(), `Network hiccup — retrying (${attempt + 1}/${MAX_NET_RETRIES - 1})…`);
-    }
-  }
-
-  if (!resp.ok) {
-    let msg = `Anthropic HTTP ${resp.status}`;
-    try {
-      const d = await resp.json();
-      const det = d?.error?.message || '';
-      if (resp.status === 401) msg = 'Invalid Anthropic API key — check it starts with sk-ant-';
-      else if (resp.status === 429) msg = 'Anthropic rate limited — wait and retry';
-      else if (det) msg = `Anthropic error: ${det.substring(0, 120)}`;
-    } catch (_) {}
-    throw new Error(msg);
-  }
-  const data = await resp.json().catch(() => { throw new Error('Could not parse Anthropic response'); });
-  const text = data.content?.[0]?.text || '';
-  const inputTokens = data.usage?.input_tokens || 0;
-  const outputTokens = data.usage?.output_tokens || 0;
-  const tokens = inputTokens + outputTokens;
-  const stopReason = data.stop_reason || '';
-  if (!text) throw new Error('Empty response from API — model returned no content');
-  // Return truncation flag so pipeline can retry with more tokens
-  return { text, tokens, inputTokens, outputTokens, truncated: stopReason === 'max_tokens' };
-}
 
 // ══════════════════════════════════════════
 //  API CALL — multi-provider
