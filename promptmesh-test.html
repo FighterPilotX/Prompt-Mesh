@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://api.anthropic.com http://localhost:7842; frame-src 'none';">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PromptMesh — Test Suite</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --cream:#f7f4ee;--paper:#faf8f4;--ink:#1c1917;--ink2:#44403c;--ink3:#78716c;--ink4:#a8a29e;
+  --rule:#e7e2d8;--rule2:#d6cfc4;--coral:#c8442a;--coral2:#b03b23;
+  --sage:#4a7c59;--amber:#c47a2a;--purple:#7c3aed;--blue:#1a6ef0;--surface:#fff;
+  --pass:#4a7c59;--pass-bg:rgba(74,124,89,.1);
+  --fail:#c8442a;--fail-bg:rgba(200,68,42,.1);
+  --warn:#c47a2a;--warn-bg:rgba(196,122,42,.1);
+  --idle:#a8a29e;--idle-bg:rgba(168,162,158,.08);
+  --body:'DM Sans',system-ui,sans-serif;--display:'Playfair Display',Georgia,serif;--mono:'DM Mono',monospace;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{font-family:var(--body);background:var(--cream);color:var(--ink);font-size:14px;line-height:1.5;min-height:100vh;overflow-x:hidden;}
+body.dark{--cream:#111010;--paper:#161514;--ink:#f0ece4;--ink2:#c8c4bc;--ink3:#8a8480;--ink4:#5a5652;--rule:#252220;--rule2:#302d2a;--surface:#1a1917;}
+
+nav{position:fixed;top:0;left:0;right:0;height:58px;display:flex;align-items:center;padding:0 28px;background:rgba(247,244,238,.95);backdrop-filter:blur(16px);border-bottom:1px solid var(--rule);z-index:100;}
+body.dark nav{background:rgba(17,16,16,.95);}
+.logo{font-family:var(--display);font-size:1.25rem;font-weight:900;color:var(--ink);display:flex;align-items:center;gap:8px;text-decoration:none;}
+.logo-box{width:28px;height:28px;background:var(--coral);border-radius:6px;display:grid;grid-template-columns:1fr 1fr;gap:2px;padding:5px;flex-shrink:0;}
+.logo-box span{background:#fff;border-radius:1px;opacity:.85;}
+.logo-box span:nth-child(2){opacity:.45;}
+.logo-box span:nth-child(3){opacity:.45;}
+.nav-r{margin-left:auto;display:flex;align-items:center;gap:8px;}
+.btn{display:inline-flex;align-items:center;gap:6px;font-family:var(--body);font-size:.8rem;font-weight:600;padding:8px 16px;border-radius:6px;cursor:pointer;transition:all .15s;border:none;background:transparent;text-decoration:none;white-space:nowrap;}
+.btn-ghost{color:var(--ink3);border:1px solid transparent;}
+.btn-ghost:hover{background:var(--rule);color:var(--ink);}
+.btn-outline{color:var(--ink);border:1.5px solid var(--rule2);}
+.btn-outline:hover{border-color:var(--ink);}
+.dark-btn{width:30px;height:17px;background:var(--rule2);border-radius:9px;border:none;cursor:pointer;position:relative;transition:background .2s;}
+.dark-btn::after{content:'';position:absolute;top:2.5px;left:2.5px;width:12px;height:12px;background:var(--ink4);border-radius:50%;transition:all .2s;}
+body.dark .dark-btn{background:var(--coral);}
+body.dark .dark-btn::after{left:15.5px;background:#fff;}
+
+.page{max-width:860px;margin:0 auto;padding:78px 24px 60px;}
+
+.page-header{margin-bottom:36px;}
+.eyebrow{font-family:var(--mono);font-size:.65rem;font-weight:500;letter-spacing:.22em;text-transform:uppercase;color:var(--coral);margin-bottom:14px;display:flex;align-items:center;gap:10px;}
+.eyebrow::before,.eyebrow::after{content:'';display:block;width:36px;height:1px;background:var(--coral);opacity:.4;}
+h1{font-family:var(--display);font-size:clamp(2rem,4.5vw,3rem);font-weight:900;line-height:1.05;letter-spacing:-.02em;margin-bottom:10px;}
+h1 em{font-style:italic;color:var(--coral);}
+.page-sub{font-size:.9rem;color:var(--ink3);line-height:1.6;}
+
+/* Summary bar */
+.summary{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:36px;}
+.sum-pill{font-family:var(--mono);font-size:.7rem;font-weight:600;padding:6px 14px;border-radius:20px;display:flex;align-items:center;gap:6px;}
+.sum-pass{background:var(--pass-bg);color:var(--pass);}
+.sum-fail{background:var(--fail-bg);color:var(--fail);}
+.sum-warn{background:var(--warn-bg);color:var(--warn);}
+.sum-idle{background:var(--idle-bg);color:var(--idle);}
+
+/* API key input */
+.key-panel{background:var(--surface);border:1.5px solid var(--rule2);border-radius:14px;padding:22px 24px;margin-bottom:28px;display:flex;flex-direction:column;gap:12px;}
+.key-label{font-size:.78rem;font-weight:600;color:var(--ink2);}
+.key-row{display:flex;gap:8px;}
+.key-input{flex:1;font-family:var(--mono);font-size:.8rem;padding:9px 12px;border:1.5px solid var(--rule2);border-radius:7px;background:var(--cream);color:var(--ink);outline:none;transition:border-color .15s;}
+body.dark .key-input{background:var(--paper);}
+.key-input:focus{border-color:var(--coral);}
+.key-run{background:var(--coral);color:#fff;font-family:var(--body);font-size:.82rem;font-weight:700;padding:9px 18px;border:none;border-radius:7px;cursor:pointer;white-space:nowrap;transition:background .15s;}
+.key-run:hover{background:var(--coral2);}
+.key-run:disabled{opacity:.5;cursor:not-allowed;}
+.key-hint{font-size:.72rem;color:var(--ink4);font-family:var(--mono);}
+
+/* Test sections */
+.section{margin-bottom:28px;}
+.section-title{font-weight:700;font-size:.8rem;letter-spacing:.06em;text-transform:uppercase;font-family:var(--mono);color:var(--ink4);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--rule);}
+
+.test-card{background:var(--surface);border:1.5px solid var(--rule2);border-radius:10px;padding:16px 18px;margin-bottom:8px;display:flex;align-items:flex-start;gap:14px;transition:border-color .2s;}
+.test-card.pass{border-color:var(--pass);}
+.test-card.fail{border-color:var(--fail);}
+.test-card.warn{border-color:var(--warn);}
+.test-card.running{border-color:var(--blue);animation:pulse 1s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.7}}
+
+.test-status{width:22px;height:22px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:800;margin-top:1px;}
+.test-status.idle{background:var(--idle-bg);color:var(--idle);}
+.test-status.pass{background:var(--pass-bg);color:var(--pass);}
+.test-status.fail{background:var(--fail-bg);color:var(--fail);}
+.test-status.warn{background:var(--warn-bg);color:var(--warn);}
+.test-status.running{background:rgba(26,110,240,.1);color:var(--blue);}
+
+.test-body{flex:1;min-width:0;}
+.test-name{font-weight:600;font-size:.88rem;margin-bottom:2px;}
+.test-desc{font-size:.76rem;color:var(--ink3);margin-bottom:0;}
+.test-detail{font-family:var(--mono);font-size:.72rem;margin-top:8px;padding:8px 10px;border-radius:6px;background:var(--cream);color:var(--ink2);white-space:pre-wrap;word-break:break-all;max-height:120px;overflow-y:auto;display:none;}
+body.dark .test-detail{background:var(--paper);}
+.test-card.pass .test-detail,.test-card.fail .test-detail,.test-card.warn .test-detail{display:block;}
+.test-action{flex-shrink:0;font-family:var(--body);font-size:.74rem;font-weight:600;padding:6px 12px;border-radius:6px;border:1.5px solid var(--rule2);background:transparent;color:var(--ink3);cursor:pointer;transition:all .15s;}
+.test-action:hover{border-color:var(--ink);color:var(--ink);}
+
+/* Page nav links */
+.page-links{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-top:4px;}
+.page-link-btn{background:var(--surface);border:1.5px solid var(--rule2);border-radius:10px;padding:14px 16px;cursor:pointer;text-align:left;transition:all .15s;font-family:var(--body);}
+.page-link-btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.08);}
+.page-link-btn.studio:hover{border-color:var(--coral);}
+.page-link-btn.enterprise:hover{border-color:var(--sage);}
+.page-link-btn.dev:hover{border-color:var(--purple);}
+.page-link-btn.sysai:hover{border-color:var(--blue);}
+.pl-badge{font-family:var(--mono);font-size:.58rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:2px 7px;border-radius:3px;display:inline-block;margin-bottom:6px;}
+.pl-badge.studio{background:rgba(200,68,42,.1);color:var(--coral);}
+.pl-badge.enterprise{background:rgba(74,124,89,.1);color:var(--sage);}
+.pl-badge.dev{background:rgba(124,58,237,.1);color:var(--purple);}
+.pl-badge.sysai{background:rgba(26,110,240,.1);color:var(--blue);}
+.pl-name{font-weight:700;font-size:.84rem;margin-bottom:2px;}
+.pl-file{font-family:var(--mono);font-size:.65rem;color:var(--ink4);}
+
+/* Dark mode test visual */
+.dm-demo{display:flex;gap:10px;margin-top:8px;}
+.dm-swatch{width:40px;height:22px;border-radius:11px;border:1.5px solid var(--rule2);}
+.dm-swatch.current{border-color:var(--coral);}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+.page{animation:fadeUp .5s ease both;}
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="logo" href="promptmesh-hub.html">
+    <div class="logo-box"><span></span><span></span><span></span><span></span></div>
+    PromptMesh
+  </a>
+  <div class="nav-r">
+    <a class="btn btn-ghost" href="promptmesh-hub.html">← Hub</a>
+    <button class="dark-btn" onclick="toggleDark()" title="Toggle dark mode"></button>
+  </div>
+</nav>
+
+<div class="page">
+  <div class="page-header">
+    <div class="eyebrow">Diagnostics</div>
+    <h1>Platform <em>Test Suite</em></h1>
+    <p class="page-sub">Verify that every part of PromptMesh is working correctly — API keys, dark mode, storage, the local agent, and live API calls.</p>
+  </div>
+
+  <!-- Summary -->
+  <div class="summary" id="summary">
+    <div class="sum-pill sum-idle" id="sum-total">⬤ 0 / 0 run</div>
+    <div class="sum-pill sum-pass" id="sum-pass" style="display:none">✓ 0 passed</div>
+    <div class="sum-pill sum-fail" id="sum-fail" style="display:none">✗ 0 failed</div>
+    <div class="sum-pill sum-warn" id="sum-warn" style="display:none">⚠ 0 warned</div>
+  </div>
+
+  <!-- API Key -->
+  <div class="key-panel">
+    <div class="key-label">Anthropic API Key (required for API tests)</div>
+    <div class="key-row">
+      <input class="key-input" type="password" id="keyInput" placeholder="sk-ant-…" autocomplete="off">
+      <button class="key-run" id="runBtn" onclick="runAll()">Run All Tests</button>
+    </div>
+    <div class="key-hint">Stored in sessionStorage only · never sent anywhere except api.anthropic.com</div>
+  </div>
+
+  <!-- Section: Environment -->
+  <div class="section">
+    <div class="section-title">Environment</div>
+
+    <div class="test-card idle" id="tc-browser">
+      <div class="test-status idle" id="ts-browser">—</div>
+      <div class="test-body">
+        <div class="test-name">Browser APIs Available</div>
+        <div class="test-desc">Checks localStorage, sessionStorage, fetch, and crypto are available.</div>
+        <div class="test-detail" id="td-browser"></div>
+      </div>
+    </div>
+
+    <div class="test-card idle" id="tc-storage">
+      <div class="test-status idle" id="ts-storage">—</div>
+      <div class="test-body">
+        <div class="test-name">API Key Storage Round-trip</div>
+        <div class="test-desc">Writes the API key to sessionStorage, reads it back, verifies they match.</div>
+        <div class="test-detail" id="td-storage"></div>
+      </div>
+    </div>
+
+    <div class="test-card idle" id="tc-darkmode">
+      <div class="test-status idle" id="ts-darkmode">—</div>
+      <div class="test-body">
+        <div class="test-name">Dark Mode Persistence</div>
+        <div class="test-desc">Verifies pm_dark is stored in localStorage and body.dark class is applied correctly.</div>
+        <div class="test-detail" id="td-darkmode"></div>
+        <div class="dm-demo">
+          <div id="dm-light" class="dm-swatch" style="background:#f7f4ee;" title="Light"></div>
+          <div id="dm-dark" class="dm-swatch" style="background:#111010;" title="Dark"></div>
+        </div>
+      </div>
+      <button class="test-action" onclick="testDarkMode()">Test</button>
+    </div>
+  </div>
+
+  <!-- Section: API -->
+  <div class="section">
+    <div class="section-title">Anthropic API</div>
+
+    <div class="test-card idle" id="tc-apikey">
+      <div class="test-status idle" id="ts-apikey">—</div>
+      <div class="test-body">
+        <div class="test-name">API Key Format</div>
+        <div class="test-desc">Validates that the provided key has the expected sk-ant- prefix and length.</div>
+        <div class="test-detail" id="td-apikey"></div>
+      </div>
+    </div>
+
+    <div class="test-card idle" id="tc-apicall">
+      <div class="test-status idle" id="ts-apicall">—</div>
+      <div class="test-body">
+        <div class="test-name">Live API Call (claude-haiku-4-5-20251001)</div>
+        <div class="test-desc">Sends "Reply with only the word PONG" and checks the response contains PONG.</div>
+        <div class="test-detail" id="td-apicall"></div>
+      </div>
+    </div>
+
+    <div class="test-card idle" id="tc-cors">
+      <div class="test-status idle" id="ts-cors">—</div>
+      <div class="test-body">
+        <div class="test-name">CORS Header Present</div>
+        <div class="test-desc">Verifies the required anthropic-dangerous-request-when-unauthenticated header was sent without errors.</div>
+        <div class="test-detail" id="td-cors"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section: Local Agent -->
+  <div class="section">
+    <div class="section-title">Local Agent (localhost:7842)</div>
+
+    <div class="test-card idle" id="tc-agent">
+      <div class="test-status idle" id="ts-agent">—</div>
+      <div class="test-body">
+        <div class="test-name">Agent Reachability</div>
+        <div class="test-desc">Pings http://localhost:7842/ping with a 3-second timeout. Offline is a warning, not a failure.</div>
+        <div class="test-detail" id="td-agent"></div>
+      </div>
+    </div>
+
+    <div class="test-card idle" id="tc-snapshot">
+      <div class="test-status idle" id="ts-snapshot">—</div>
+      <div class="test-body">
+        <div class="test-name">Agent /snapshot Endpoint</div>
+        <div class="test-desc">Calls /snapshot and checks that cpu, memory, and disk keys are present in the response.</div>
+        <div class="test-detail" id="td-snapshot"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section: Navigation -->
+  <div class="section">
+    <div class="section-title">Page Navigation</div>
+    <div class="page-links">
+      <button class="page-link-btn studio" onclick="go('studio')">
+        <div class="pl-badge studio">Studio</div>
+        <div class="pl-name">PromptMesh Studio</div>
+        <div class="pl-file">promptmesh-studio.html</div>
+      </button>
+      <button class="page-link-btn enterprise" onclick="go('enterprise')">
+        <div class="pl-badge enterprise">Enterprise</div>
+        <div class="pl-name">PromptMesh Enterprise</div>
+        <div class="pl-file">promptmesh-enterprise.html</div>
+      </button>
+      <button class="page-link-btn dev" onclick="go('dev')">
+        <div class="pl-badge dev">Dev</div>
+        <div class="pl-name">PromptMesh Dev</div>
+        <div class="pl-file">promptmesh-dev.html</div>
+      </button>
+      <button class="page-link-btn sysai" onclick="go('sysai')">
+        <div class="pl-badge sysai">SysAI</div>
+        <div class="pl-name">PromptMesh SysAI</div>
+        <div class="pl-file">promptmesh-sysai.html</div>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+var FILES = {
+  studio: 'promptmesh-studio.html',
+  enterprise: 'promptmesh-enterprise.html',
+  dev: 'promptmesh-dev.html',
+  sysai: 'promptmesh-sysai.html'
+};
+
+function go(product) {
+  var filename = FILES[product];
+  if (!filename) return;
+  var here = window.location.href;
+  var base = here.substring(0, here.lastIndexOf('/') + 1);
+  window.location.href = base + filename;
+}
+
+function toggleDark() {
+  document.body.classList.toggle('dark');
+  localStorage.setItem('pm_dark', document.body.classList.contains('dark') ? '1' : '0');
+  updateDarkSwatches();
+}
+if (localStorage.getItem('pm_dark') === '1') document.body.classList.add('dark');
+
+function updateDarkSwatches() {
+  var isDark = document.body.classList.contains('dark');
+  document.getElementById('dm-light').classList.toggle('current', !isDark);
+  document.getElementById('dm-dark').classList.toggle('current', isDark);
+}
+updateDarkSwatches();
+
+// Pre-fill key from sessionStorage
+var savedKey = sessionStorage.getItem('pm_key');
+if (savedKey) document.getElementById('keyInput').value = savedKey;
+
+// --- Test state ---
+var results = {};
+
+function setTest(id, state, detail) {
+  var card = document.getElementById('tc-' + id);
+  var badge = document.getElementById('ts-' + id);
+  var detailEl = document.getElementById('td-' + id);
+
+  card.className = 'test-card ' + state;
+  badge.className = 'test-status ' + state;
+
+  var icons = {idle:'—', pass:'✓', fail:'✗', warn:'⚠', running:'…'};
+  badge.textContent = icons[state] || '—';
+
+  if (detail !== undefined) detailEl.textContent = detail;
+
+  results[id] = state;
+  updateSummary();
+}
+
+function updateSummary() {
+  var vals = Object.values(results);
+  var total = vals.length;
+  var pass = vals.filter(v => v === 'pass').length;
+  var fail = vals.filter(v => v === 'fail').length;
+  var warn = vals.filter(v => v === 'warn').length;
+
+  document.getElementById('sum-total').textContent = '⬤ ' + (pass + fail + warn) + ' / ' + total + ' run';
+
+  var pEl = document.getElementById('sum-pass');
+  var fEl = document.getElementById('sum-fail');
+  var wEl = document.getElementById('sum-warn');
+
+  pEl.style.display = pass > 0 ? '' : 'none';
+  fEl.style.display = fail > 0 ? '' : 'none';
+  wEl.style.display = warn > 0 ? '' : 'none';
+
+  pEl.textContent = '✓ ' + pass + ' passed';
+  fEl.textContent = '✗ ' + fail + ' failed';
+  wEl.textContent = '⚠ ' + warn + ' warned';
+}
+
+// --- Individual tests ---
+
+function testBrowser() {
+  var checks = [];
+  var ok = true;
+
+  ['localStorage', 'sessionStorage', 'fetch', 'crypto'].forEach(function(api) {
+    var available = typeof window[api] !== 'undefined';
+    checks.push((available ? '✓' : '✗') + ' ' + api);
+    if (!available) ok = false;
+  });
+
+  setTest('browser', ok ? 'pass' : 'fail', checks.join('\n'));
+}
+
+function testStorage() {
+  var key = document.getElementById('keyInput').value.trim();
+  if (!key) {
+    setTest('storage', 'warn', 'No API key entered — enter a key above to test round-trip.');
+    return;
+  }
+  try {
+    sessionStorage.setItem('pm_key', key);
+    var readBack = sessionStorage.getItem('pm_key');
+    if (readBack === key) {
+      setTest('storage', 'pass', 'Written to sessionStorage as "pm_key"\nRead back: ' + key.slice(0, 10) + '…' + key.slice(-4) + '\nMatch: ✓');
+    } else {
+      setTest('storage', 'fail', 'Read-back mismatch!\nWrote: ' + key.slice(0, 10) + '…\nGot:   ' + (readBack || 'null'));
+    }
+  } catch(e) {
+    setTest('storage', 'fail', 'sessionStorage error: ' + e.message);
+  }
+}
+
+function testDarkMode() {
+  try {
+    var wasDark = document.body.classList.contains('dark');
+    // Toggle on
+    document.body.classList.add('dark');
+    localStorage.setItem('pm_dark', '1');
+    var storedOn = localStorage.getItem('pm_dark');
+    var classOn = document.body.classList.contains('dark');
+
+    // Toggle off
+    document.body.classList.remove('dark');
+    localStorage.setItem('pm_dark', '0');
+    var storedOff = localStorage.getItem('pm_dark');
+    var classOff = document.body.classList.contains('dark');
+
+    // Restore
+    if (wasDark) {
+      document.body.classList.add('dark');
+      localStorage.setItem('pm_dark', '1');
+    }
+    updateDarkSwatches();
+
+    var ok = storedOn === '1' && classOn && storedOff === '0' && !classOff;
+    setTest('darkmode', ok ? 'pass' : 'fail',
+      'Toggle ON:  localStorage pm_dark=' + storedOn + '  body.dark=' + classOn + '\n' +
+      'Toggle OFF: localStorage pm_dark=' + storedOff + '  body.dark=' + classOff + '\n' +
+      (ok ? 'Persistence: ✓' : 'Persistence: ✗')
+    );
+  } catch(e) {
+    setTest('darkmode', 'fail', 'Error: ' + e.message);
+  }
+}
+
+function testApiKeyFormat() {
+  var key = document.getElementById('keyInput').value.trim();
+  if (!key) {
+    setTest('apikey', 'warn', 'No API key entered.');
+    return false;
+  }
+  if (!key.startsWith('sk-ant-')) {
+    setTest('apikey', 'fail', 'Key does not start with "sk-ant-"\nGot prefix: ' + key.slice(0, 10));
+    return false;
+  }
+  if (key.length < 40) {
+    setTest('apikey', 'warn', 'Key looks short (' + key.length + ' chars). Expected ~100+ chars.\nPrefix: ✓ (sk-ant-)');
+    return true;
+  }
+  setTest('apikey', 'pass', 'Prefix: ✓ (sk-ant-)\nLength: ' + key.length + ' chars\nLast 4: …' + key.slice(-4));
+  return true;
+}
+
+async function testApiCall() {
+  var key = document.getElementById('keyInput').value.trim();
+  if (!key) {
+    setTest('apicall', 'warn', 'No API key — skipped.');
+    setTest('cors', 'warn', 'No API key — skipped.');
+    return;
+  }
+
+  setTest('apicall', 'running', 'Calling claude-haiku-4-5-20251001…');
+  setTest('cors', 'running', 'Waiting for API response…');
+
+  var t0 = Date.now();
+  try {
+    var resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-request-when-unauthenticated': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 16,
+        messages: [{ role: 'user', content: 'Reply with only the word PONG and nothing else.' }]
+      })
+    });
+
+    var elapsed = Date.now() - t0;
+
+    if (!resp.ok) {
+      var errBody = await resp.text();
+      setTest('apicall', 'fail', 'HTTP ' + resp.status + ' ' + resp.statusText + '\n' + errBody.slice(0, 300));
+      setTest('cors', resp.status === 403 ? 'warn' : 'fail',
+        'HTTP ' + resp.status + ' — check that the anthropic-dangerous-request-when-unauthenticated header is included.');
+      return;
+    }
+
+    var data = await resp.json();
+    var text = (data.content && data.content[0] && data.content[0].text) || '';
+    var hasPong = text.toUpperCase().includes('PONG');
+
+    setTest('apicall', hasPong ? 'pass' : 'warn',
+      'Model: claude-haiku-4-5-20251001\n' +
+      'Latency: ' + elapsed + 'ms\n' +
+      'Response: "' + text.trim() + '"\n' +
+      'Contains PONG: ' + (hasPong ? '✓' : '✗ (unexpected response, but call succeeded)')
+    );
+
+    setTest('cors', 'pass',
+      'anthropic-dangerous-request-when-unauthenticated header accepted.\n' +
+      'No CORS errors. HTTP ' + resp.status + ' OK.'
+    );
+  } catch(e) {
+    var elapsed2 = Date.now() - t0;
+    if (e.message.toLowerCase().includes('failed to fetch') || e.message.toLowerCase().includes('networkerror')) {
+      setTest('apicall', 'fail', 'Network error after ' + elapsed2 + 'ms\n' + e.message + '\nCheck internet connection and CSP connect-src.');
+      setTest('cors', 'fail', 'Possible CORS block or network error.\nMake sure connect-src includes https://api.anthropic.com in the CSP.');
+    } else {
+      setTest('apicall', 'fail', 'Error: ' + e.message);
+      setTest('cors', 'fail', 'Could not complete request: ' + e.message);
+    }
+  }
+}
+
+async function testAgent() {
+  setTest('agent', 'running', 'Pinging localhost:7842/ping…');
+  setTest('snapshot', 'running', 'Waiting for agent…');
+
+  var TIMEOUT = 3000;
+  var controller = new AbortController();
+  var timer = setTimeout(function() { controller.abort(); }, TIMEOUT);
+
+  try {
+    var resp = await fetch('http://localhost:7842/ping', { signal: controller.signal });
+    clearTimeout(timer);
+    var data = await resp.json();
+    setTest('agent', 'pass', 'HTTP ' + resp.status + ' OK\nResponse: ' + JSON.stringify(data));
+    await testSnapshot();
+  } catch(e) {
+    clearTimeout(timer);
+    var msg = e.name === 'AbortError'
+      ? 'Timed out after ' + TIMEOUT + 'ms — agent not running.'
+      : 'Error: ' + e.message;
+    setTest('agent', 'warn', msg + '\n\nTo start the agent:\n  pip install flask flask-cors psutil\n  python agent/promptmesh_agent.py');
+    setTest('snapshot', 'warn', 'Skipped — agent offline.');
+  }
+}
+
+async function testSnapshot() {
+  var TIMEOUT = 5000;
+  var controller = new AbortController();
+  var timer = setTimeout(function() { controller.abort(); }, TIMEOUT);
+  try {
+    var resp = await fetch('http://localhost:7842/snapshot', { signal: controller.signal });
+    clearTimeout(timer);
+    if (!resp.ok) {
+      setTest('snapshot', 'fail', 'HTTP ' + resp.status + ' from /snapshot');
+      return;
+    }
+    var data = await resp.json();
+    var keys = Object.keys(data);
+    var hasRequired = ['cpu', 'memory', 'disk'].every(function(k) { return data[k] !== undefined; });
+    setTest('snapshot', hasRequired ? 'pass' : 'warn',
+      'Keys returned: ' + keys.join(', ') + '\n' +
+      'cpu: ' + (data.cpu !== undefined ? '✓' : '✗') + '\n' +
+      'memory: ' + (data.memory !== undefined ? '✓' : '✗') + '\n' +
+      'disk: ' + (data.disk !== undefined ? '✓' : '✗')
+    );
+  } catch(e) {
+    clearTimeout(timer);
+    setTest('snapshot', 'fail', 'Error: ' + e.message);
+  }
+}
+
+// --- Run all ---
+async function runAll() {
+  var btn = document.getElementById('runBtn');
+  btn.disabled = true;
+  btn.textContent = 'Running…';
+
+  // Reset all
+  ['browser','storage','darkmode','apikey','apicall','cors','agent','snapshot'].forEach(function(id) {
+    setTest(id, 'idle', '');
+  });
+  results = {};
+
+  // Sync tests
+  testBrowser();
+  testStorage();
+  testDarkMode();
+  testApiKeyFormat();
+
+  // Async tests (run in parallel)
+  await Promise.all([
+    testApiCall(),
+    testAgent()
+  ]);
+
+  btn.disabled = false;
+  btn.textContent = 'Run All Tests';
+}
+</script>
+</body>
+</html>
