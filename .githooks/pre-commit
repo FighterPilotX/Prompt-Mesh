@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# PromptMesh pre-commit hook
+# Runs validate.sh to catch and auto-fix common bugs before each commit.
+# If issues are auto-fixed, the commit is aborted so you can review & re-stage.
+
+set -uo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+VALIDATOR="$REPO_ROOT/validate.sh"
+
+if [[ ! -x "$VALIDATOR" ]]; then
+  echo "Pre-commit: validate.sh not found or not executable — skipping."
+  exit 0
+fi
+
+echo "Running PromptMesh validator..."
+echo ""
+
+# Capture exit code
+"$VALIDATOR"
+EXIT_CODE=$?
+
+if [[ $EXIT_CODE -ne 0 ]]; then
+  echo ""
+  echo "Commit aborted — fix the errors above and try again."
+  exit 1
+fi
+
+# Check if the validator auto-fixed any files (unstaged changes on tracked files)
+CHANGED=$(git diff --name-only -- '*.html' '*.toml' 2>/dev/null || true)
+if [[ -n "$CHANGED" ]]; then
+  echo ""
+  echo "Auto-fixes were applied to:"
+  echo "$CHANGED"
+  echo ""
+  echo "Review the changes, stage them (git add), and commit again."
+  exit 1
+fi
+
+exit 0
