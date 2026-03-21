@@ -2689,7 +2689,11 @@ function refreshPreview() {
     previewHTML = hm ? hm[0] : '<html><body style="font-family:sans-serif;padding:20px"><h2>No HTML found</h2><p>The frontend stage may not have produced a code block yet.</p></body></html>';
   }
   if (runState.results['backend']) {
-    previewHTML += '\n<!-- Logic:\n' + runState.results['backend'].substring(0, 200) + '\n-->';
+    // Extract JS from code fence if present, inject as a real script
+    const jsRe = /```(?:javascript|js)?[\r\n]+([\s\S]*?)```/;
+    const jsMatch = jsRe.exec(runState.results['backend']);
+    const jsCode = jsMatch ? jsMatch[1] : runState.results['backend'];
+    previewHTML += '\n<script>' + jsCode + '<\/script>';
   }
   const iframe = document.getElementById('preview-iframe');
   iframe.srcdoc = previewHTML;
@@ -2718,6 +2722,9 @@ function openPreviewBlank() {
 function autoPreview() {
   if (runState.results['frontend']) {
     refreshPreview();
+    // Auto-switch to Preview tab so the user sees it
+    const previewTab = document.querySelector('.ot[onclick*="preview"]');
+    if (previewTab) switchOT(previewTab, 'preview');
   }
 }
 
