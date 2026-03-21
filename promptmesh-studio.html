@@ -988,8 +988,8 @@ const LLM_PROVIDERS = {
     models:{'claude-haiku-4-5-20251001':{label:'Claude Haiku 4.5',costPer1k:0.00025},'claude-sonnet-4-6':{label:'Claude Sonnet 4.6',costPer1k:0.003},'claude-opus-4-6':{label:'Claude Opus 4.6',costPer1k:0.015}},
     defaultModel:'claude-haiku-4-5-20251001',
     async call(key,model,sys,user,maxTok){
-      const r=await fetch('/.netlify/functions/ai-proxy',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01'},body:JSON.stringify({model,max_tokens:maxTok,system:sys,messages:[{role:'user',content:user}]})});
-      if(!r.ok){const d=await r.json().catch(()=>({}));if(r.status===401)throw new Error('Invalid Anthropic key — check it starts with sk-ant-api03-');if(r.status===429)throw new Error('Rate limited by Anthropic — wait a moment');if(r.status===504)throw new Error('Request timed out — try a shorter prompt or lower token budget');throw new Error('Anthropic error '+r.status+': '+(d?.error?.message||'').substring(0,80));}
+      const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-request-when-unauthenticated':'true'},body:JSON.stringify({model,max_tokens:maxTok,system:sys,messages:[{role:'user',content:user}]})});
+      if(!r.ok){const d=await r.json().catch(()=>({}));if(r.status===401)throw new Error('Invalid Anthropic key — check it starts with sk-ant-api03-');if(r.status===429)throw new Error('Rate limited by Anthropic — wait a moment');throw new Error('Anthropic error '+r.status+': '+(d?.error?.message||'').substring(0,80));}
       const d=await r.json();const text=d.content?.[0]?.text||'';if(!text)throw new Error('Empty response from Anthropic');
       return{text,tokens:(d.usage?.input_tokens||0)+(d.usage?.output_tokens||0),truncated:d.stop_reason==='max_tokens'};
     }
