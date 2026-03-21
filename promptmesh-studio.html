@@ -390,7 +390,7 @@ body.dark .dark-toggle .icon-moon { display:block; }
 .hi-meta { font-size:.62rem; color:var(--ink4); font-family:var(--mono); display:flex; gap:8px; }
 
 /* ───── PREVIEW IFRAME ───── */
-#preview-iframe { width:100%; height:100%; border:none; background:#fff; }
+#preview-iframe { width:100%; height:100%; border:none; background:#fff; flex:1; min-height:0; }
 .preview-controls { padding:8px 16px; border-bottom:1px solid var(--rule); background:var(--paper); display:flex; align-items:center; gap:8px; flex-shrink:0; }
 .preview-controls span { font-size:.72rem; color:var(--ink4); flex:1; font-family:var(--mono); }
 
@@ -760,7 +760,7 @@ body.dark .dark-toggle .icon-moon { display:block; }
           <button class="btn btn-ghost btn-xs" onclick="refreshPreview()">↻ Refresh</button>
           <button class="btn btn-ghost btn-xs" onclick="openPreviewBlank()">⤢ Open in tab</button>
         </div>
-        <iframe id="preview-iframe" sandbox="allow-scripts" srcdoc="<html><body style='font-family:sans-serif;color:#888;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:#fafaf8'><div style='text-align:center'><div style='font-size:2rem;margin-bottom:12px'>💻</div><p>Preview renders here after a frontend stage completes</p></div></body></html>"></iframe>
+        <iframe id="preview-iframe" sandbox="allow-scripts allow-same-origin" srcdoc="<html><body style='font-family:sans-serif;color:#888;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:#fafaf8'><div style='text-align:center'><div style='font-size:2rem;margin-bottom:12px'>💻</div><p>Preview renders here after a frontend stage completes</p></div></body></html>"></iframe>
       </div>
       <div class="ot-body" id="otb-cost">
         <div id="cost-breakdown"></div>
@@ -1614,6 +1614,7 @@ async function executePipeline(keys, prompt, stageIds, mode) {
     // Partial completion — still show save/iterate for stages that finished
     document.getElementById('save-btn').style.display = '';
     document.getElementById('iteration-bar').style.display = '';
+    if (runState.results['frontend']) { autoPreview(); }
   }
 
   clearInterval(runState.elapsedTimer);
@@ -2352,6 +2353,10 @@ function switchOT(el, tab) {
   document.querySelectorAll('.ot-body').forEach(b => b.classList.remove('on'));
   el.classList.add('on');
   document.getElementById('otb-' + tab).classList.add('on');
+  // Auto-refresh preview when user clicks the Preview tab
+  if (tab === 'preview' && runState.results && runState.results['frontend']) {
+    refreshPreview();
+  }
 }
 
 function renderUserBadge() {
