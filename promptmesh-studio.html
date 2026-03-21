@@ -2668,10 +2668,19 @@ function refreshPreview() {
     toast('No frontend output yet \u2014 run a build first', 'bad');
     return;
   }
+  // Strategy 1: extract from ```html ... ``` code fences
   const fenceRe = /```(?:html|css|javascript|js)?[\r\n]+([\s\S]*?)```/g;
   const codeBlocks = [];
   let fm;
   while ((fm = fenceRe.exec(frontendOutput)) !== null) codeBlocks.push(fm[1]);
+
+  // Strategy 2: unclosed code fence (truncated output) — grab everything after ```html\n
+  if (!codeBlocks.length) {
+    const unclosedRe = /```html[\r\n]+([\s\S]+)$/i;
+    const um = unclosedRe.exec(frontendOutput);
+    if (um) codeBlocks.push(um[1]);
+  }
+
   let previewHTML = '';
   if (codeBlocks.length > 0) {
     const htmlBlock = codeBlocks.find(function(b) {
@@ -2683,9 +2692,11 @@ function refreshPreview() {
       if (cssBlock) previewHTML = '<style>' + cssBlock + '</style>\n' + previewHTML;
     }
   } else {
-    var htmlTagRe = /<html[\s\S]*?<\/html>/i;
-    var bodyTagRe = /<body[\s\S]*?<\/body>/i;
-    var hm = htmlTagRe.exec(frontendOutput) || bodyTagRe.exec(frontendOutput);
+    // Strategy 3: raw HTML without fences — try closed tags first, then unclosed
+    var htmlTagRe = /<html[\s\S]*<\/html>/i;
+    var bodyTagRe = /<body[\s\S]*<\/body>/i;
+    var unclosedHtmlRe = /(<(?:!doctype|html)[\s\S]+)$/i;
+    var hm = htmlTagRe.exec(frontendOutput) || bodyTagRe.exec(frontendOutput) || unclosedHtmlRe.exec(frontendOutput);
     previewHTML = hm ? hm[0] : '<html><body style="font-family:sans-serif;padding:20px"><h2>No HTML found</h2><p>The frontend stage may not have produced a code block yet.</p></body></html>';
   }
   if (runState.results['backend']) {
