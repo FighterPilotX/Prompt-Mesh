@@ -1087,7 +1087,7 @@ const STAGES_CONFIG = {
   planning: {
     id: 'planning', name: 'Planning Council', icon: '🧠',
     color: '#4a5568', bg: 'rgba(74,85,104,0.1)',
-    model: 'claude-haiku-4-5-20251001', provider: 'anthropic', tokenBudget: 450,
+    model: 'claude-haiku-4-5-20251001', provider: 'anthropic', tokenBudget: 1024,
     costPer1k: 0.00025, feedType: 'fi-plan',
     badge: 'PLAN', badgeColor: '#4a5568',
     systemPrompt: 'You are a senior software architect. Output only the requested specification format — no preamble, no commentary, no markdown outside the template. Every word must add value.',
@@ -1166,7 +1166,7 @@ Under 200 words.`;
   frontend: {
     id: 'frontend', name: 'Frontend', icon: '💻',
     color: '#2563ab', bg: 'rgba(37,99,171,0.1)',
-    model: 'claude-haiku-4-5-20251001', tokenBudget: 1000,
+    model: 'claude-haiku-4-5-20251001', tokenBudget: 2048,
     costPer1k: 0.00025, feedType: 'fi-frontend',
     badge: 'UI CODE', badgeColor: '#2563ab',
     systemPrompt: 'You are a frontend engineer. Output only a single complete HTML file in a ```html block — no explanation before or after. Working code, not pseudocode.',
@@ -1197,7 +1197,7 @@ Output: one \`\`\`html block only.`;
   backend: {
     id: 'backend', name: 'Backend / Logic', icon: '⚙️',
     color: '#c47a2a', bg: 'rgba(196,122,42,0.1)',
-    model: 'claude-haiku-4-5-20251001', tokenBudget: 900,
+    model: 'claude-haiku-4-5-20251001', tokenBudget: 2048,
     costPer1k: 0.00025, feedType: 'fi-backend',
     badge: 'LOGIC', badgeColor: '#c47a2a',
     systemPrompt: 'You are a backend/logic engineer. Output only a single ```javascript block — no explanation before or after. Write working browser-compatible vanilla JS, not pseudocode.',
@@ -1548,11 +1548,13 @@ async function executePipeline(keys, prompt, stageIds, mode) {
         ? await callAPIFusion(keys, s, userPrompt)
         : await callAPI(keys, s, userPrompt);
 
-      // Retry if truncated — bump token budget (max 2 retries)
+      // Retry if truncated — double token budget each attempt (max 2 retries)
       let retryCount = 0;
+      let currentBudget = s.tokenBudget;
       while (result.truncated && retryCount < 2 && !runState.aborted) {
-        addFeed('fi-system', 'RETRY', `${s.name} output truncated — retrying with more tokens (attempt ${retryCount+2})`);
-        const biggerStage = Object.assign({}, s, { tokenBudget: Math.min(s.tokenBudget * 2, 4096) });
+        currentBudget = Math.min(currentBudget * 2, 8192);
+        addFeed('fi-system', 'RETRY', `${s.name} output truncated — retrying with ${currentBudget} tokens (attempt ${retryCount+2})`);
+        const biggerStage = Object.assign({}, s, { tokenBudget: currentBudget });
         result = await callAPI(keys, biggerStage, userPrompt);
         retryCount++;
       }
