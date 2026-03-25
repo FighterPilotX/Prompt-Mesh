@@ -760,7 +760,7 @@ body.dark .dark-toggle .icon-moon { display:block; }
           <button class="btn btn-ghost btn-xs" onclick="refreshPreview()">↻ Refresh</button>
           <button class="btn btn-ghost btn-xs" onclick="openPreviewBlank()">⤢ Open in tab</button>
         </div>
-        <iframe id="preview-iframe" sandbox="allow-scripts allow-same-origin" srcdoc="<html><body style='font-family:sans-serif;color:#888;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:#fafaf8'><div style='text-align:center'><div style='font-size:2rem;margin-bottom:12px'>💻</div><p>Preview renders here after a frontend stage completes</p></div></body></html>"></iframe>
+        <iframe id="preview-iframe" sandbox="allow-scripts allow-same-origin allow-forms allow-modals" srcdoc="<html><body style='font-family:sans-serif;color:#888;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:#fafaf8'><div style='text-align:center'><div style='font-size:2rem;margin-bottom:12px'>💻</div><p>Preview renders here after a frontend stage completes</p></div></body></html>"></iframe>
       </div>
       <div class="ot-body" id="otb-cost">
         <div id="cost-breakdown"></div>
@@ -1178,29 +1178,50 @@ Under 200 words.`;
     model: 'claude-haiku-4-5-20251001', tokenBudget: 4096,
     costPer1k: 0.00025, feedType: 'fi-frontend',
     badge: 'UI CODE', badgeColor: '#2563ab',
-    systemPrompt: 'You are a frontend engineer. Output only a single complete HTML file in a ```html block — no explanation before or after. Working code, not pseudocode.',
-    buildPrompt(userPrompt, prev, customSys) {
-      return `${customSys ? 'CONTEXT: ' + customSys + '\n\n' : ''}Write the main UI screen as a single complete HTML file.
+    systemPrompt: 'You are a frontend engineer. Output only a single ```html block. Working structure and full visual design.',
+    buildPrompt(userPrompt, prev, customSys, stageIds) {
+      const hasBackend = stageIds && stageIds.includes('backend');
+      const design = (prev.design||'Generate a clean, modern design system appropriate to the project.').substring(0,600);
+      const spec = (prev.planning||'').substring(0,500);
+      if (hasBackend) {
+        return `${customSys ? 'CONTEXT: ' + customSys + '\n\n' : ''}Write the HTML + CSS structure for this app. NO JavaScript — only HTML and CSS.
 
 PROJECT: "${userPrompt}"
-DESIGN SYSTEM: ${(prev.design||'Generate a clean, modern design system appropriate to the project.').substring(0,600)}
-SPEC: ${(prev.planning||'').substring(0,500)}
+DESIGN SYSTEM: ${design}
+SPEC: ${spec}
 
 Requirements:
-1. Google Fonts import matching the design system
-2. CSS custom properties for all colors/fonts from the design system
-3. The primary UI screen — fully styled and interactive
+1. Google Fonts import
+2. CSS custom properties for all colors/fonts
+3. Complete UI — every screen/component the app needs, fully styled
+4. Smooth CSS transitions and hover states
+5. Responsive layout (mobile-first)
+6. Give every interactive element a clear, descriptive id="" attribute
+
+Rules:
+- Semantic HTML5, CSS variables for theming
+- NO <script> tags, NO inline JS event handlers (onclick=, onchange=, etc.)
+- All buttons/inputs/forms must have id attributes the JS can target
+- Placeholder/empty state content where dynamic data will appear
+
+Output: one \`\`\`html block only.`;
+      } else {
+        return `${customSys ? 'CONTEXT: ' + customSys + '\n\n' : ''}Write a single complete interactive HTML file (HTML + CSS + JS).
+
+PROJECT: "${userPrompt}"
+DESIGN SYSTEM: ${design}
+SPEC: ${spec}
+
+Requirements:
+1. Google Fonts import
+2. CSS custom properties for all colors/fonts
+3. Fully styled and interactive — working app, not a mockup
 4. Smooth transitions and hover states
 5. Responsive layout (mobile-first)
 
-Rules:
-- Semantic HTML5
-- CSS variables for theming
-- Vanilla JS only
-- Working code, not pseudocode
-- At least one CSS transition/animation
-
+Rules: Semantic HTML5, vanilla JS only, working code.
 Output: one \`\`\`html block only.`;
+      }
     }
   },
   backend: {
@@ -1209,39 +1230,28 @@ Output: one \`\`\`html block only.`;
     model: 'claude-haiku-4-5-20251001', tokenBudget: 4096,
     costPer1k: 0.00025, feedType: 'fi-backend',
     badge: 'LOGIC', badgeColor: '#c47a2a',
-    systemPrompt: 'You are a backend/logic engineer. Output only a single ```javascript block — no explanation before or after. Write working browser-compatible vanilla JS, not pseudocode.',
+    systemPrompt: 'You are a JavaScript engineer. Output only a single ```javascript block — no explanation. Write complete, working vanilla JS that makes the HTML fully interactive.',
     buildPrompt(userPrompt, prev, customSys) {
-      const frontendExcerpt = (prev.frontend||'').substring(0,3000);
-      return `${customSys ? 'CONTEXT: ' + customSys + '\n\n' : ''}Write the core JavaScript logic module.
+      const frontendHTML = (prev.frontend||'').substring(0,3000);
+      return `${customSys ? 'CONTEXT: ' + customSys + '\n\n' : ''}Write ALL the JavaScript to make this app fully interactive.
 
 PROJECT: "${userPrompt}"
-SPEC: ${(prev.planning||'').substring(0,500)}
-FRONTEND CODE (excerpt — your JS must integrate with this HTML/CSS):
-${frontendExcerpt}
+SPEC: ${(prev.planning||'').substring(0,400)}
+FULL HTML (your JS must target these exact IDs and classes):
+${frontendHTML}
 
-Write in a single \`\`\`javascript block that wires into the frontend above:
+Write a single \`\`\`javascript block with:
 
-1. STATE — complete initial state object matching the data-* attributes and IDs in the frontend
-2. CORE FUNCTIONS — the 4-5 most important functions, FULLY implemented (not stubs)
-   - Reference real DOM element IDs from the frontend code above
-   - Handle edge cases; include localStorage save/load where data must persist
-3. GAME LOOP or STATE MACHINE (if applicable) — the main tick/update cycle
-4. EVENT HANDLERS — wired to the actual buttons/inputs from the frontend
+1. STATE — the complete app state object
+2. RENDER — a function that reads state and updates the DOM
+3. CORE LOGIC — all business logic functions, fully implemented (no stubs)
+   - Use document.getElementById / querySelector with the real IDs from the HTML above
+   - localStorage save/load where data must persist across refreshes
+4. EVENT LISTENERS — addEventListener for every button, input, and form in the HTML
+5. INIT — initialize state, render, wire up all events
+   document.addEventListener('DOMContentLoaded', init);
 
-Format:
-\`\`\`javascript
-// === STATE ===
-const state = { ... };
-
-// === CORE LOGIC ===
-function [name]([args]) { ... }
-
-// === INIT ===
-function init() { ... }
-document.addEventListener('DOMContentLoaded', init);
-\`\`\`
-
-Working code only. Vanilla JS, browser environment. Match the IDs/classes from the frontend exactly.`;
+Working code only. No inline handlers. Target the exact IDs from the HTML above.`;
     }
   },
   polish: {
@@ -1549,7 +1559,7 @@ async function executePipeline(keys, prompt, stageIds, mode) {
     addFeed(s.feedType, s.name.toUpperCase(), `Starting — ${_modelLabel}`);
 
     const t0 = Date.now();
-    const userPrompt = s.buildPrompt(prompt, runState.results, customSys);
+    const userPrompt = s.buildPrompt(prompt, runState.results, customSys, stageIds);
 
     try {
       // Fusion uses callAPIFusion for all stages; standard routing otherwise
@@ -1774,7 +1784,7 @@ async function retryStage(stageId) {
   const check = canRun();
   if (!check.ok) { showUpgradeModal(check.reason); return; }
   const customSys = document.getElementById('sys-prompt-input')?.value.trim() || '';
-  const userPrompt = s.buildPrompt(runState.prompt, runState.results, customSys);
+  const userPrompt = s.buildPrompt(runState.prompt, runState.results, customSys, runState.stages);
   setStageStatus(stageId, 'working', '');
   runState.running = true;
   runState.error = false;
