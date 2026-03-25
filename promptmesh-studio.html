@@ -1178,13 +1178,17 @@ Under 200 words.`;
     model: 'claude-haiku-4-5-20251001', tokenBudget: 4096,
     costPer1k: 0.00025, feedType: 'fi-frontend',
     badge: 'UI CODE', badgeColor: '#2563ab',
-    systemPrompt: 'You are a frontend engineer. Output only a single ```html block containing HTML and CSS — NO JavaScript at all. The JS will be added separately. Working structure and full visual design.',
-    buildPrompt(userPrompt, prev, customSys) {
-      return `${customSys ? 'CONTEXT: ' + customSys + '\n\n' : ''}Write the HTML + CSS structure for this app. NO JavaScript — only HTML and CSS.
+    systemPrompt: 'You are a frontend engineer. Output only a single ```html block. Working structure and full visual design.',
+    buildPrompt(userPrompt, prev, customSys, stageIds) {
+      const hasBackend = stageIds && stageIds.includes('backend');
+      const design = (prev.design||'Generate a clean, modern design system appropriate to the project.').substring(0,600);
+      const spec = (prev.planning||'').substring(0,500);
+      if (hasBackend) {
+        return `${customSys ? 'CONTEXT: ' + customSys + '\n\n' : ''}Write the HTML + CSS structure for this app. NO JavaScript — only HTML and CSS.
 
 PROJECT: "${userPrompt}"
-DESIGN SYSTEM: ${(prev.design||'Generate a clean, modern design system appropriate to the project.').substring(0,600)}
-SPEC: ${(prev.planning||'').substring(0,500)}
+DESIGN SYSTEM: ${design}
+SPEC: ${spec}
 
 Requirements:
 1. Google Fonts import
@@ -1201,6 +1205,23 @@ Rules:
 - Placeholder/empty state content where dynamic data will appear
 
 Output: one \`\`\`html block only.`;
+      } else {
+        return `${customSys ? 'CONTEXT: ' + customSys + '\n\n' : ''}Write a single complete interactive HTML file (HTML + CSS + JS).
+
+PROJECT: "${userPrompt}"
+DESIGN SYSTEM: ${design}
+SPEC: ${spec}
+
+Requirements:
+1. Google Fonts import
+2. CSS custom properties for all colors/fonts
+3. Fully styled and interactive — working app, not a mockup
+4. Smooth transitions and hover states
+5. Responsive layout (mobile-first)
+
+Rules: Semantic HTML5, vanilla JS only, working code.
+Output: one \`\`\`html block only.`;
+      }
     }
   },
   backend: {
@@ -1538,7 +1559,7 @@ async function executePipeline(keys, prompt, stageIds, mode) {
     addFeed(s.feedType, s.name.toUpperCase(), `Starting — ${_modelLabel}`);
 
     const t0 = Date.now();
-    const userPrompt = s.buildPrompt(prompt, runState.results, customSys);
+    const userPrompt = s.buildPrompt(prompt, runState.results, customSys, stageIds);
 
     try {
       // Fusion uses callAPIFusion for all stages; standard routing otherwise
@@ -1763,7 +1784,7 @@ async function retryStage(stageId) {
   const check = canRun();
   if (!check.ok) { showUpgradeModal(check.reason); return; }
   const customSys = document.getElementById('sys-prompt-input')?.value.trim() || '';
-  const userPrompt = s.buildPrompt(runState.prompt, runState.results, customSys);
+  const userPrompt = s.buildPrompt(runState.prompt, runState.results, customSys, runState.stages);
   setStageStatus(stageId, 'working', '');
   runState.running = true;
   runState.error = false;
