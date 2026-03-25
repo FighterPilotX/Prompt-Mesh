@@ -390,7 +390,7 @@ body.dark .dark-toggle .icon-moon { display:block; }
 .hi-meta { font-size:.62rem; color:var(--ink4); font-family:var(--mono); display:flex; gap:8px; }
 
 /* ───── PREVIEW IFRAME ───── */
-#preview-iframe { width:100%; height:100%; border:none; background:#fff; flex:1; min-height:0; }
+#preview-iframe { width:100%; border:none; background:#fff; flex:1; min-height:0; display:block; }
 .preview-controls { padding:8px 16px; border-bottom:1px solid var(--rule); background:var(--paper); display:flex; align-items:center; gap:8px; flex-shrink:0; }
 .preview-controls span { font-size:.72rem; color:var(--ink4); flex:1; font-family:var(--mono); }
 
@@ -1180,14 +1180,27 @@ Under 200 words.`;
     badge: 'UI CODE', badgeColor: '#2563ab',
     systemPrompt: 'You are a frontend engineer. Output only a single complete HTML file in a ```html block — no explanation before or after. Working code, not pseudocode.',
     buildPrompt(userPrompt, prev, customSys) {
-      return `${customSys ? 'CONTEXT: ' + customSys + '\n\n' : ''}Write a single complete HTML file with embedded CSS and JS. Keep the code compact — combine styles, minimize whitespace.
+      return `${customSys ? 'CONTEXT: ' + customSys + '\n\n' : ''}Write the main UI screen as a single complete HTML file.
 
 PROJECT: "${userPrompt}"
-DESIGN: ${(prev.design||'Clean modern design with good colors').substring(0,400)}
-SPEC: ${(prev.planning||'').substring(0,400)}
+DESIGN SYSTEM: ${(prev.design||'Generate a clean, modern design system appropriate to the project.').substring(0,600)}
+SPEC: ${(prev.planning||'').substring(0,500)}
 
-Requirements: Google Fonts, CSS custom properties, responsive, interactive, transitions.
-Rules: Semantic HTML5, vanilla JS only, working code. No explanation — just one \`\`\`html block.`;
+Requirements:
+1. Google Fonts import matching the design system
+2. CSS custom properties for all colors/fonts from the design system
+3. The primary UI screen — fully styled and interactive
+4. Smooth transitions and hover states
+5. Responsive layout (mobile-first)
+
+Rules:
+- Semantic HTML5
+- CSS variables for theming
+- Vanilla JS only
+- Working code, not pseudocode
+- At least one CSS transition/animation
+
+Output: one \`\`\`html block only.`;
     }
   },
   backend: {
@@ -2742,7 +2755,10 @@ function autoPreview() {
     refreshPreview();
     // Auto-switch to Preview tab so the user sees it
     const previewTab = document.querySelector('.ot[onclick*="preview"]');
-    if (previewTab) switchOT(previewTab, 'preview');
+    if (previewTab) {
+      switchOT(previewTab, 'preview');
+      previewTab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
   }
 }
 
