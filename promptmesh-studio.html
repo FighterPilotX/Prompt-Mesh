@@ -2701,74 +2701,66 @@ function saveCustomSys() {
 //  PREVIEW
 // ══════════════════════════════════════════
 function refreshPreview() {
-  const frontendOutput = runState.results['frontend'] || '';
-  if (!frontendOutput) {
+  const previewHTML = buildPreviewHTML();
+  if (!previewHTML) {
     toast('No frontend output yet \u2014 run a build first', 'bad');
     return;
   }
-  // Strategy 1: extract from ```html ... ``` code fences
-  const fenceRe = /```(?:html|css|javascript|js)?[\r\n]+([\s\S]*?)```/g;
-  const codeBlocks = [];
-  let fm;
-  while ((fm = fenceRe.exec(frontendOutput)) !== null) codeBlocks.push(fm[1]);
-
-  // Strategy 2: unclosed code fence (truncated output) — grab everything after ```html\n
-  if (!codeBlocks.length) {
-    const unclosedRe = /```html[\r\n]+([\s\S]+)$/i;
-    const um = unclosedRe.exec(frontendOutput);
-    if (um) codeBlocks.push(um[1]);
-  }
-
-  let previewHTML = '';
-  if (codeBlocks.length > 0) {
-    const htmlBlock = codeBlocks.find(function(b) {
-      return b.trim().startsWith('<!') || b.trim().startsWith('<html') || b.includes('<body');
-    }) || codeBlocks[0];
-    previewHTML = htmlBlock;
-    if (codeBlocks.length > 1 && !previewHTML.includes('<style>')) {
-      const cssBlock = codeBlocks.find(function(b) { return b.includes('{') && b.includes(':'); });
-      if (cssBlock) previewHTML = '<style>' + cssBlock + '</style>\n' + previewHTML;
-    }
-  } else {
-    // Strategy 3: raw HTML without fences — try closed tags first, then unclosed
-    var htmlTagRe = /<html[\s\S]*<\/html>/i;
-    var bodyTagRe = /<body[\s\S]*<\/body>/i;
-    var unclosedHtmlRe = /(<(?:!doctype|html)[\s\S]+)$/i;
-    var hm = htmlTagRe.exec(frontendOutput) || bodyTagRe.exec(frontendOutput) || unclosedHtmlRe.exec(frontendOutput);
-    previewHTML = hm ? hm[0] : '<html><body style="font-family:sans-serif;padding:20px"><h2>No HTML found</h2><p>The frontend stage may not have produced a code block yet.</p></body></html>';
-  }
-  if (runState.results['backend']) {
-    // Extract JS from code fence if present, inject before </body> (not after </html>)
-    const jsRe = /```(?:javascript|js)?[\r\n]+([\s\S]*?)```/;
-    const jsMatch = jsRe.exec(runState.results['backend']);
-    const jsCode = jsMatch ? jsMatch[1] : runState.results['backend'];
-    const scriptTag = '\n<script>' + jsCode + '<\/script>\n';
-    if (previewHTML.includes('</body>')) {
-      previewHTML = previewHTML.replace(/<\/body>/i, scriptTag + '</body>');
-    } else {
-      previewHTML += scriptTag;
-    }
-  }
   const iframe = document.getElementById('preview-iframe');
+  const statusEl = document.getElementById('preview-status');
   iframe.srcdoc = previewHTML;
-  document.getElementById('preview-status').textContent = 'Preview rendered';
+  statusEl.textContent = 'Preview rendered';
+  // Catch JS errors from inside the iframe and surface them in the status bar
+  iframe.onload = function() {
+    try {
+      iframe.contentWindow.onerror = function(msg, src, line) {
+        statusEl.textContent = 'JS error: ' + msg + (line ? ' (line ' + line + ')' : '');
+        statusEl.style.color = 'var(--coral)';
+        return true;
+      };
+    } catch(e) {}
+  };
   toast('Preview refreshed', 'ok');
 }
 
+function buildPreviewHTML() {
+  const frontendOutput = runState.results['frontend'] || '';
+  if (!frontendOutput) return null;
+  const fenceRe = /```(?:html|css|javascript|js)?[\r\n]+([\s\S]*?)```/g;
+  const codeBlocks = []; let fm;
+  while ((fm = fenceRe.exec(frontendOutput)) !== null) codeBlocks.push(fm[1]);
+  if (!codeBlocks.length) {
+    const um = /```html[\r\n]+([\s\S]+)$/i.exec(frontendOutput);
+    if (um) codeBlocks.push(um[1]);
+  }
+  let html = '';
+  if (codeBlocks.length > 0) {
+    html = codeBlocks.find(b => b.trim().startsWith('<!') || b.trim().startsWith('<html') || b.includes('<body')) || codeBlocks[0];
+    if (codeBlocks.length > 1 && !html.includes('<style>')) {
+      const cssBlock = codeBlocks.find(b => b.includes('{') && b.includes(':'));
+      if (cssBlock) html = '<style>' + cssBlock + '</style>\n' + html;
+    }
+  } else {
+    const hm = /<html[\s\S]*<\/html>/i.exec(frontendOutput) || /<body[\s\S]*<\/body>/i.exec(frontendOutput) || /(<(?:!doctype|html)[\s\S]+)$/i.exec(frontendOutput);
+    html = hm ? hm[0] : '<html><body style="font-family:sans-serif;padding:20px"><h2>No HTML found</h2><p>The frontend stage may not have produced a code block yet.</p></body></html>';
+  }
+  if (runState.results['backend']) {
+    const jsMatch = /```(?:javascript|js)?[\r\n]+([\s\S]*?)```/.exec(runState.results['backend']);
+    const jsCode = jsMatch ? jsMatch[1] : runState.results['backend'];
+    const tag = '\n<script>' + jsCode + '<\/script>\n';
+    html = html.includes('</body>') ? html.replace(/<\/body>/i, tag + '</body>') : html + tag;
+  }
+  return html;
+}
 
 function openPreviewBlank() {
-  const frontendOutput = runState.results['frontend'] || '';
-  if (!frontendOutput) { toast('No frontend output yet', 'bad'); return; }
-  var fRe = /```(?:html|css|javascript|js)?[\r\n]+([\s\S]*?)```/g, blks=[], bm;
-  while((bm=fRe.exec(frontendOutput))!==null) blks.push(bm[1]);
-  var pg = blks[0] || frontendOutput;
-  // Open in new tab safely using a blob URL instead of document.write
+  const html = buildPreviewHTML();
+  if (!html) { toast('No frontend output yet', 'bad'); return; }
   try {
-    var blob = new Blob([pg], {type: 'text/html'});
-    var blobUrl = URL.createObjectURL(blob);
-    var w = window.open(blobUrl, '_blank');
-    // Revoke after a short delay
-    setTimeout(function(){ URL.revokeObjectURL(blobUrl); }, 5000);
+    const blob = new Blob([html], {type: 'text/html'});
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
   } catch(e) { toast('Could not open preview: ' + e.message, 'bad'); }
 }
 
