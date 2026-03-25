@@ -26,6 +26,9 @@ exports.handler = async function (event) {
     };
   }
 
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 25000);
+
   try {
     const upstream = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -36,8 +39,10 @@ exports.handler = async function (event) {
           event.headers['anthropic-version'] || '2023-06-01',
       },
       body: event.body,
+      signal: controller.signal,
     });
 
+    clearTimeout(timer);
     const responseText = await upstream.text();
 
     return {
@@ -46,10 +51,12 @@ exports.handler = async function (event) {
       body: responseText,
     };
   } catch (err) {
+    clearTimeout(timer);
+    const isTimeout = err.name === 'AbortError';
     return {
-      statusCode: 502,
+      statusCode: isTimeout ? 504 : 502,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ error: { message: 'Proxy error: ' + err.message } }),
+      body: JSON.stringify({ error: { message: isTimeout ? 'Request timed out — try a shorter prompt or lower token budget' : 'Proxy error: ' + err.message } }),
     };
   }
 };
