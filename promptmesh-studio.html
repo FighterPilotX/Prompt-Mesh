@@ -1211,7 +1211,7 @@ Output: one \`\`\`html block only.`;
     badge: 'LOGIC', badgeColor: '#c47a2a',
     systemPrompt: 'You are a backend/logic engineer. Output only a single ```javascript block — no explanation before or after. Write working browser-compatible vanilla JS, not pseudocode.',
     buildPrompt(userPrompt, prev, customSys) {
-      const frontendExcerpt = (prev.frontend||'').substring(0,500);
+      const frontendExcerpt = (prev.frontend||'').substring(0,3000);
       return `${customSys ? 'CONTEXT: ' + customSys + '\n\n' : ''}Write the core JavaScript logic module.
 
 PROJECT: "${userPrompt}"
@@ -2720,11 +2720,16 @@ function refreshPreview() {
     previewHTML = hm ? hm[0] : '<html><body style="font-family:sans-serif;padding:20px"><h2>No HTML found</h2><p>The frontend stage may not have produced a code block yet.</p></body></html>';
   }
   if (runState.results['backend']) {
-    // Extract JS from code fence if present, inject as a real script
+    // Extract JS from code fence if present, inject before </body> (not after </html>)
     const jsRe = /```(?:javascript|js)?[\r\n]+([\s\S]*?)```/;
     const jsMatch = jsRe.exec(runState.results['backend']);
     const jsCode = jsMatch ? jsMatch[1] : runState.results['backend'];
-    previewHTML += '\n<script>' + jsCode + '<\/script>';
+    const scriptTag = '\n<script>' + jsCode + '<\/script>\n';
+    if (previewHTML.includes('</body>')) {
+      previewHTML = previewHTML.replace(/<\/body>/i, scriptTag + '</body>');
+    } else {
+      previewHTML += scriptTag;
+    }
   }
   const iframe = document.getElementById('preview-iframe');
   iframe.srcdoc = previewHTML;
