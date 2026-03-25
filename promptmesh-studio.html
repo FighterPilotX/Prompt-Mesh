@@ -989,11 +989,12 @@ const LLM_PROVIDERS = {
     defaultModel:'claude-haiku-4-5-20251001',
     async call(key,model,sys,user,maxTok){
       for(let attempt=0;attempt<3;attempt++){
-        const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-request-when-unauthenticated':'true'},body:JSON.stringify({model,max_tokens:maxTok,system:sys,messages:[{role:'user',content:user}]})});
+        const r=await fetch('/.netlify/functions/ai-proxy',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01'},body:JSON.stringify({model,max_tokens:maxTok,system:sys,messages:[{role:'user',content:user}]})});
         if(!r.ok){
           const d=await r.json().catch(()=>({}));
           if(r.status===401)throw new Error('Invalid Anthropic key — check it starts with sk-ant-api03-');
           if(r.status===429)throw new Error('Rate limited by Anthropic — wait a moment');
+          if(r.status===504)throw new Error('Request timed out — try a shorter prompt or lower token budget');
           if((r.status===502||r.status===503||r.status===529)&&attempt<2){await new Promise(ok=>setTimeout(ok,(attempt+1)*2000));continue;}
           throw new Error('Anthropic error '+r.status+': '+(d?.error?.message||'').substring(0,80));
         }
