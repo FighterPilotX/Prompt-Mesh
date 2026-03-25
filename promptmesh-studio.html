@@ -1179,27 +1179,14 @@ Under 200 words.`;
     badge: 'UI CODE', badgeColor: '#2563ab',
     systemPrompt: 'You are a frontend engineer. Output only a single complete HTML file in a ```html block — no explanation before or after. Working code, not pseudocode.',
     buildPrompt(userPrompt, prev, customSys) {
-      return `${customSys ? 'CONTEXT: ' + customSys + '\n\n' : ''}Write the main UI screen as a single complete HTML file.
+      return `${customSys ? 'CONTEXT: ' + customSys + '\n\n' : ''}Write a single complete HTML file with embedded CSS and JS. Keep the code compact — combine styles, minimize whitespace.
 
 PROJECT: "${userPrompt}"
-DESIGN SYSTEM: ${(prev.design||'Generate a clean, modern design system appropriate to the project.').substring(0,600)}
-SPEC: ${(prev.planning||'').substring(0,500)}
+DESIGN: ${(prev.design||'Clean modern design with good colors').substring(0,400)}
+SPEC: ${(prev.planning||'').substring(0,400)}
 
-Requirements:
-1. Google Fonts import matching the design system
-2. CSS custom properties for all colors/fonts from the design system
-3. The primary UI screen — fully styled and interactive
-4. Smooth transitions and hover states
-5. Responsive layout (mobile-first)
-
-Rules:
-- Semantic HTML5
-- CSS variables for theming
-- Vanilla JS only
-- Working code, not pseudocode
-- At least one CSS transition/animation
-
-Output: one \`\`\`html block only.`;
+Requirements: Google Fonts, CSS custom properties, responsive, interactive, transitions.
+Rules: Semantic HTML5, vanilla JS only, working code. No explanation — just one \`\`\`html block.`;
     }
   },
   backend: {
@@ -1557,13 +1544,19 @@ async function executePipeline(keys, prompt, stageIds, mode) {
         : await callAPI(keys, s, userPrompt);
 
       // Retry if truncated — double token budget each attempt (max 2 retries)
+      // Keep the last successful result so a retry failure doesn't lose everything
       let retryCount = 0;
       let currentBudget = s.tokenBudget;
       while (result.truncated && retryCount < 2 && !runState.aborted) {
         currentBudget = Math.min(currentBudget * 2, 8192);
         addFeed('fi-system', 'RETRY', `${s.name} output truncated — retrying with ${currentBudget} tokens (attempt ${retryCount+2})`);
         const biggerStage = Object.assign({}, s, { tokenBudget: currentBudget });
-        result = await callAPI(keys, biggerStage, userPrompt);
+        try {
+          result = await callAPI(keys, biggerStage, userPrompt);
+        } catch (retryErr) {
+          addFeed('fi-system', 'RETRY', `Retry failed (${retryErr.message.substring(0,60)}) — using truncated output`);
+          break;
+        }
         retryCount++;
       }
       const ms = Date.now() - t0;
