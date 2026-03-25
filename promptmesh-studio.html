@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://api.anthropic.com https://api.openai.com https://generativelanguage.googleapis.com https://api.mistral.ai https://api.groq.com https://api.cohere.com; frame-src 'none';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; style-src 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; font-src https://fonts.gstatic.com; connect-src 'self' https://api.anthropic.com https://api.openai.com https://generativelanguage.googleapis.com https://api.mistral.ai https://api.groq.com https://api.cohere.com; frame-src 'self';">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PromptMesh Studio — AI Pipeline Builder</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1009,10 +1009,12 @@ const LLM_PROVIDERS = {
     defaultModel:'gpt-4o-mini',
     async call(key,model,sys,user,maxTok){
       const msgs=[];if(sys)msgs.push({role:'system',content:sys});msgs.push({role:'user',content:user});
-      const r=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model,max_tokens:maxTok,messages:msgs})});
-      if(!r.ok){const d=await r.json().catch(()=>({}));if(r.status===401)throw new Error('Invalid OpenAI API key');if(r.status===429)throw new Error('Rate limited by OpenAI — wait a moment');throw new Error('OpenAI error '+r.status+': '+(d?.error?.message||'').substring(0,80));}
-      const d=await r.json();const text=d.choices?.[0]?.message?.content||'';if(!text)throw new Error('Empty response from OpenAI');
-      return{text,tokens:(d.usage?.prompt_tokens||0)+(d.usage?.completion_tokens||0),truncated:d.choices?.[0]?.finish_reason==='length'};
+      for(let attempt=0;attempt<3;attempt++){
+        const r=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model,max_tokens:maxTok,messages:msgs})});
+        if(!r.ok){const d=await r.json().catch(()=>({}));if(r.status===401)throw new Error('Invalid OpenAI API key');if(r.status===429)throw new Error('Rate limited by OpenAI — wait a moment');if((r.status===502||r.status===503)&&attempt<2){await new Promise(ok=>setTimeout(ok,(attempt+1)*2000));continue;}throw new Error('OpenAI error '+r.status+': '+(d?.error?.message||'').substring(0,80));}
+        const d=await r.json();const text=d.choices?.[0]?.message?.content||'';if(!text)throw new Error('Empty response from OpenAI');
+        return{text,tokens:(d.usage?.prompt_tokens||0)+(d.usage?.completion_tokens||0),truncated:d.choices?.[0]?.finish_reason==='length'};
+      }
     }
   },
   gemini: {
@@ -1033,10 +1035,12 @@ const LLM_PROVIDERS = {
     defaultModel:'mistral-small-latest',
     async call(key,model,sys,user,maxTok){
       const msgs=[];if(sys)msgs.push({role:'system',content:sys});msgs.push({role:'user',content:user});
-      const r=await fetch('https://api.mistral.ai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model,max_tokens:maxTok,messages:msgs})});
-      if(!r.ok){const d=await r.json().catch(()=>({}));if(r.status===401)throw new Error('Invalid Mistral API key');if(r.status===429)throw new Error('Rate limited by Mistral — wait a moment');throw new Error('Mistral error '+r.status+': '+(d?.message||'').substring(0,80));}
-      const d=await r.json();const text=d.choices?.[0]?.message?.content||'';if(!text)throw new Error('Empty response from Mistral');
-      return{text,tokens:(d.usage?.prompt_tokens||0)+(d.usage?.completion_tokens||0),truncated:d.choices?.[0]?.finish_reason==='length'};
+      for(let attempt=0;attempt<3;attempt++){
+        const r=await fetch('https://api.mistral.ai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model,max_tokens:maxTok,messages:msgs})});
+        if(!r.ok){const d=await r.json().catch(()=>({}));if(r.status===401)throw new Error('Invalid Mistral API key');if(r.status===429)throw new Error('Rate limited by Mistral — wait a moment');if((r.status===502||r.status===503)&&attempt<2){await new Promise(ok=>setTimeout(ok,(attempt+1)*2000));continue;}throw new Error('Mistral error '+r.status+': '+(d?.message||'').substring(0,80));}
+        const d=await r.json();const text=d.choices?.[0]?.message?.content||'';if(!text)throw new Error('Empty response from Mistral');
+        return{text,tokens:(d.usage?.prompt_tokens||0)+(d.usage?.completion_tokens||0),truncated:d.choices?.[0]?.finish_reason==='length'};
+      }
     }
   },
   groq: {
@@ -1045,10 +1049,12 @@ const LLM_PROVIDERS = {
     defaultModel:'llama-3.3-70b-versatile',
     async call(key,model,sys,user,maxTok){
       const msgs=[];if(sys)msgs.push({role:'system',content:sys});msgs.push({role:'user',content:user});
-      const r=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model,max_tokens:maxTok,messages:msgs})});
-      if(!r.ok){const d=await r.json().catch(()=>({}));if(r.status===401)throw new Error('Invalid Groq API key');if(r.status===429)throw new Error('Rate limited by Groq — wait a moment');throw new Error('Groq error '+r.status+': '+(d?.error?.message||'').substring(0,80));}
-      const d=await r.json();const text=d.choices?.[0]?.message?.content||'';if(!text)throw new Error('Empty response from Groq');
-      return{text,tokens:(d.usage?.prompt_tokens||0)+(d.usage?.completion_tokens||0),truncated:d.choices?.[0]?.finish_reason==='length'};
+      for(let attempt=0;attempt<3;attempt++){
+        const r=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model,max_tokens:maxTok,messages:msgs})});
+        if(!r.ok){const d=await r.json().catch(()=>({}));if(r.status===401)throw new Error('Invalid Groq API key');if(r.status===429)throw new Error('Rate limited by Groq — wait a moment');if((r.status===502||r.status===503)&&attempt<2){await new Promise(ok=>setTimeout(ok,(attempt+1)*2000));continue;}throw new Error('Groq error '+r.status+': '+(d?.error?.message||'').substring(0,80));}
+        const d=await r.json();const text=d.choices?.[0]?.message?.content||'';if(!text)throw new Error('Empty response from Groq');
+        return{text,tokens:(d.usage?.prompt_tokens||0)+(d.usage?.completion_tokens||0),truncated:d.choices?.[0]?.finish_reason==='length'};
+      }
     }
   },
   cohere: {
@@ -1056,10 +1062,12 @@ const LLM_PROVIDERS = {
     models:{'command-r-plus-08-2024':{label:'Command R+ (latest)',costPer1k:0.003},'command-r-08-2024':{label:'Command R (latest)',costPer1k:0.00015}},
     defaultModel:'command-r-08-2024',
     async call(key,model,sys,user,maxTok){
-      const r=await fetch('https://api.cohere.com/v2/chat',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model,max_tokens:maxTok,preamble:sys||undefined,messages:[{role:'user',content:user}]})});
-      if(!r.ok){const d=await r.json().catch(()=>({}));if(r.status===401)throw new Error('Invalid Cohere API key');if(r.status===429)throw new Error('Rate limited by Cohere — wait a moment');throw new Error('Cohere error '+r.status+': '+(d?.message||'').substring(0,80));}
-      const d=await r.json();const text=d.message?.content?.[0]?.text||'';if(!text)throw new Error('Empty response from Cohere');
-      return{text,tokens:(d.usage?.tokens?.input_tokens||0)+(d.usage?.tokens?.output_tokens||0),truncated:d.finish_reason==='MAX_TOKENS'};
+      for(let attempt=0;attempt<3;attempt++){
+        const r=await fetch('https://api.cohere.com/v2/chat',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model,max_tokens:maxTok,preamble:sys||undefined,messages:[{role:'user',content:user}]})});
+        if(!r.ok){const d=await r.json().catch(()=>({}));if(r.status===401)throw new Error('Invalid Cohere API key');if(r.status===429)throw new Error('Rate limited by Cohere — wait a moment');if((r.status===502||r.status===503)&&attempt<2){await new Promise(ok=>setTimeout(ok,(attempt+1)*2000));continue;}throw new Error('Cohere error '+r.status+': '+(d?.message||'').substring(0,80));}
+        const d=await r.json();const text=d.message?.content?.[0]?.text||'';if(!text)throw new Error('Empty response from Cohere');
+        return{text,tokens:(d.usage?.tokens?.input_tokens||0)+(d.usage?.tokens?.output_tokens||0),truncated:d.finish_reason==='MAX_TOKENS'};
+      }
     }
   }
 };
@@ -2833,7 +2841,7 @@ function updateCostEstLive() {
   const pid = getSelectedProvider();
   const p = LLM_PROVIDERS[pid];
   const costPer1k = p ? (p.models[p.defaultModel]?.costPer1k || 0.00025) : 0.00025;
-  const stageCounts = { quick: 3, full: 5, code: 3, design: 3 };
+  const stageCounts = { quick: 3, full: 5, code: 3, design: 3, fusion: 5 };
   const stages = stageCounts[mode] || 3;
   const promptTokens = Math.ceil(prompt.length / 4);
   // ~1000 output tokens per stage + proportional prompt cost
@@ -2842,7 +2850,7 @@ function updateCostEstLive() {
   const total = baseCost + promptCost;
   const el = document.getElementById('cost-est');
   if (!el) return;
-  const tag = isFusion ? '⚡' : '💰';
+  const tag = (mode === 'fusion') ? '⚡' : '💰';
   el.textContent = `${tag} ~$${total.toFixed(4)} est.`;
 }
 
