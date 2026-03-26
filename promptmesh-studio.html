@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://api.anthropic.com https://api.openai.com https://generativelanguage.googleapis.com https://api.mistral.ai https://api.groq.com https://api.cohere.com; frame-src 'none';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; style-src 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; font-src https://fonts.gstatic.com; connect-src 'self' https://api.anthropic.com https://api.openai.com https://generativelanguage.googleapis.com https://api.mistral.ai https://api.groq.com https://api.cohere.com; frame-src 'self';">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PromptMesh Studio — AI Pipeline Builder</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -745,7 +745,7 @@ body.dark .dark-toggle .icon-moon { display:block; }
       <div class="output-tabs">
         <div class="ot on" onclick="switchOT(this,'feed')">Live Feed</div>
         <div class="ot" onclick="switchOT(this,'output')">Full Output</div>
-        <div class="ot" onclick="switchOT(this,'preview')">Preview</div>
+        <div class="ot" id="tab-preview" onclick="switchOT(this,'preview')">Preview</div>
         <div class="ot" onclick="switchOT(this,'cost')">Cost Breakdown</div>
       </div>
       <div class="ot-body on" id="otb-feed">
@@ -1009,10 +1009,12 @@ const LLM_PROVIDERS = {
     defaultModel:'gpt-4o-mini',
     async call(key,model,sys,user,maxTok){
       const msgs=[];if(sys)msgs.push({role:'system',content:sys});msgs.push({role:'user',content:user});
-      const r=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model,max_tokens:maxTok,messages:msgs})});
-      if(!r.ok){const d=await r.json().catch(()=>({}));if(r.status===401)throw new Error('Invalid OpenAI API key');if(r.status===429)throw new Error('Rate limited by OpenAI — wait a moment');throw new Error('OpenAI error '+r.status+': '+(d?.error?.message||'').substring(0,80));}
-      const d=await r.json();const text=d.choices?.[0]?.message?.content||'';if(!text)throw new Error('Empty response from OpenAI');
-      return{text,tokens:(d.usage?.prompt_tokens||0)+(d.usage?.completion_tokens||0),truncated:d.choices?.[0]?.finish_reason==='length'};
+      for(let attempt=0;attempt<3;attempt++){
+        const r=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model,max_tokens:maxTok,messages:msgs})});
+        if(!r.ok){const d=await r.json().catch(()=>({}));if(r.status===401)throw new Error('Invalid OpenAI API key');if(r.status===429)throw new Error('Rate limited by OpenAI — wait a moment');if((r.status===502||r.status===503)&&attempt<2){await new Promise(ok=>setTimeout(ok,(attempt+1)*2000));continue;}throw new Error('OpenAI error '+r.status+': '+(d?.error?.message||'').substring(0,80));}
+        const d=await r.json();const text=d.choices?.[0]?.message?.content||'';if(!text)throw new Error('Empty response from OpenAI');
+        return{text,tokens:(d.usage?.prompt_tokens||0)+(d.usage?.completion_tokens||0),truncated:d.choices?.[0]?.finish_reason==='length'};
+      }
     }
   },
   gemini: {
@@ -1033,10 +1035,12 @@ const LLM_PROVIDERS = {
     defaultModel:'mistral-small-latest',
     async call(key,model,sys,user,maxTok){
       const msgs=[];if(sys)msgs.push({role:'system',content:sys});msgs.push({role:'user',content:user});
-      const r=await fetch('https://api.mistral.ai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model,max_tokens:maxTok,messages:msgs})});
-      if(!r.ok){const d=await r.json().catch(()=>({}));if(r.status===401)throw new Error('Invalid Mistral API key');if(r.status===429)throw new Error('Rate limited by Mistral — wait a moment');throw new Error('Mistral error '+r.status+': '+(d?.message||'').substring(0,80));}
-      const d=await r.json();const text=d.choices?.[0]?.message?.content||'';if(!text)throw new Error('Empty response from Mistral');
-      return{text,tokens:(d.usage?.prompt_tokens||0)+(d.usage?.completion_tokens||0),truncated:d.choices?.[0]?.finish_reason==='length'};
+      for(let attempt=0;attempt<3;attempt++){
+        const r=await fetch('https://api.mistral.ai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model,max_tokens:maxTok,messages:msgs})});
+        if(!r.ok){const d=await r.json().catch(()=>({}));if(r.status===401)throw new Error('Invalid Mistral API key');if(r.status===429)throw new Error('Rate limited by Mistral — wait a moment');if((r.status===502||r.status===503)&&attempt<2){await new Promise(ok=>setTimeout(ok,(attempt+1)*2000));continue;}throw new Error('Mistral error '+r.status+': '+(d?.message||'').substring(0,80));}
+        const d=await r.json();const text=d.choices?.[0]?.message?.content||'';if(!text)throw new Error('Empty response from Mistral');
+        return{text,tokens:(d.usage?.prompt_tokens||0)+(d.usage?.completion_tokens||0),truncated:d.choices?.[0]?.finish_reason==='length'};
+      }
     }
   },
   groq: {
@@ -1045,10 +1049,12 @@ const LLM_PROVIDERS = {
     defaultModel:'llama-3.3-70b-versatile',
     async call(key,model,sys,user,maxTok){
       const msgs=[];if(sys)msgs.push({role:'system',content:sys});msgs.push({role:'user',content:user});
-      const r=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model,max_tokens:maxTok,messages:msgs})});
-      if(!r.ok){const d=await r.json().catch(()=>({}));if(r.status===401)throw new Error('Invalid Groq API key');if(r.status===429)throw new Error('Rate limited by Groq — wait a moment');throw new Error('Groq error '+r.status+': '+(d?.error?.message||'').substring(0,80));}
-      const d=await r.json();const text=d.choices?.[0]?.message?.content||'';if(!text)throw new Error('Empty response from Groq');
-      return{text,tokens:(d.usage?.prompt_tokens||0)+(d.usage?.completion_tokens||0),truncated:d.choices?.[0]?.finish_reason==='length'};
+      for(let attempt=0;attempt<3;attempt++){
+        const r=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model,max_tokens:maxTok,messages:msgs})});
+        if(!r.ok){const d=await r.json().catch(()=>({}));if(r.status===401)throw new Error('Invalid Groq API key');if(r.status===429)throw new Error('Rate limited by Groq — wait a moment');if((r.status===502||r.status===503)&&attempt<2){await new Promise(ok=>setTimeout(ok,(attempt+1)*2000));continue;}throw new Error('Groq error '+r.status+': '+(d?.error?.message||'').substring(0,80));}
+        const d=await r.json();const text=d.choices?.[0]?.message?.content||'';if(!text)throw new Error('Empty response from Groq');
+        return{text,tokens:(d.usage?.prompt_tokens||0)+(d.usage?.completion_tokens||0),truncated:d.choices?.[0]?.finish_reason==='length'};
+      }
     }
   },
   cohere: {
@@ -1056,10 +1062,12 @@ const LLM_PROVIDERS = {
     models:{'command-r-plus-08-2024':{label:'Command R+ (latest)',costPer1k:0.003},'command-r-08-2024':{label:'Command R (latest)',costPer1k:0.00015}},
     defaultModel:'command-r-08-2024',
     async call(key,model,sys,user,maxTok){
-      const r=await fetch('https://api.cohere.com/v2/chat',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model,max_tokens:maxTok,preamble:sys||undefined,messages:[{role:'user',content:user}]})});
-      if(!r.ok){const d=await r.json().catch(()=>({}));if(r.status===401)throw new Error('Invalid Cohere API key');if(r.status===429)throw new Error('Rate limited by Cohere — wait a moment');throw new Error('Cohere error '+r.status+': '+(d?.message||'').substring(0,80));}
-      const d=await r.json();const text=d.message?.content?.[0]?.text||'';if(!text)throw new Error('Empty response from Cohere');
-      return{text,tokens:(d.usage?.tokens?.input_tokens||0)+(d.usage?.tokens?.output_tokens||0),truncated:d.finish_reason==='MAX_TOKENS'};
+      for(let attempt=0;attempt<3;attempt++){
+        const r=await fetch('https://api.cohere.com/v2/chat',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model,max_tokens:maxTok,preamble:sys||undefined,messages:[{role:'user',content:user}]})});
+        if(!r.ok){const d=await r.json().catch(()=>({}));if(r.status===401)throw new Error('Invalid Cohere API key');if(r.status===429)throw new Error('Rate limited by Cohere — wait a moment');if((r.status===502||r.status===503)&&attempt<2){await new Promise(ok=>setTimeout(ok,(attempt+1)*2000));continue;}throw new Error('Cohere error '+r.status+': '+(d?.message||'').substring(0,80));}
+        const d=await r.json();const text=d.message?.content?.[0]?.text||'';if(!text)throw new Error('Empty response from Cohere');
+        return{text,tokens:(d.usage?.tokens?.input_tokens||0)+(d.usage?.tokens?.output_tokens||0),truncated:d.finish_reason==='MAX_TOKENS'};
+      }
     }
   }
 };
@@ -1117,10 +1125,10 @@ One crisp sentence of what this is.
 - [feature 5]
 
 ## Tech Stack
-HTML + CSS + Vanilla JS (no build tools). [Note any CDNs needed e.g. Chart.js]
+HTML + CSS + Vanilla JS (no build tools). [Note any CDNs needed e.g. Chart.js from https://cdn.jsdelivr.net/npm/chart.js]
 
 ## Components to Build
-List 3-5 specific UI components with their responsibilities.
+List 3-5 specific UI components with their exact element IDs to use (e.g. "Task list <ul id='task-list'>").
 
 ## Data Model
 Show the main JS objects/arrays with example shapes.
@@ -1128,7 +1136,7 @@ Show the main JS objects/arrays with example shapes.
 ## Gotchas
 1-2 specific implementation challenges to watch out for.
 
-Under 280 words total.`;
+Under 300 words total.`;
     }
   },
   design: {
@@ -1178,49 +1186,59 @@ Under 200 words.`;
     model: 'claude-haiku-4-5-20251001', tokenBudget: 4096,
     costPer1k: 0.00025, feedType: 'fi-frontend',
     badge: 'UI CODE', badgeColor: '#2563ab',
-    systemPrompt: 'You are a frontend engineer. Output only a single ```html block. Working structure and full visual design.',
+    systemPrompt: 'You are a frontend engineer. Output only a single ```html code block. No explanation before or after. Build real, complete UIs — not mockups.',
     buildPrompt(userPrompt, prev, customSys, stageIds) {
       const hasBackend = stageIds && stageIds.includes('backend');
-      const design = (prev.design||'Generate a clean, modern design system appropriate to the project.').substring(0,600);
-      const spec = (prev.planning||'').substring(0,500);
+      const design = (prev.design||'Clean modern design: neutral background, clear typography, strong accent color for CTAs.').substring(0,800);
+      const spec = (prev.planning||'').substring(0,600);
       if (hasBackend) {
-        return `${customSys ? 'CONTEXT: ' + customSys + '\n\n' : ''}Write the HTML + CSS structure for this app. NO JavaScript — only HTML and CSS.
+        return `${customSys ? 'CONTEXT: ' + customSys + '\n\n' : ''}Write the complete HTML + CSS for this app. A separate JS file will be added — do NOT include any JavaScript.
 
 PROJECT: "${userPrompt}"
 DESIGN SYSTEM: ${design}
 SPEC: ${spec}
 
-Requirements:
-1. Google Fonts import
-2. CSS custom properties for all colors/fonts
-3. Complete UI — every screen/component the app needs, fully styled
-4. Smooth CSS transitions and hover states
-5. Responsive layout (mobile-first)
-6. Give every interactive element a clear, descriptive id="" attribute
+REQUIREMENTS:
+1. Load Google Fonts in <head> if the design specifies them
+2. CSS custom properties (--primary, --bg, --text, etc.) for every color and font
+3. Complete UI showing every screen/state the app needs — fully styled, pixel-perfect
+4. Smooth CSS transitions (0.2s ease) on interactive elements
+5. Responsive layout using CSS Grid or Flexbox
+6. Every list/grid that shows dynamic data must have an empty container with an id (JS will fill it)
+7. Empty/placeholder states where dynamic content appears (e.g. "No tasks yet")
 
-Rules:
-- Semantic HTML5, CSS variables for theming
-- NO <script> tags, NO inline JS event handlers (onclick=, onchange=, etc.)
-- All buttons/inputs/forms must have id attributes the JS can target
-- Placeholder/empty state content where dynamic data will appear
+ID RULES (critical — the JS engineer depends on these):
+- Every <button> must have a unique descriptive id (e.g. id="add-task-btn", id="clear-btn")
+- Every <input>, <select>, <textarea> must have a unique id (e.g. id="task-input", id="priority-select")
+- Every container that shows dynamic content must have a unique id (e.g. id="task-list", id="results-grid")
+- Every section/panel that can be shown/hidden must have an id (e.g. id="empty-state", id="detail-panel")
+- Use kebab-case ids that describe the element's purpose, not its position (NOT id="btn1")
+
+FORBIDDEN:
+- <script> tags of any kind
+- Inline event handlers: onclick=, onchange=, onsubmit=, oninput=
+- JavaScript of any kind
 
 Output: one \`\`\`html block only.`;
       } else {
-        return `${customSys ? 'CONTEXT: ' + customSys + '\n\n' : ''}Write a single complete interactive HTML file (HTML + CSS + JS).
+        return `${customSys ? 'CONTEXT: ' + customSys + '\n\n' : ''}Write a single complete, fully-working interactive HTML file.
 
 PROJECT: "${userPrompt}"
 DESIGN SYSTEM: ${design}
 SPEC: ${spec}
 
-Requirements:
-1. Google Fonts import
+REQUIREMENTS:
+1. Load Google Fonts in <head> if design specifies them
 2. CSS custom properties for all colors/fonts
-3. Fully styled and interactive — working app, not a mockup
-4. Smooth transitions and hover states
-5. Responsive layout (mobile-first)
+3. Complete, working app — every feature implemented, nothing stubbed
+4. Smooth CSS transitions on interactive elements
+5. Responsive layout (CSS Grid or Flexbox)
+6. All event listeners use addEventListener — no onclick= attributes
+7. Wrap all JS initialization in document.addEventListener('DOMContentLoaded', init)
+8. Use localStorage for any data that should persist across page refreshes
+9. Guard all DOM queries: const el = document.getElementById('x'); if (!el) return;
 
-Rules: Semantic HTML5, vanilla JS only, working code.
-Output: one \`\`\`html block only.`;
+Output: one \`\`\`html block only. The <script> tag goes before </body>.`;
       }
     }
   },
@@ -1230,34 +1248,61 @@ Output: one \`\`\`html block only.`;
     model: 'claude-haiku-4-5-20251001', tokenBudget: 4096,
     costPer1k: 0.00025, feedType: 'fi-backend',
     badge: 'LOGIC', badgeColor: '#c47a2a',
-    systemPrompt: 'You are a JavaScript engineer. Output only a single ```javascript block — no explanation. Write complete, working vanilla JS that makes the HTML fully interactive.',
+    systemPrompt: 'You are a JavaScript engineer. Output only a single ```javascript block — zero explanation before or after. Write complete, production-quality vanilla JS. No stubs, no TODOs, no placeholder comments.',
     buildPrompt(userPrompt, prev, customSys) {
-      const frontendHTML = (prev.frontend||'').substring(0,3000);
+      const frontendHTML = (prev.frontend||'').substring(0, 6000);
+      // Dynamically extract IDs so backend can target them precisely
+      const idMatches = [...frontendHTML.matchAll(/\bid="([^"]+)"/gi)];
+      const elementIds = [...new Set(idMatches.map(m => m[1]))];
+      const idsHint = elementIds.length > 0
+        ? '\n\nELEMENT IDs (ONLY target IDs that exist in the HTML above):\n' + elementIds.map(id => `  #${id}`).join('\n')
+        : '';
       return `${customSys ? 'CONTEXT: ' + customSys + '\n\n' : ''}Write ALL the JavaScript to make this app fully interactive.
 
 PROJECT: "${userPrompt}"
-SPEC: ${(prev.planning||'').substring(0,400)}
-FULL HTML (your JS must target these exact IDs and classes):
-${frontendHTML}
+SPEC: ${(prev.planning||'').substring(0,500)}
 
-Write a single \`\`\`javascript block with:
+FULL HTML (target the EXACT IDs listed — do not invent IDs that aren't here):
+${frontendHTML}${idsHint}
 
-1. STATE — the complete app state object
-2. RENDER — a function that reads state and updates the DOM
-3. CORE LOGIC — all business logic functions, fully implemented (no stubs)
-   - Use document.getElementById / querySelector with the real IDs from the HTML above
-   - localStorage save/load where data must persist across refreshes
-4. EVENT LISTENERS — addEventListener for every button, input, and form in the HTML
-5. INIT — initialize state, render, wire up all events
-   document.addEventListener('DOMContentLoaded', init);
+Output a single \`\`\`javascript block structured as:
 
-Working code only. No inline handlers. Target the exact IDs from the HTML above.`;
+// STATE
+const state = { /* complete initial state */ };
+
+// RENDER — reads state, writes to DOM
+function render() {
+  // update every dynamic element (lists, counters, visibility, etc.)
+}
+
+// LOGIC — every feature fully implemented, no stubs
+function [featureName]() { ... }
+
+// EVENTS — addEventListener on EVERY interactive element in the HTML
+function bindEvents() {
+  document.getElementById('...').addEventListener('click', ...);
+  // etc.
+}
+
+// INIT
+function init() {
+  // load from localStorage if needed
+  bindEvents();
+  render();
+}
+document.addEventListener('DOMContentLoaded', init);
+
+RULES:
+- Guard every DOM query: const el = document.getElementById('id'); if (!el) return;
+- Use localStorage for data that should persist (JSON.stringify/parse)
+- Handle all edge cases: empty state, invalid input, 0 items
+- No external libraries unless a <script src="..."> tag exists in the HTML above`;
     }
   },
   polish: {
     id: 'polish', name: 'Final Polish', icon: '✨',
     color: '#4a7c59', bg: 'rgba(74,124,89,0.1)',
-    model: 'gpt-4o-mini', provider: 'openai', tokenBudget: 450,
+    model: 'gpt-4o-mini', provider: 'openai', tokenBudget: 800,
     costPer1k: 0.00015, feedType: 'fi-polish',
     badge: 'REVIEW', badgeColor: '#4a7c59',
     systemPrompt: 'You are a senior engineer doing a final code review. Be direct and concrete — no filler phrases. Output only the requested sections.',
@@ -1265,8 +1310,8 @@ Working code only. No inline handlers. Target the exact IDs from the HTML above.
       return `${customSys ? 'CONTEXT: ' + customSys + '\n\n' : ''}Final review for this project.
 
 PROJECT: "${userPrompt}"
-FRONTEND (excerpt): ${(prev.frontend||'').substring(0,500)}
-LOGIC (excerpt): ${(prev.backend||'').substring(0,500)}
+FRONTEND (excerpt): ${(prev.frontend||'').substring(0,1500)}
+LOGIC (excerpt): ${(prev.backend||'').substring(0,1500)}
 
 Write:
 
@@ -2294,7 +2339,7 @@ function setConnectorDone(id) {
 function addFeed(cls, from, msg) {
   const el = document.getElementById('run-feed');
   const d = new Date();
-  const ts = `${String(d.getHours()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
+  const ts = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
   const item = document.createElement('div');
   item.className = `feed-item ${cls}`;
   item.innerHTML = `<span class="fi-time">${ts}</span><span class="fi-from">${escHtml(from)}</span><span class="fi-msg">${escHtml(msg)}</span>`;
@@ -2693,74 +2738,66 @@ function saveCustomSys() {
 //  PREVIEW
 // ══════════════════════════════════════════
 function refreshPreview() {
-  const frontendOutput = runState.results['frontend'] || '';
-  if (!frontendOutput) {
+  const previewHTML = buildPreviewHTML();
+  if (!previewHTML) {
     toast('No frontend output yet \u2014 run a build first', 'bad');
     return;
   }
-  // Strategy 1: extract from ```html ... ``` code fences
-  const fenceRe = /```(?:html|css|javascript|js)?[\r\n]+([\s\S]*?)```/g;
-  const codeBlocks = [];
-  let fm;
-  while ((fm = fenceRe.exec(frontendOutput)) !== null) codeBlocks.push(fm[1]);
-
-  // Strategy 2: unclosed code fence (truncated output) — grab everything after ```html\n
-  if (!codeBlocks.length) {
-    const unclosedRe = /```html[\r\n]+([\s\S]+)$/i;
-    const um = unclosedRe.exec(frontendOutput);
-    if (um) codeBlocks.push(um[1]);
-  }
-
-  let previewHTML = '';
-  if (codeBlocks.length > 0) {
-    const htmlBlock = codeBlocks.find(function(b) {
-      return b.trim().startsWith('<!') || b.trim().startsWith('<html') || b.includes('<body');
-    }) || codeBlocks[0];
-    previewHTML = htmlBlock;
-    if (codeBlocks.length > 1 && !previewHTML.includes('<style>')) {
-      const cssBlock = codeBlocks.find(function(b) { return b.includes('{') && b.includes(':'); });
-      if (cssBlock) previewHTML = '<style>' + cssBlock + '</style>\n' + previewHTML;
-    }
-  } else {
-    // Strategy 3: raw HTML without fences — try closed tags first, then unclosed
-    var htmlTagRe = /<html[\s\S]*<\/html>/i;
-    var bodyTagRe = /<body[\s\S]*<\/body>/i;
-    var unclosedHtmlRe = /(<(?:!doctype|html)[\s\S]+)$/i;
-    var hm = htmlTagRe.exec(frontendOutput) || bodyTagRe.exec(frontendOutput) || unclosedHtmlRe.exec(frontendOutput);
-    previewHTML = hm ? hm[0] : '<html><body style="font-family:sans-serif;padding:20px"><h2>No HTML found</h2><p>The frontend stage may not have produced a code block yet.</p></body></html>';
-  }
-  if (runState.results['backend']) {
-    // Extract JS from code fence if present, inject before </body> (not after </html>)
-    const jsRe = /```(?:javascript|js)?[\r\n]+([\s\S]*?)```/;
-    const jsMatch = jsRe.exec(runState.results['backend']);
-    const jsCode = jsMatch ? jsMatch[1] : runState.results['backend'];
-    const scriptTag = '\n<script>' + jsCode + '<\/script>\n';
-    if (previewHTML.includes('</body>')) {
-      previewHTML = previewHTML.replace(/<\/body>/i, scriptTag + '</body>');
-    } else {
-      previewHTML += scriptTag;
-    }
-  }
   const iframe = document.getElementById('preview-iframe');
+  const statusEl = document.getElementById('preview-status');
   iframe.srcdoc = previewHTML;
-  document.getElementById('preview-status').textContent = 'Preview rendered';
+  statusEl.textContent = 'Preview rendered';
+  // Catch JS errors from inside the iframe and surface them in the status bar
+  iframe.onload = function() {
+    try {
+      iframe.contentWindow.onerror = function(msg, src, line) {
+        statusEl.textContent = 'JS error: ' + msg + (line ? ' (line ' + line + ')' : '');
+        statusEl.style.color = 'var(--coral)';
+        return true;
+      };
+    } catch(e) {}
+  };
   toast('Preview refreshed', 'ok');
 }
 
+function buildPreviewHTML() {
+  const frontendOutput = runState.results['frontend'] || '';
+  if (!frontendOutput) return null;
+  const fenceRe = /```(?:html|css|javascript|js)?[\r\n]+([\s\S]*?)```/g;
+  const codeBlocks = []; let fm;
+  while ((fm = fenceRe.exec(frontendOutput)) !== null) codeBlocks.push(fm[1]);
+  if (!codeBlocks.length) {
+    const um = /```html[\r\n]+([\s\S]+)$/i.exec(frontendOutput);
+    if (um) codeBlocks.push(um[1]);
+  }
+  let html = '';
+  if (codeBlocks.length > 0) {
+    html = codeBlocks.find(b => b.trim().startsWith('<!') || b.trim().startsWith('<html') || b.includes('<body')) || codeBlocks[0];
+    if (codeBlocks.length > 1 && !html.includes('<style>')) {
+      const cssBlock = codeBlocks.find(b => b.includes('{') && b.includes(':'));
+      if (cssBlock) html = '<style>' + cssBlock + '</style>\n' + html;
+    }
+  } else {
+    const hm = /<html[\s\S]*<\/html>/i.exec(frontendOutput) || /<body[\s\S]*<\/body>/i.exec(frontendOutput) || /(<(?:!doctype|html)[\s\S]+)$/i.exec(frontendOutput);
+    html = hm ? hm[0] : '<html><body style="font-family:sans-serif;padding:20px"><h2>No HTML found</h2><p>The frontend stage may not have produced a code block yet.</p></body></html>';
+  }
+  if (runState.results['backend']) {
+    const jsMatch = /```(?:javascript|js)?[\r\n]+([\s\S]*?)```/.exec(runState.results['backend']);
+    const jsCode = jsMatch ? jsMatch[1] : runState.results['backend'];
+    const tag = '\n<script>' + jsCode + '<\/script>\n';
+    html = html.includes('</body>') ? html.replace(/<\/body>/i, tag + '</body>') : html + tag;
+  }
+  return html;
+}
 
 function openPreviewBlank() {
-  const frontendOutput = runState.results['frontend'] || '';
-  if (!frontendOutput) { toast('No frontend output yet', 'bad'); return; }
-  var fRe = /```(?:html|css|javascript|js)?[\r\n]+([\s\S]*?)```/g, blks=[], bm;
-  while((bm=fRe.exec(frontendOutput))!==null) blks.push(bm[1]);
-  var pg = blks[0] || frontendOutput;
-  // Open in new tab safely using a blob URL instead of document.write
+  const html = buildPreviewHTML();
+  if (!html) { toast('No frontend output yet', 'bad'); return; }
   try {
-    var blob = new Blob([pg], {type: 'text/html'});
-    var blobUrl = URL.createObjectURL(blob);
-    var w = window.open(blobUrl, '_blank');
-    // Revoke after a short delay
-    setTimeout(function(){ URL.revokeObjectURL(blobUrl); }, 5000);
+    const blob = new Blob([html], {type: 'text/html'});
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
   } catch(e) { toast('Could not open preview: ' + e.message, 'bad'); }
 }
 
@@ -2769,7 +2806,7 @@ function autoPreview() {
   if (runState.results['frontend']) {
     refreshPreview();
     // Auto-switch to Preview tab so the user sees it
-    const previewTab = document.querySelector('.ot[onclick*="preview"]');
+    const previewTab = document.getElementById('tab-preview');
     if (previewTab) {
       switchOT(previewTab, 'preview');
       previewTab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
@@ -2833,7 +2870,7 @@ function updateCostEstLive() {
   const pid = getSelectedProvider();
   const p = LLM_PROVIDERS[pid];
   const costPer1k = p ? (p.models[p.defaultModel]?.costPer1k || 0.00025) : 0.00025;
-  const stageCounts = { quick: 3, full: 5, code: 3, design: 3 };
+  const stageCounts = { quick: 3, full: 5, code: 3, design: 3, fusion: 5 };
   const stages = stageCounts[mode] || 3;
   const promptTokens = Math.ceil(prompt.length / 4);
   // ~1000 output tokens per stage + proportional prompt cost
@@ -2842,7 +2879,7 @@ function updateCostEstLive() {
   const total = baseCost + promptCost;
   const el = document.getElementById('cost-est');
   if (!el) return;
-  const tag = isFusion ? '⚡' : '💰';
+  const tag = (mode === 'fusion') ? '⚡' : '💰';
   el.textContent = `${tag} ~$${total.toFixed(4)} est.`;
 }
 
