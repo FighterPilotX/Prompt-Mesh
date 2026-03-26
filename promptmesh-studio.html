@@ -519,14 +519,19 @@ body.dark .dark-toggle .icon-moon { display:block; }
     <p class="hero-p">Type what you want to build. PromptMesh routes each piece — planning, design, code, polish — to the model that handles it cheapest and best.</p>
 
     <div class="hero-input-wrap">
-      <textarea class="hero-textarea" id="main-input" placeholder="Describe what you want to build…&#10;&#10;e.g. A geometry dash clone with dinosaurs, a landing page for my bakery, a todo app with drag-and-drop" onkeydown="if((event.ctrlKey||event.metaKey)&&event.key==='Enter'){event.preventDefault();startRun()}"></textarea>
+      <textarea class="hero-textarea" id="main-input" placeholder="Describe what you want to build…&#10;&#10;e.g. A geometry dash clone with dinosaurs, a landing page for my bakery, a todo app with drag-and-drop" onkeydown="if((event.ctrlKey||event.metaKey)&&event.key==='Enter'){event.preventDefault();startRun()}" oninput="updateCostEstLive();checkComplexity()"></textarea>
+      <div id="complexity-hint" style="display:none;align-items:center;gap:10px;padding:8px 14px;margin:4px 0 0;border-left:3px solid var(--amber);background:var(--amber-tint);border-radius:0 6px 6px 0;font-size:.76rem">
+        <span style="font-size:1rem">⚠️</span>
+        <span class="ch-text" style="flex:1;color:var(--amber)"></span>
+        <button class="ch-switch" style="display:none;padding:3px 10px;border:1.5px solid currentColor;border-radius:4px;background:transparent;cursor:pointer;font-size:.72rem;font-weight:600;color:inherit;white-space:nowrap">Switch model →</button>
+      </div>
       <div class="hero-input-footer">
         <div style="display:flex;align-items:center;gap:12px">
           <div class="cost-est" id="cost-est">⚡ ~$0.003 est.</div>
           <div class="run-credits" id="credits-display"></div>
         </div>
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-          <select class="select" id="provider-select" style="width:170px;padding:5px 28px 5px 10px;font-size:.74rem" onchange="onProviderChange()">
+          <select class="select" id="provider-select" style="width:160px;padding:5px 28px 5px 10px;font-size:.74rem" onchange="onProviderChange()">
             <option value="anthropic">🤖 Claude (Anthropic)</option>
             <option value="openai">🧠 OpenAI (ChatGPT)</option>
             <option value="gemini">✨ Google Gemini</option>
@@ -534,6 +539,7 @@ body.dark .dark-toggle .icon-moon { display:block; }
             <option value="groq">⚡ Groq (Llama)</option>
             <option value="cohere">🌊 Cohere</option>
           </select>
+          <select class="select" id="model-select" style="width:160px;padding:5px 28px 5px 10px;font-size:.74rem" onchange="onModelChange()" title="Select model for this provider"></select>
           <select class="select" id="mode-select" style="width:140px;padding:5px 28px 5px 10px;font-size:.74rem" onchange="updateCostEst()">
             <option value="quick">Quick (3 stages)</option>
             <option value="full">Full Team (5 stages)</option>
@@ -1076,11 +1082,92 @@ function getSelectedProvider(){return document.getElementById('provider-select')
 function getProviderKey(pid){const p=LLM_PROVIDERS[pid];return p?sessionStorage.getItem(p.keyStorage):null;}
 function setProviderKey(pid,key){const p=LLM_PROVIDERS[pid];if(p)sessionStorage.setItem(p.keyStorage,key);}
 
-function onProviderChange(){
+function getSelectedModel(pid) {
+  const p = LLM_PROVIDERS[pid];
+  if (!p) return null;
+  return sessionStorage.getItem('pm_model_' + pid) || p.defaultModel;
+}
+
+function populateModelSelect(pid) {
+  const p = LLM_PROVIDERS[pid];
+  const sel = document.getElementById('model-select');
+  if (!sel || !p) return;
+  const saved = getSelectedModel(pid);
+  sel.innerHTML = Object.entries(p.models).map(([id, m]) =>
+    `<option value="${id}"${id === saved ? ' selected' : ''}>${m.label}</option>`
+  ).join('');
+}
+
+function onModelChange() {
+  const pid = getSelectedProvider();
+  const model = document.getElementById('model-select')?.value;
+  if (model) sessionStorage.setItem('pm_model_' + pid, model);
   updateCostEstLive();
+  checkComplexity();
+}
+
+// ── Complexity detection ──────────────────────────────────────────
+const COMPLEXITY_HARD = ['game','clone','3d','canvas','physics','multiplayer','real-time','realtime','drag-and-drop','drag and drop','shader','webgl','three.js','pixi','rpg','platformer','puzzle','tetris','snake','chess','checkers','collision detection','particle'];
+const COMPLEXITY_MED  = ['dashboard','chart','graph','editor','wysiwyg','authentication','auth','login','database','websocket','calendar','kanban','gantt','timeline','infinite scroll','virtual list','sorting','filtering','search'];
+
+function getComplexityLevel(prompt) {
+  const p = prompt.toLowerCase();
+  let score = 0;
+  if (p.length > 150) score++;
+  if (p.length > 350) score++;
+  COMPLEXITY_HARD.forEach(w => { if (p.includes(w)) score += 2; });
+  COMPLEXITY_MED.forEach(w => { if (p.includes(w)) score++; });
+  if (score <= 0) return 'simple';
+  if (score <= 2) return 'moderate';
+  if (score <= 4) return 'complex';
+  return 'hard';
+}
+
+function checkComplexity() {
+  const hint = document.getElementById('complexity-hint');
+  if (!hint) return;
+  const prompt = document.getElementById('main-input')?.value || '';
+  const pid = getSelectedProvider();
+  const model = getSelectedModel(pid);
+  const isHaiku = model === 'claude-haiku-4-5-20251001';
+  const level = getComplexityLevel(prompt);
+
+  if (!prompt.trim() || level === 'simple' || !isHaiku) { hint.style.display = 'none'; return; }
+
+  const cfg = {
+    moderate: { color: 'var(--amber)',  text: 'Moderate complexity — Haiku should handle this fine.', suggest: null },
+    complex:  { color: '#d07020',       text: 'Complex project — Haiku may produce incomplete results. Sonnet 4.6 is recommended.', suggest: 'claude-sonnet-4-6' },
+    hard:     { color: 'var(--coral)',  text: 'Very complex — Haiku will likely struggle here. Use Sonnet or Opus for best results.', suggest: 'claude-sonnet-4-6' },
+  }[level];
+
+  hint.style.display = 'flex';
+  hint.style.borderLeftColor = cfg.color;
+  hint.querySelector('.ch-text').textContent = cfg.text;
+  hint.querySelector('.ch-text').style.color = cfg.color;
+  const btn = hint.querySelector('.ch-switch');
+  if (cfg.suggest && pid === 'anthropic') {
+    btn.style.display = '';
+    btn.style.color = cfg.color;
+    btn.onclick = () => {
+      sessionStorage.setItem('pm_model_anthropic', cfg.suggest);
+      populateModelSelect('anthropic');
+      const sel = document.getElementById('model-select');
+      if (sel) sel.value = cfg.suggest;
+      onModelChange();
+      hint.style.display = 'none';
+      const label = LLM_PROVIDERS.anthropic.models[cfg.suggest]?.label || cfg.suggest;
+      toast('Switched to ' + label + ' for better quality', 'ok');
+    };
+  } else { btn.style.display = 'none'; }
+}
+
+function onProviderChange(){
+  const pid = getSelectedProvider();
+  populateModelSelect(pid);
+  updateCostEstLive();
+  checkComplexity();
   // Sync byok provider selector if visible
   const byokSel=document.getElementById('byok-provider-select');
-  const pid=getSelectedProvider();
   if(byokSel)byokSel.value=pid;
   updateByokStatus();
   const key=getProviderKey(pid);
@@ -1786,7 +1873,7 @@ async function callAPI(apiKey, stage, prompt) {
   if (!p) throw new Error('Unknown provider: ' + pid);
   const key = getProviderKey(pid);
   if (!key) throw new Error('No API key for ' + p.name + ' — save it in Account → API Keys');
-  const model = p.defaultModel;
+  const model = getSelectedModel(pid);
   const sysPrompt = stage.systemPrompt || `You are the ${stage.name} stage of PromptMesh, an AI pipeline tool. Produce the best possible output. Be concise and output exactly what's requested with no preamble.`;
   try {
     return await p.call(key, model, sysPrompt, prompt, stage.tokenBudget);
@@ -2565,7 +2652,7 @@ function renderExamples() {
   const el = document.getElementById('examples-row');
   if (!el) return;
   el.innerHTML = EXAMPLES.map(e =>
-    `<div class="ex-chip" onclick="document.getElementById('main-input').value=${JSON.stringify(e).replace(/"/g, '&quot;')};updateCostEst()">${escHtml(e)}</div>`
+    `<div class="ex-chip" onclick="document.getElementById('main-input').value=${JSON.stringify(e).replace(/"/g, '&quot;')};updateCostEstLive();checkComplexity()">${escHtml(e)}</div>`
   ).join('');
 }
 
@@ -2578,6 +2665,7 @@ document.addEventListener('DOMContentLoaded', () => {
   renderUserBadge();
   updateCreditsDisplay();
   updateByokStatus();
+  populateModelSelect(getSelectedProvider());
   document.getElementById('main-input').addEventListener('input', updateCostEstLive);
   document.getElementById('mode-select').addEventListener('change', updateCostEstLive);
   document.getElementById('provider-select').addEventListener('change', updateCostEstLive);
@@ -2869,7 +2957,8 @@ function updateCostEstLive() {
   const mode = document.getElementById('mode-select')?.value || 'quick';
   const pid = getSelectedProvider();
   const p = LLM_PROVIDERS[pid];
-  const costPer1k = p ? (p.models[p.defaultModel]?.costPer1k || 0.00025) : 0.00025;
+  const selectedModel = getSelectedModel(pid);
+  const costPer1k = p ? (p.models[selectedModel]?.costPer1k || p.models[p.defaultModel]?.costPer1k || 0.00025) : 0.00025;
   const stageCounts = { quick: 3, full: 5, code: 3, design: 3, fusion: 5 };
   const stages = stageCounts[mode] || 3;
   const promptTokens = Math.ceil(prompt.length / 4);
