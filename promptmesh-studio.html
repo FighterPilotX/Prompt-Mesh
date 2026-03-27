@@ -1308,24 +1308,38 @@ FORBIDDEN:
 
 Output: one \`\`\`html block only.`;
       } else {
-        return `${customSys ? 'CONTEXT: ' + customSys + '\n\n' : ''}Write a single complete, fully-working interactive HTML file.
+        return `${customSys ? 'CONTEXT: ' + customSys + '\n\n' : ''}Write a single complete HTML file with embedded CSS and JavaScript that fully implements this app.
 
 PROJECT: "${userPrompt}"
 DESIGN SYSTEM: ${design}
 SPEC: ${spec}
 
-REQUIREMENTS:
-1. Load Google Fonts in <head> if design specifies them
-2. CSS custom properties for all colors/fonts
-3. Complete, working app — every feature implemented, nothing stubbed
-4. Smooth CSS transitions on interactive elements
-5. Responsive layout (CSS Grid or Flexbox)
-6. All event listeners use addEventListener — no onclick= attributes
-7. Wrap all JS initialization in document.addEventListener('DOMContentLoaded', init)
-8. Use localStorage for any data that should persist across page refreshes
-9. Guard all DOM queries: const el = document.getElementById('x'); if (!el) return;
+STRUCTURE:
+<!DOCTYPE html>
+<html>
+<head>
+  <!-- Google Fonts link if needed -->
+  <!-- <style> with CSS custom properties and all styles -->
+</head>
+<body>
+  <!-- complete UI markup -->
+  <script>
+    // ALL JavaScript here — state, render, logic, events, init
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>
 
-Output: one \`\`\`html block only. The <script> tag goes before </body>.`;
+REQUIREMENTS:
+- Every feature from the spec fully implemented — no stubs, no TODO comments
+- CSS custom properties (--primary, --bg, etc.) for all colors and fonts
+- Responsive layout with CSS Grid or Flexbox
+- Smooth transitions (0.2s ease) on interactive elements
+- All event listeners use addEventListener — never onclick= attributes
+- Guard DOM queries: const el = document.getElementById('x'); if (!el) return;
+- localStorage for any data that should survive page refresh
+
+Output: one \`\`\`html block only.`;
       }
     }
   },
@@ -1335,55 +1349,40 @@ Output: one \`\`\`html block only. The <script> tag goes before </body>.`;
     model: 'claude-haiku-4-5-20251001', tokenBudget: 4096,
     costPer1k: 0.00025, feedType: 'fi-backend',
     badge: 'LOGIC', badgeColor: '#c47a2a',
-    systemPrompt: 'You are a JavaScript engineer. Output only a single ```javascript block — zero explanation before or after. Write complete, production-quality vanilla JS. No stubs, no TODOs, no placeholder comments.',
+    systemPrompt: 'You are a JavaScript engineer. Output only a single ```javascript code block — zero explanation before or after. Write complete, working vanilla JS. No stubs, no TODOs, no placeholder comments. Every function must be fully implemented.',
     buildPrompt(userPrompt, prev, customSys) {
       const frontendHTML = (prev.frontend||'').substring(0, 6000);
-      // Dynamically extract IDs so backend can target them precisely
       const idMatches = [...frontendHTML.matchAll(/\bid="([^"]+)"/gi)];
       const elementIds = [...new Set(idMatches.map(m => m[1]))];
       const idsHint = elementIds.length > 0
-        ? '\n\nELEMENT IDs (ONLY target IDs that exist in the HTML above):\n' + elementIds.map(id => `  #${id}`).join('\n')
+        ? '\n\nELEMENT IDs in the HTML (use ONLY these — do not reference IDs that are not in this list):\n' + elementIds.map(id => `  #${id}`).join('\n')
         : '';
-      return `${customSys ? 'CONTEXT: ' + customSys + '\n\n' : ''}Write ALL the JavaScript to make this app fully interactive.
+      return `${customSys ? 'CONTEXT: ' + customSys + '\n\n' : ''}Write ALL the JavaScript to make this app fully interactive. Output a single \`\`\`javascript block — no prose, no explanation.
 
 PROJECT: "${userPrompt}"
 SPEC: ${(prev.planning||'').substring(0,500)}
 
-FULL HTML (target the EXACT IDs listed — do not invent IDs that aren't here):
+HTML (wire up to these exact IDs):
 ${frontendHTML}${idsHint}
 
-Output a single \`\`\`javascript block structured as:
+Your JS must contain these sections IN ORDER:
 
-// STATE
-const state = { /* complete initial state */ };
+1. A "state" object holding all app data (tasks, items, scores, etc.)
 
-// RENDER — reads state, writes to DOM
-function render() {
-  // update every dynamic element (lists, counters, visibility, etc.)
-}
+2. A "render()" function that reads from state and updates the DOM — innerHTML for lists, textContent for counters, style.display for show/hide
 
-// LOGIC — every feature fully implemented, no stubs
-function [featureName]() { ... }
+3. All business logic functions — FULLY IMPLEMENTED. No function bodies left empty.
 
-// EVENTS — addEventListener on EVERY interactive element in the HTML
-function bindEvents() {
-  document.getElementById('...').addEventListener('click', ...);
-  // etc.
-}
+4. A "bindEvents()" function that calls addEventListener on every button, input, form, and interactive element. Use the exact IDs from the HTML above.
 
-// INIT
-function init() {
-  // load from localStorage if needed
-  bindEvents();
-  render();
-}
+5. An "init()" function that loads any saved state from localStorage, calls bindEvents(), then calls render(). End with:
 document.addEventListener('DOMContentLoaded', init);
 
-RULES:
-- Guard every DOM query: const el = document.getElementById('id'); if (!el) return;
-- Use localStorage for data that should persist (JSON.stringify/parse)
-- Handle all edge cases: empty state, invalid input, 0 items
-- No external libraries unless a <script src="..."> tag exists in the HTML above`;
+RULES — violation causes broken app:
+- Every getElementById call must be guarded: const el = document.getElementById('x'); if (!el) return;
+- Save/load app data with localStorage using JSON.stringify and JSON.parse
+- Never reference an ID that does not appear in the HTML above
+- Never use document.write, eval, or innerHTML on user-supplied text without escaping`;
     }
   },
   polish: {
