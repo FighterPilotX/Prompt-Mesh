@@ -24,6 +24,16 @@ import { spawnSync } from 'child_process';
 const __dir = dirname(fileURLToPath(import.meta.url));
 const ROOT  = resolve(__dir, '..');
 
+// ── CLI flags ────────────────────────────────────────────────────────────────
+// Usage: node tests/test_suite.mjs --exclude studio,enterprise
+const excludeArg = process.argv.find(a => a.startsWith('--exclude'));
+const EXCLUDE = new Set(
+  excludeArg
+    ? (excludeArg.includes('=') ? excludeArg.split('=')[1] : process.argv[process.argv.indexOf(excludeArg) + 1])
+        .split(',').map(s => s.trim().toLowerCase())
+    : []
+);
+
 // ── helpers ──────────────────────────────────────────────────────────────────
 
 let pass = 0, fail = 0, warn = 0;
@@ -52,7 +62,12 @@ const FILES = {
 
 const contents = {};
 for (const [key, file] of Object.entries(FILES)) {
+  if (EXCLUDE.has(key)) continue;
   contents[key] = read(file);
+}
+
+if (EXCLUDE.size) {
+  console.log(`${DIM}Excluding: ${[...EXCLUDE].join(', ')}${RESET}`);
 }
 
 // ── 1. JS syntax ─────────────────────────────────────────────────────────────
@@ -271,6 +286,7 @@ section('10. Product pages link back to hub');
 const PRODUCT_PAGES = ['enterprise', 'dev', 'sysai'];
 
 for (const key of PRODUCT_PAGES) {
+  if (EXCLUDE.has(key)) continue;
   const html = contents[key];
   if (html.includes('promptmesh-hub.html') || html.includes("go('hub')") || html.includes('"hub"')) {
     ok(`${FILES[key]}: has hub back-link`);
