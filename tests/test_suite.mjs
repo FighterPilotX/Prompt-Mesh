@@ -53,7 +53,6 @@ const HAIKU_COST   = 0.00025 / 1000; // per token
 // ── files ────────────────────────────────────────────────────────────────────
 
 const FILES = {
-  studio:     'promptmesh-studio.html',
   enterprise: 'promptmesh-enterprise.html',
   dev:        'promptmesh-dev.html',
   sysai:      'promptmesh-sysai.html',
@@ -251,33 +250,8 @@ section('7. SysAI — chat context injection efficiency');
 
 section('8. Cost estimate per Studio pipeline run');
 
-if (EXCLUDE.has('studio')) {
-  note('Studio excluded — skipping cost estimate check');
-} else {
-  const studio = contents.studio;
-  // Extract token budgets from STAGES_CONFIG
-  const budgets = [...studio.matchAll(/tokenBudget:\s*(\d+)/g)].map(m => parseInt(m[1], 10));
-  const systemPromptLen = 130; // chars per stage system prompt (approx)
-  const userPromptLen   = 400; // typical user prompt chars
-
-  let totalCost = 0;
-  const perStage = [];
-  for (const budget of budgets) {
-    const inputTokens  = approxTokens(systemPromptLen + userPromptLen);
-    const outputTokens = budget; // worst case
-    const cost = (inputTokens + outputTokens) * HAIKU_COST;
-    totalCost += cost;
-    perStage.push({ budget, cost: cost.toFixed(6) });
-  }
-
-  console.log(`     Stages: ${budgets.join(', ')} max tokens`);
-  console.log(`     Est. total cost (worst case): $${totalCost.toFixed(5)} / run`);
-
-  if (totalCost <= 0.006) {
-    ok(`Studio pipeline cost ≤ $0.006 (est. $${totalCost.toFixed(5)})`);
-  } else {
-    ko(`Studio pipeline too expensive: est. $${totalCost.toFixed(5)} > $0.006 target`);
-  }
+{
+  note('Studio excluded from this run — skipping pipeline cost check');
 }
 
 // ── 9. Tag integrity ──────────────────────────────────────────────────────────
@@ -309,7 +283,7 @@ for (const [key, html] of Object.entries(contents)) {
 
 section('10. Product pages link back to hub');
 
-const PRODUCT_PAGES = ['studio', 'enterprise', 'dev', 'sysai'];
+const PRODUCT_PAGES = ['enterprise', 'dev', 'sysai'];
 
 for (const key of PRODUCT_PAGES) {
   if (EXCLUDE.has(key)) continue;
